@@ -1,0 +1,60 @@
+{
+  "pr_url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/7",
+  "total_issues": 6,
+  "issues": [
+    {
+      "file_path": "app/assets/stylesheets/desktop/topic-post.scss",
+      "line_number": 291,
+      "category": "incorrect_values",
+      "severity": "medium",
+      "confidence": 0.9,
+      "comment": "Primary lightness value changed from 30% to 70% during conversion, but should remain 30% to preserve original appearance. This will make text significantly lighter than intended.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/assets/stylesheets/mobile/modal.scss",
+      "line_number": 102,
+      "category": "incorrect_values",
+      "severity": "medium",
+      "confidence": 0.9,
+      "comment": "Primary lightness value changed from 70% to 30% during conversion, but should remain 70% to preserve original appearance. This will make text significantly darker than intended.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/assets/stylesheets/mobile/topic-post.scss",
+      "line_number": 182,
+      "category": "incorrect_values",
+      "severity": "medium",
+      "confidence": 0.9,
+      "comment": "Primary lightness value changed from 20% to 50% during conversion, but should remain 20% to preserve original appearance. This will make text significantly lighter than intended.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/assets/stylesheets/mobile/topic-post.scss",
+      "line_number": 247,
+      "category": "incorrect_values",
+      "severity": "medium",
+      "confidence": 0.8,
+      "comment": "Primary lightness value appears to have changed from 20% to 20% in the conversion, but secondary is set to 80% instead of expected inverse relationship. Should verify intended contrast.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/assets/stylesheets/mobile/user.scss",
+      "line_number": 497,
+      "category": "incorrect_values",
+      "severity": "medium",
+      "confidence": 0.9,
+      "comment": "Primary lightness value changed from 30% to 50% during conversion, but should remain 30% to preserve original appearance. This will make text significantly lighter than intended.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/assets/stylesheets/desktop/user.scss",
+      "line_number": 522,
+      "category": "incorrect_values",
+      "severity": "medium",
+      "confidence": 0.9,
+      "comment": "Primary lightness value changed from 30% to 50% during conversion, but should remain 30% to preserve original appearance. This will make text significantly lighter than intended.",
+      "source_pass": "batched_review"
+    }
+  ]
+}

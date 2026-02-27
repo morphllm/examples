@@ -1,0 +1,60 @@
+{
+  "pr_url": "https://github.com/ai-code-review-evaluation/sentry-greptile/pull/2",
+  "total_issues": 6,
+  "issues": [
+    {
+      "file_path": "src/sentry/api/endpoints/organization_auditlogs.py",
+      "line_number": 71,
+      "category": "null_reference",
+      "severity": "high",
+      "confidence": 0.9,
+      "comment": "Variable 'organization_context' is not defined but is accessed with 'organization_context.member.has_global_access', causing NameError. Should be 'organization.member.has_global_access' based on the method parameter.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "src/sentry/api/paginator.py",
+      "line_number": 881,
+      "category": "api_misuse",
+      "severity": "high",
+      "confidence": 0.95,
+      "comment": "Django QuerySet slicing 'queryset[start_offset:stop]' with negative start_offset is not supported and will raise an exception. Django ORM does not allow negative indexing in queryset slicing.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "src/sentry/api/paginator.py",
+      "line_number": 840,
+      "category": "api_misuse",
+      "severity": "critical",
+      "confidence": 0.95,
+      "comment": "math.floor and math.ceil are used but math module is never imported, causing NameError at runtime.",
+      "source_pass": "pass2"
+    },
+    {
+      "file_path": "src/sentry/api/endpoints/organization_auditlogs.py",
+      "line_number": 71,
+      "category": "null_reference",
+      "severity": "critical",
+      "confidence": 0.9,
+      "comment": "organization_context variable is referenced but not defined in method scope - should likely be 'organization' instead, causing AttributeError.",
+      "source_pass": "pass2"
+    },
+    {
+      "file_path": "src/sentry/spans/buffer.py",
+      "line_number": 449,
+      "category": "logic_error",
+      "severity": "high",
+      "confidence": 0.95,
+      "comment": "Span count safety check (max_segment_spans) was completely removed without replacement, allowing unbounded segment growth that could cause memory exhaustion.",
+      "source_pass": "pass2"
+    },
+    {
+      "file_path": "src/sentry/api/paginator.py",
+      "line_number": 876,
+      "category": "logic_error",
+      "severity": "high",
+      "confidence": 0.85,
+      "comment": "Negative offset slicing queryset[negative:positive] doesn't work as intended in Python - will return unexpected results rather than enabling 'reverse pagination from arbitrary positions'.",
+      "source_pass": "pass2"
+    }
+  ]
+}

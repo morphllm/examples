@@ -1,0 +1,33 @@
+{
+  "pr_url": "https://github.com/calcom/cal.com/pull/14943",
+  "total_issues": 3,
+  "issues": [
+    {
+      "file_path": "packages/features/ee/workflows/api/scheduleSMSReminders.ts",
+      "line_number": 37,
+      "category": "logic_error",
+      "severity": "high",
+      "confidence": 0.9,
+      "comment": "The OR condition `retryCount: { gt: 1 }` deletes ALL workflow reminders with retryCount > 1 regardless of method, but this function is SMS-specific. Non-SMS reminders (email, etc.) will be incorrectly deleted when they fail multiple times.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "packages/features/ee/workflows/api/scheduleSMSReminders.ts",
+      "line_number": 179,
+      "category": "race_condition",
+      "severity": "medium",
+      "confidence": 0.7,
+      "comment": "The retryCount increment `reminder.retryCount + 1` is a read-modify-write operation that could lose updates if multiple instances process the same reminder concurrently, though this is partially mitigated by the `scheduled: false` filter.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "packages/features/ee/workflows/api/scheduleSMSReminders.ts",
+      "line_number": 195,
+      "category": "race_condition",
+      "severity": "medium",
+      "confidence": 0.7,
+      "comment": "The retryCount increment `reminder.retryCount + 1` in the catch block has the same race condition risk as the else block, where concurrent processing could lead to lost retry count updates.",
+      "source_pass": "batched_review"
+    }
+  ]
+}

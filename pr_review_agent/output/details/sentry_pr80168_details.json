@@ -1,0 +1,33 @@
+{
+  "pr_url": "https://github.com/getsentry/sentry/pull/80168",
+  "total_issues": 3,
+  "issues": [
+    {
+      "file_path": "tests/sentry/workflow_engine/processors/test_detector.py",
+      "line_number": 501,
+      "category": "test_correctness",
+      "severity": "medium",
+      "confidence": 0.95,
+      "comment": "build_mock_occurrence_and_event is called with value 6 but the test passes value 100 in group_vals, causing test assertion to fail due to mismatched expected vs actual occurrence data.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "tests/sentry/workflow_engine/processors/test_detector.py",
+      "line_number": 526,
+      "category": "test_correctness",
+      "severity": "medium",
+      "confidence": 0.95,
+      "comment": "build_mock_occurrence_and_event is called with value 6 but the test passes value 8 in group_vals, causing test assertion to fail due to mismatched expected vs actual occurrence data.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "tests/sentry/workflow_engine/processors/test_detector.py",
+      "line_number": 547,
+      "category": "test_correctness",
+      "severity": "medium",
+      "confidence": 0.85,
+      "comment": "build_mock_occurrence_and_event() called with group_key=\"val1\" but expected result uses group_key=\"group_key\", causing test assertion to fail due to mismatched fingerprints.",
+      "source_pass": "pass2"
+    }
+  ]
+}

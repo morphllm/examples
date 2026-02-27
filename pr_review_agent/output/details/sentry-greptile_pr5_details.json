@@ -1,0 +1,24 @@
+{
+  "pr_url": "https://github.com/ai-code-review-evaluation/sentry-greptile/pull/5",
+  "total_issues": 2,
+  "issues": [
+    {
+      "file_path": "src/sentry/integrations/source_code_management/commit_context.py",
+      "line_number": 601,
+      "category": "api_misuse",
+      "severity": "high",
+      "confidence": 0.95,
+      "comment": "Method calls `PRCommentWorkflow._truncate_title(title)` but `_truncate_title` is defined as a static method in `CommitContextIntegration` class, not in `PRCommentWorkflow`. This will cause AttributeError at runtime when the method is called.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "src/sentry/integrations/source_code_management/commit_context.py",
+      "line_number": 601,
+      "category": "api_misuse",
+      "severity": "high",
+      "confidence": 0.95,
+      "comment": "PRCommentWorkflow._truncate_title(title) calls a method on undefined class PRCommentWorkflow, but _truncate_title is defined as a static method on CommitContextIntegration in the same file at line 578, causing NameError at runtime.",
+      "source_pass": "pass2"
+    }
+  ]
+}

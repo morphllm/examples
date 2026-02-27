@@ -1,0 +1,15 @@
+{
+  "pr_url": "https://github.com/keycloak/keycloak/pull/38446",
+  "total_issues": 1,
+  "issues": [
+    {
+      "file_path": "services/src/main/java/org/keycloak/forms/login/freemarker/model/RecoveryAuthnCodeInputLoginBean.java",
+      "line_number": 20,
+      "category": "null_reference",
+      "severity": "high",
+      "confidence": 0.95,
+      "comment": "credentialModelOpt.get() calls get() on Optional without checking if present first. If RecoveryAuthnCodesUtils.getCredential() returns empty Optional, this will throw NoSuchElementException at runtime.",
+      "source_pass": "pass2"
+    }
+  ]
+}

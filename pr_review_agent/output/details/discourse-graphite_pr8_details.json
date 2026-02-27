@@ -1,0 +1,114 @@
+{
+  "pr_url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/8",
+  "total_issues": 12,
+  "issues": [
+    {
+      "file_path": "app/assets/javascripts/admin/controllers/admin-group.js.es6",
+      "line_number": 33,
+      "category": "logic_error",
+      "severity": "medium",
+      "confidence": 0.8,
+      "comment": "[next action offset calculation] sets offset to Math.min(current_offset + limit, user_count) but this can result in showing no results when offset equals user_count, should use Math.min(current_offset + limit, user_count - limit) to stay within valid range.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/assets/javascripts/admin/routes/admin_group_route.js",
+      "line_number": 13,
+      "category": "race_condition",
+      "severity": "medium",
+      "confidence": 0.9,
+      "comment": "[setupController method] calls model.findMembers() without waiting for completion, but removes afterModel that previously waited, causing template to render before members data is loaded.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/assets/javascripts/admin/templates/group.hbs",
+      "line_number": 22,
+      "category": "api_misuse",
+      "severity": "high",
+      "confidence": 0.9,
+      "comment": "[template iteration] uses {{each member in members}} but the controller no longer sets a 'members' property, causing undefined iteration and empty member list display.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/assets/javascripts/discourse/models/group.js",
+      "line_number": 21,
+      "category": "api_misuse",
+      "severity": "medium",
+      "confidence": 0.8,
+      "comment": "[findMembers method] returns undefined when name is empty but previously returned Ember.RSVP.resolve([]), breaking callers that expect a promise.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/assets/javascripts/discourse/models/group.js",
+      "line_number": 82,
+      "category": "incorrect_value",
+      "severity": "low",
+      "confidence": 0.6,
+      "comment": "[destroy method return statement] has extra semicolon 'return };' which should be 'return;' for consistent syntax.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/assets/javascripts/discourse/routes/group-members.js.es6",
+      "line_number": 10,
+      "category": "race_condition",
+      "severity": "medium",
+      "confidence": 0.9,
+      "comment": "[setupController method] calls model.findMembers() without waiting for completion, but removes afterModel that previously waited, causing template to render before members data is loaded.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/assets/javascripts/discourse/templates/group/members.hbs",
+      "line_number": 6,
+      "category": "api_misuse",
+      "severity": "high",
+      "confidence": 0.9,
+      "comment": "[template iteration] changed from 'model' to 'members' but the route setupController now passes model directly, causing undefined iteration and empty member list.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/controllers/admin/groups_controller.rb",
+      "line_number": 94,
+      "category": "api_misuse",
+      "severity": "high",
+      "confidence": 0.9,
+      "comment": "[remove_member method] calls group.users.delete(user_id) with an integer ID but ActiveRecord association delete() expects user objects, causing method failure and member not being removed.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/controllers/admin/groups_controller.rb",
+      "line_number": 85,
+      "category": "api_misuse",
+      "severity": "medium",
+      "confidence": 0.8,
+      "comment": "[add_members method] uses params.require(:group_id) but route provides :id parameter, causing ActionController::ParameterMissing exception when accessing the endpoint.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/controllers/admin/groups_controller.rb",
+      "line_number": 89,
+      "category": "api_misuse",
+      "severity": "medium",
+      "confidence": 0.8,
+      "comment": "[remove_member method] uses params.require(:group_id) but route provides :id parameter, causing ActionController::ParameterMissing exception when accessing the endpoint.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "spec/controllers/admin/groups_controller_spec.rb",
+      "line_number": 120,
+      "category": "test_correctness",
+      "severity": "medium",
+      "confidence": 0.8,
+      "comment": "[add_members test] uses xhr :put, :add_members action but routes map to PUT /admin/groups/:id/members, causing test to fail with routing error since :add_members action doesn't exist as a route.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "spec/controllers/admin/groups_controller_spec.rb",
+      "line_number": 137,
+      "category": "test_correctness",
+      "severity": "medium",
+      "confidence": 0.8,
+      "comment": "[remove_member test] uses xhr :delete, :remove_member action but routes map to DELETE /admin/groups/:id/members, causing test to fail with routing error since :remove_member action doesn't exist as a route.",
+      "source_pass": "batched_review"
+    }
+  ]
+}

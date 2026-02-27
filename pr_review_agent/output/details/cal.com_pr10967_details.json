@@ -1,0 +1,69 @@
+{
+  "pr_url": "https://github.com/calcom/cal.com/pull/10967",
+  "total_issues": 7,
+  "issues": [
+    {
+      "file_path": "packages/app-store/googlecalendar/lib/CalendarService.ts",
+      "line_number": 254,
+      "category": "logic_error",
+      "severity": "high",
+      "confidence": 0.9,
+      "comment": "selectedCalendar assignment uses `event.destinationCalendar?.find((cal) => cal.externalId === externalCalendarId)?.externalId` when externalCalendarId is falsy, which will never match anything because it's comparing cal.externalId to a falsy value, causing the find to always fail and potentially breaking calendar updates.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "packages/app-store/googlecalendar/lib/CalendarService.ts",
+      "line_number": 316,
+      "category": "logic_error",
+      "severity": "high",
+      "confidence": 0.9,
+      "comment": "calendarId assignment uses `event.destinationCalendar?.find((cal) => cal.externalId === externalCalendarId)?.externalId` when externalCalendarId is falsy, which will never match anything because it's comparing cal.externalId to a falsy value, causing the find to always fail and potentially breaking calendar deletion.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "packages/core/EventManager.ts",
+      "line_number": 118,
+      "category": "null_reference",
+      "severity": "high",
+      "confidence": 0.8,
+      "comment": "mainHostDestinationCalendar.integration is accessed without null check when mainHostDestinationCalendar could be undefined if destinationCalendar array is empty, causing a TypeError when trying to access integration property.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "packages/core/EventManager.ts",
+      "line_number": 579,
+      "category": "logic_error",
+      "severity": "medium",
+      "confidence": 1.0,
+      "comment": "Duplicated if statement `if (!calendarReference)` appears twice consecutively, making the second condition unreachable and indicating a copy-paste error that should be removed.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "packages/features/bookings/lib/handleNewBooking.ts",
+      "line_number": 689,
+      "category": "incorrect_value",
+      "severity": "medium",
+      "confidence": 0.7,
+      "comment": "isTeamEventType uses string literals [\"COLLECTIVE\", \"ROUND_ROBIN\"] instead of SchedulingType enum values, which could cause comparison failures if the enum values differ from these hardcoded strings, potentially breaking team event type detection.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "packages/trpc/server/routers/viewer/organizations/create.handler.ts",
+      "line_number": 151,
+      "category": "logic_error",
+      "severity": "medium",
+      "confidence": 0.8,
+      "comment": "Conditional spread operator logic `...(IS_TEAM_BILLING_ENABLED ? { slug } : {})` assigns slug when billing is enabled, but the original code `...(!IS_TEAM_BILLING_ENABLED && { slug })` assigned slug when billing was disabled, inverting the intended behavior.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "packages/trpc/server/routers/viewer/organizations/create.handler.ts",
+      "line_number": 153,
+      "category": "logic_error",
+      "severity": "medium",
+      "confidence": 0.8,
+      "comment": "Conditional spread operator logic `...(IS_TEAM_BILLING_ENABLED ? { requestedSlug: slug } : {})` assigns requestedSlug when billing is enabled, but the original code `...(IS_TEAM_BILLING_ENABLED && { requestedSlug: slug })` had the same condition, so this change doesn't match the pattern of the previous line's inversion.",
+      "source_pass": "batched_review"
+    }
+  ]
+}

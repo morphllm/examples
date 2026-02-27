@@ -1,0 +1,114 @@
+{
+  "pr_url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/10",
+  "total_issues": 12,
+  "issues": [
+    {
+      "file_path": "app/assets/javascripts/admin/components/embeddable-host.js.es6",
+      "line_number": 25,
+      "category": "null_reference",
+      "severity": "medium",
+      "confidence": 0.8,
+      "comment": "this.get('host.category.id') accesses category.id without checking if host.category is null/undefined, which will cause TypeError when category is null.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/assets/javascripts/discourse/models/store.js.es6",
+      "line_number": 197,
+      "category": "null_reference",
+      "severity": "high",
+      "confidence": 0.9,
+      "comment": "obj[k].map() is called without checking if obj[k] is null/undefined first, which will cause TypeError when the _ids field contains null.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/controllers/admin/embeddable_hosts_controller.rb",
+      "line_number": 10,
+      "category": "null_reference",
+      "severity": "high",
+      "confidence": 0.9,
+      "comment": "EmbeddableHost.where(id: params[:id]).first can return nil, but line 11 calls save_host(host) without nil check, causing NoMethodError when host is nil.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/controllers/admin/embeddable_hosts_controller.rb",
+      "line_number": 15,
+      "category": "null_reference",
+      "severity": "high",
+      "confidence": 0.9,
+      "comment": "EmbeddableHost.where(id: params[:id]).first can return nil, but line 16 calls host.destroy without nil check, causing NoMethodError when host is nil.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/controllers/admin/embeddable_hosts_controller.rb",
+      "line_number": 22,
+      "category": "null_reference",
+      "severity": "medium",
+      "confidence": 0.8,
+      "comment": "params[:embeddable_host][:host] accesses nested hash without checking if params[:embeddable_host] exists, causing NoMethodError when parameter structure is invalid.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/controllers/embed_controller.rb",
+      "line_number": 61,
+      "category": "null_reference",
+      "severity": "medium",
+      "confidence": 0.7,
+      "comment": "EmbeddableHost.host_allowed?(request.referer) is called without checking if request.referer is nil first, which could cause issues in host validation logic.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/models/embeddable_host.rb",
+      "line_number": 6,
+      "category": "null_reference",
+      "severity": "high",
+      "confidence": 0.9,
+      "comment": "self.host.sub!() is called without checking if self.host is nil, causing NoMethodError when host attribute is nil during validation.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "db/migrate/20150818190757_create_embeddable_hosts.rb",
+      "line_number": 11,
+      "category": "missing_validation",
+      "severity": "high",
+      "confidence": 0.8,
+      "comment": "execute() result is accessed with [0]['id'] without checking if query returned any rows, causing IndexError when no matching embed_category exists.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "db/migrate/20150818190757_create_embeddable_hosts.rb",
+      "line_number": 15,
+      "category": "missing_validation",
+      "severity": "high",
+      "confidence": 0.8,
+      "comment": "execute() result is accessed with [0]['value'] without checking if query returned any rows, causing IndexError when uncategorized_category_id setting doesn't exist.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "db/migrate/20150818190757_create_embeddable_hosts.rb",
+      "line_number": 25,
+      "category": "security",
+      "severity": "critical",
+      "confidence": 1.0,
+      "comment": "String interpolation '#{h}' in SQL execute statement creates SQL injection vulnerability, as host values are inserted directly without escaping or parameterization.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "spec/fabricators/category_fabricator.rb",
+      "line_number": 1,
+      "category": "incorrect_value",
+      "severity": "high",
+      "confidence": 1.0,
+      "comment": "File contains category fabricator definitions but filename suggests it should contain embeddable_host fabricators, indicating the file contents are completely wrong.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "spec/fabricators/embeddable_host_fabricator.rb",
+      "line_number": 1,
+      "category": "incorrect_value",
+      "severity": "high",
+      "confidence": 1.0,
+      "comment": "File contains category fabricator definitions instead of embeddable_host fabricators as indicated by filename, meaning the fabricator files have been swapped.",
+      "source_pass": "batched_review"
+    }
+  ]
+}

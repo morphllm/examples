@@ -1,0 +1,42 @@
+{
+  "pr_url": "https://github.com/grafana/grafana/pull/94942",
+  "total_issues": 4,
+  "issues": [
+    {
+      "file_path": "pkg/expr/reader.go",
+      "line_number": 195,
+      "category": "logic_error",
+      "severity": "high",
+      "confidence": 1.0,
+      "comment": "enableSqlExpressions function always returns false regardless of feature flag state. The logic `enabled := !h.features.IsEnabledGlobally(...)` followed by `if enabled { return false }` then `return false` makes the function always return false, causing SQL expressions to never be enabled even when the feature flag is active.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "pkg/expr/sql_command.go",
+      "line_number": 96,
+      "category": "api_misuse",
+      "severity": "critical",
+      "confidence": 0.9,
+      "comment": "sql.NewInMemoryDB() call replaces working duck.NewInMemoryDB() with a stub implementation that always returns 'not implemented' errors. The new DB struct's QueryFramesInto method always fails, causing SQL command execution to always fail instead of working functionality.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "pkg/expr/sql/parser.go",
+      "line_number": 23,
+      "category": "api_misuse",
+      "severity": "high",
+      "confidence": 0.9,
+      "comment": "NewInMemoryDB() call replaces working duck.NewInMemoryDB() with a stub implementation. The new DB struct's RunCommands method always returns 'not implemented' error, causing TablesList function to always fail instead of parsing SQL statements.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "pkg/expr/reader.go",
+      "line_number": 129,
+      "category": "incorrect_value",
+      "severity": "medium",
+      "confidence": 0.8,
+      "comment": "Feature flag check `if !enabled` returns error 'sqlExpressions is not implemented' but due to the logic error in enableSqlExpressions, this will always execute regardless of feature flag state, making SQL expressions completely unusable.",
+      "source_pass": "batched_review"
+    }
+  ]
+}

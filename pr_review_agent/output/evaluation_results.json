@@ -1,0 +1,47 @@
+{
+  "precision": 0.3148,
+  "recall": 0.4964,
+  "f1": 0.3853,
+  "tp": 68,
+  "fp": 151,
+  "fn": 69,
+  "total_golden": 137,
+  "total_candidates": 216,
+  "per_repo": {
+    "keycloak": {
+      "tp": 10,
+      "fp": 31,
+      "fn": 14,
+      "golden": 24,
+      "candidates": 41
+    },
+    "sentry": {
+      "tp": 15,
+      "fp": 31,
+      "fn": 17,
+      "golden": 32,
+      "candidates": 45
+    },
+    "grafana": {
+      "tp": 10,
+      "fp": 30,
+      "fn": 10,
+      "golden": 20,
+      "candidates": 40
+    },
+    "discourse": {
+      "tp": 15,
+      "fp": 31,
+      "fn": 13,
+      "golden": 28,
+      "candidates": 44
+    },
+    "cal.com": {
+      "tp": 18,
+      "fp": 28,
+      "fn": 13,
+      "golden": 31,
+      "candidates": 46
+    }
+  }
+}

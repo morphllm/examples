@@ -1,0 +1,51 @@
+{
+  "pr_url": "https://github.com/getsentry/sentry/pull/95633",
+  "total_issues": 5,
+  "issues": [
+    {
+      "file_path": "src/sentry/remote_subscriptions/consumers/queue_consumer.py",
+      "line_number": 131,
+      "category": "api_misuse",
+      "severity": "high",
+      "confidence": 0.95,
+      "comment": "queue.ShutDown exception does not exist in Python's standard queue module. The import 'import queue' references the standard library, but queue.ShutDown is not a valid exception, causing AttributeError at runtime.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "src/sentry/remote_subscriptions/consumers/queue_consumer.py",
+      "line_number": 141,
+      "category": "api_misuse",
+      "severity": "high",
+      "confidence": 0.95,
+      "comment": "queue.ShutDown exception does not exist in Python's standard queue module. This will cause AttributeError when the exception is raised.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "src/sentry/remote_subscriptions/consumers/queue_consumer.py",
+      "line_number": 235,
+      "category": "api_misuse",
+      "severity": "high",
+      "confidence": 0.95,
+      "comment": "queue.Queue.shutdown() method does not exist in Python's standard queue module. The code imports the standard library 'queue' module, but Queue objects have no shutdown() method, causing AttributeError at runtime.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "src/sentry/remote_subscriptions/consumers/queue_consumer.py",
+      "line_number": 131,
+      "category": "api_misuse",
+      "severity": "high",
+      "confidence": 1.0,
+      "comment": "`queue.ShutDown` exception does not exist in Python's standard library queue module, causing AttributeError at runtime. The standard library only has `queue.Empty` and `queue.Full` exceptions.",
+      "source_pass": "pass2"
+    },
+    {
+      "file_path": "src/sentry/remote_subscriptions/consumers/queue_consumer.py",
+      "line_number": 230,
+      "category": "api_misuse",
+      "severity": "high",
+      "confidence": 0.95,
+      "comment": "`Queue.shutdown()` method does not exist in Python's standard library queue module, causing AttributeError at runtime. The standard Queue class has no shutdown method.",
+      "source_pass": "pass2"
+    }
+  ]
+}

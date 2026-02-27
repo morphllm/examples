@@ -1,0 +1,78 @@
+{
+  "pr_url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/2",
+  "total_issues": 8,
+  "issues": [
+    {
+      "file_path": "app/assets/javascripts/discourse/controllers/topic-unsubscribe.js.es6",
+      "line_number": 5,
+      "category": "incorrect_value",
+      "severity": "medium",
+      "confidence": 1.0,
+      "comment": "stopNotificiationsText property name has typo 'stopNotificiations' instead of 'stopNotifications', causing potential reference errors if other code expects correct spelling.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/assets/javascripts/discourse/templates/topic/unsubscribe.hbs",
+      "line_number": 3,
+      "category": "incorrect_value",
+      "severity": "medium",
+      "confidence": 1.0,
+      "comment": "Template references {{{stopNotificiationsText}}} with same typo as controller, creating consistency but incorrect spelling throughout.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/assets/javascripts/discourse/routes/topic-unsubscribe.js.es6",
+      "line_number": 13,
+      "category": "null_reference",
+      "severity": "high",
+      "confidence": 0.8,
+      "comment": "topic.set('details.notificationReasonText', null) assumes topic.details exists, but details could be null/undefined causing TypeError when setting nested property.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/controllers/topics_controller.rb",
+      "line_number": 102,
+      "category": "null_reference",
+      "severity": "critical",
+      "confidence": 0.9,
+      "comment": "current_user could be nil since there's no authentication check before using it in TopicView.new and TopicUser.find_by, causing NoMethodError when accessing user.id.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/controllers/topics_controller.rb",
+      "line_number": 105,
+      "category": "null_reference",
+      "severity": "critical",
+      "confidence": 1.0,
+      "comment": "TopicUser.find_by can return nil if user is not following the topic, but code immediately accesses tu.notification_level and tu.save! without nil check, causing NoMethodError.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/controllers/topics_controller.rb",
+      "line_number": 500,
+      "category": "api_misuse",
+      "severity": "medium",
+      "confidence": 0.7,
+      "comment": "Added explicit render :show in perform_show_response method which already renders implicitly, potentially causing ActionView::DoubleRenderError if this method was previously working without explicit render.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/models/topic_user.rb",
+      "line_number": 121,
+      "category": "logic_error",
+      "severity": "critical",
+      "confidence": 1.0,
+      "comment": "user_id assignment uses 'topic' variable when user is not a User object, but should use 'user' since the method parameter is named 'user', not 'topic', causing wrong user_id to be used.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "lib/email/message_builder.rb",
+      "line_number": 66,
+      "category": "incorrect_value",
+      "severity": "critical",
+      "confidence": 1.0,
+      "comment": "I18n.t('unsubscribe_link', template_args) uses undefined local variable template_args instead of instance variable @template_args, causing NameError.",
+      "source_pass": "batched_review"
+    }
+  ]
+}

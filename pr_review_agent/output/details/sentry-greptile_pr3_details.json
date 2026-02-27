@@ -1,0 +1,15 @@
+{
+  "pr_url": "https://github.com/ai-code-review-evaluation/sentry-greptile/pull/3",
+  "total_issues": 1,
+  "issues": [
+    {
+      "file_path": "src/sentry/testutils/factories.py",
+      "line_number": 356,
+      "category": "logic_error",
+      "severity": "high",
+      "confidence": 0.85,
+      "comment": "_set_sample_rate_from_error_sampling sets 'sample_rate' but upsampled_count() uses 'sample_weight', causing test to expect count==10 but code only provides sample_rate=0.1 instead of sample_weight=10.",
+      "source_pass": "batched_review"
+    }
+  ]
+}

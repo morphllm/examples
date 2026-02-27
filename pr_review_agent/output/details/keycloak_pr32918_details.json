@@ -1,0 +1,42 @@
+{
+  "pr_url": "https://github.com/keycloak/keycloak/pull/32918",
+  "total_issues": 4,
+  "issues": [
+    {
+      "file_path": "server-spi/src/main/java/org/keycloak/models/IdentityProviderStorageProvider.java",
+      "line_number": 254,
+      "category": "null_reference",
+      "severity": "high",
+      "confidence": 0.9,
+      "comment": "The expression `idp.getConfig().get(OrganizationModel.BROKER_PUBLIC)` calls get() on the result of getConfig() without checking if getConfig() returns null, causing a NullPointerException if the IDP has no configuration map.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "model/infinispan/src/main/java/org/keycloak/models/cache/infinispan/idp/InfinispanIdentityProviderStorageProvider.java",
+      "line_number": 240,
+      "category": "logic_error",
+      "severity": "medium",
+      "confidence": 0.8,
+      "comment": "The cached path returns IDPs from `session.identityProviders().getById(id)` directly, but the non-cached path applies `createOrganizationAwareIdentityProviderModel` mapping, causing inconsistent behavior where cached and non-cached results have different IDP wrapping.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/organization/cache/OrganizationCacheTest.java",
+      "line_number": 380,
+      "category": "incorrect_value",
+      "severity": "medium",
+      "confidence": 1.0,
+      "comment": "The cleanup code tries to remove IDP with alias \"alias\" but the created IDP has alias \"idp-alias-\" + i, causing test cleanup to fail and leaving test data behind.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/organization/cache/OrganizationCacheTest.java",
+      "line_number": 458,
+      "category": "incorrect_value",
+      "severity": "medium",
+      "confidence": 1.0,
+      "comment": "The cleanup code tries to remove IDP with alias \"alias\" but the created IDP has alias \"idp-alias-20\", causing test cleanup to fail and leaving test data behind.",
+      "source_pass": "batched_review"
+    }
+  ]
+}

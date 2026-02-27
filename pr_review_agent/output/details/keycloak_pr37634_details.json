@@ -1,0 +1,42 @@
+{
+  "pr_url": "https://github.com/keycloak/keycloak/pull/37634",
+  "total_issues": 4,
+  "issues": [
+    {
+      "file_path": "services/src/main/java/org/keycloak/protocol/oidc/encode/AccessTokenContext.java",
+      "line_number": 72,
+      "category": "logic_error",
+      "severity": "medium",
+      "confidence": 0.95,
+      "comment": "Objects.requireNonNull checks 'grantType' twice but should check 'rawTokenId' in the last validation, causing rawTokenId null values to pass through validation.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/AssertEvents.java",
+      "line_number": 483,
+      "category": "logic_error",
+      "severity": "high",
+      "confidence": 0.9,
+      "comment": "substring(3, 5) extracts the wrong token part (should be substring(4, 6) for grant type at positions 4-5) and the condition logic is inverted - returns false when grant types match instead of when they don't match, causing test assertions to fail incorrectly.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "services/src/main/java/org/keycloak/protocol/oidc/encode/AccessTokenContext.java",
+      "line_number": 72,
+      "category": "incorrect_value",
+      "severity": "medium",
+      "confidence": 0.95,
+      "comment": "Objects.requireNonNull checks 'grantType' but error message says 'Null rawTokenId not allowed', and should be checking 'rawTokenId' parameter instead, causing incorrect null validation.",
+      "source_pass": "pass2"
+    },
+    {
+      "file_path": "testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/AssertEvents.java",
+      "line_number": 484,
+      "category": "logic_error",
+      "severity": "high",
+      "confidence": 0.9,
+      "comment": "Condition 'items[0].substring(3, 5).equals(expectedGrantShortcut)' returns false when grant shortcut matches expected value, but should return false when it does NOT match, causing test assertions to fail when they should pass.",
+      "source_pass": "pass2"
+    }
+  ]
+}

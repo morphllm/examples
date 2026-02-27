@@ -1,0 +1,60 @@
+{
+  "pr_url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/1",
+  "total_issues": 6,
+  "issues": [
+    {
+      "file_path": "app/models/optimized_image.rb",
+      "line_number": 149,
+      "category": "api_misuse",
+      "severity": "critical",
+      "confidence": 1.0,
+      "comment": "Method `downsize` is defined twice with different signatures (lines 146 and 149), causing the second definition to overwrite the first, breaking existing callers that expect downsize(from, to, max_width, max_height, opts).",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/controllers/uploads_controller.rb",
+      "line_number": 67,
+      "category": "logic_error",
+      "severity": "high",
+      "confidence": 0.8,
+      "comment": "While loop may run indefinitely if `OptimizedImage.downsize` fails to reduce file size, as attempt decrements but tempfile.size remains unchanged, causing the loop to execute 5 times without effect.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/controllers/uploads_controller.rb",
+      "line_number": 68,
+      "category": "missing_validation",
+      "severity": "medium",
+      "confidence": 0.9,
+      "comment": "Call to `OptimizedImage.downsize` has no error handling - if the method throws an exception or fails, the upload process will crash without proper cleanup.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/controllers/uploads_controller.rb",
+      "line_number": 55,
+      "category": "incorrect_value",
+      "severity": "medium",
+      "confidence": 0.7,
+      "comment": "Download limit uses hardcoded `10.megabytes` while validation loop at line 66 uses `SiteSetting.max_image_size_kb.kilobytes`, creating inconsistency where files larger than site settings but smaller than 10MB could be downloaded but then processed incorrectly.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/assets/javascripts/discourse/lib/utilities.js",
+      "line_number": 182,
+      "category": "api_misuse",
+      "severity": "medium",
+      "confidence": 0.8,
+      "comment": "Variable `maxSizeKB` uses hardcoded `10 * 1024` instead of `Discourse.SiteSettings['max_' + type + '_size_kb']`, breaking the site's configurability contract and creating inconsistency between client-side validation and server-side settings.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/assets/javascripts/discourse/lib/utilities.js",
+      "line_number": 246,
+      "category": "api_misuse",
+      "severity": "medium",
+      "confidence": 0.8,
+      "comment": "Variable `maxSizeKB` uses hardcoded `10 * 1024` instead of `Discourse.SiteSettings.max_image_size_kb`, breaking site configurability and potentially allowing files that exceed the configured server-side limits to pass client-side validation.",
+      "source_pass": "batched_review"
+    }
+  ]
+}

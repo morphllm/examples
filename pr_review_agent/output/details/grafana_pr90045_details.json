@@ -1,0 +1,132 @@
+{
+  "pr_url": "https://github.com/grafana/grafana/pull/90045",
+  "total_issues": 14,
+  "issues": [
+    {
+      "file_path": "pkg/apiserver/rest/dualwriter_mode1_test.go",
+      "line_number": 138,
+      "category": "incorrect_value",
+      "severity": "critical",
+      "confidence": 1.0,
+      "comment": "Variable `p` is used in NewDualWriter call but was removed from line 138, causing undefined variable compilation error.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "pkg/apiserver/rest/dualwriter_mode3.go",
+      "line_number": 46,
+      "category": "incorrect_value",
+      "severity": "medium",
+      "confidence": 0.9,
+      "comment": "d.recordLegacyDuration call uses `startStorage` timestamp but should record storage duration since this is a storage operation failure, causing incorrect metrics.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "pkg/apiserver/rest/dualwriter_mode3.go",
+      "line_number": 127,
+      "category": "incorrect_value",
+      "severity": "medium",
+      "confidence": 0.9,
+      "comment": "d.recordLegacyDuration call uses `startStorage` timestamp but should be d.recordStorageDuration since this is a storage operation failure, causing incorrect metrics.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "pkg/apiserver/rest/dualwriter_mode3.go",
+      "line_number": 108,
+      "category": "incorrect_value",
+      "severity": "medium",
+      "confidence": 0.8,
+      "comment": "d.recordStorageDuration call passes `name` as the kind parameter but should pass `options.Kind`, causing incorrect metric labeling.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "pkg/apiserver/rest/dualwriter_mode3.go",
+      "line_number": 162,
+      "category": "incorrect_value",
+      "severity": "medium",
+      "confidence": 0.9,
+      "comment": "d.recordStorageDuration call should be d.recordLegacyDuration since it's recording the legacy operation duration with `startLegacy` timestamp, causing incorrect metrics.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "pkg/apiserver/rest/dualwriter_mode3.go",
+      "line_number": 52,
+      "category": "race_condition",
+      "severity": "medium",
+      "confidence": 0.7,
+      "comment": "Goroutine inherits parent context which may be cancelled when HTTP request ends, causing legacy operations to be prematurely cancelled instead of running to completion.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "pkg/apiserver/rest/dualwriter_mode3.go",
+      "line_number": 112,
+      "category": "race_condition",
+      "severity": "medium",
+      "confidence": 0.7,
+      "comment": "Goroutine inherits parent context which may be cancelled when HTTP request ends, causing legacy operations to be prematurely cancelled instead of running to completion.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "pkg/apiserver/rest/dualwriter_mode3.go",
+      "line_number": 133,
+      "category": "race_condition",
+      "severity": "medium",
+      "confidence": 0.7,
+      "comment": "Goroutine inherits parent context which may be cancelled when HTTP request ends, causing legacy operations to be prematurely cancelled instead of running to completion.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "pkg/apiserver/rest/dualwriter_mode3.go",
+      "line_number": 157,
+      "category": "race_condition",
+      "severity": "medium",
+      "confidence": 0.7,
+      "comment": "Goroutine inherits parent context which may be cancelled when HTTP request ends, causing legacy operations to be prematurely cancelled instead of running to completion.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "pkg/apiserver/rest/dualwriter_mode3_test.go",
+      "line_number": 63,
+      "category": "incorrect_value",
+      "severity": "critical",
+      "confidence": 1.0,
+      "comment": "Variable `p` is used in NewDualWriter call but is not defined in this test function, causing undefined variable compilation error.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "pkg/apiserver/rest/dualwriter_mode3_test.go",
+      "line_number": 176,
+      "category": "incorrect_value",
+      "severity": "critical",
+      "confidence": 1.0,
+      "comment": "Variable `p` is used in NewDualWriter call but is not defined in this test function, causing undefined variable compilation error.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "pkg/apiserver/rest/dualwriter_mode3_test.go",
+      "line_number": 229,
+      "category": "incorrect_value",
+      "severity": "critical",
+      "confidence": 1.0,
+      "comment": "Variable `p` is used in NewDualWriter call but is not defined in this test function, causing undefined variable compilation error.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "pkg/apiserver/rest/dualwriter_mode3_test.go",
+      "line_number": 279,
+      "category": "incorrect_value",
+      "severity": "critical",
+      "confidence": 1.0,
+      "comment": "Variable `p` is used in NewDualWriter call but is not defined in this test function, causing undefined variable compilation error.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "pkg/apiserver/rest/dualwriter_mode3_test.go",
+      "line_number": 356,
+      "category": "incorrect_value",
+      "severity": "critical",
+      "confidence": 1.0,
+      "comment": "Variable `p` is used in NewDualWriter call but is not defined in this test function, causing undefined variable compilation error.",
+      "source_pass": "batched_review"
+    }
+  ]
+}

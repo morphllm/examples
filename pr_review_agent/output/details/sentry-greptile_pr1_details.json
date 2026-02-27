@@ -1,0 +1,51 @@
+{
+  "pr_url": "https://github.com/ai-code-review-evaluation/sentry-greptile/pull/1",
+  "total_issues": 5,
+  "issues": [
+    {
+      "file_path": "src/sentry/api/endpoints/organization_auditlogs.py",
+      "line_number": 71,
+      "category": "logic_error",
+      "severity": "high",
+      "confidence": 1.0,
+      "comment": "Variable organization_context is undefined but referenced in organization_context.member.has_global_access, causing NameError when optimized pagination is requested.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "src/sentry/api/paginator.py",
+      "line_number": 182,
+      "category": "api_misuse",
+      "severity": "high",
+      "confidence": 0.9,
+      "comment": "When cursor.is_prev is True, start_offset can be negative (offset value), but Django QuerySet slicing does not support negative start indices, causing TypeError on queryset[negative_start:stop].",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "src/sentry/api/paginator.py",
+      "line_number": 878,
+      "category": "api_misuse",
+      "severity": "critical",
+      "confidence": 1.0,
+      "comment": "Line allows cursor.offset to be negative and uses it as start_offset in queryset[start_offset:stop], but Django QuerySet slicing does not support negative start indices, causing TypeError.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "src/sentry/api/paginator.py",
+      "line_number": 839,
+      "category": "api_misuse",
+      "severity": "high",
+      "confidence": 0.8,
+      "comment": "Method self._is_asc(for_prev) is called but _is_asc method is not defined in OptimizedCursorPaginator class, causing AttributeError.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "src/sentry/api/endpoints/organization_auditlogs.py",
+      "line_number": 71,
+      "category": "incorrect_value",
+      "severity": "high",
+      "confidence": 0.95,
+      "comment": "organization_context.member.has_global_access references undefined variable 'organization_context' but should reference 'organization' (which is the method parameter), causing NameError at runtime when optimized pagination is requested.",
+      "source_pass": "pass2"
+    }
+  ]
+}

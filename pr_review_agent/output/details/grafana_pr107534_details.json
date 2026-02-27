@@ -1,0 +1,33 @@
+{
+  "pr_url": "https://github.com/grafana/grafana/pull/107534",
+  "total_issues": 3,
+  "issues": [
+    {
+      "file_path": "public/app/plugins/datasource/loki/querySplitting.test.ts",
+      "line_number": 84,
+      "category": "test_correctness",
+      "severity": "medium",
+      "confidence": 0.8,
+      "comment": "Test creates datasource with 'replace' function but doesn't mock 'applyTemplateVariables' method that the implementation actually calls, while other tests in the same codebase do mock this method directly. This inconsistency suggests the test may not be properly isolating the unit under test.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "public/app/plugins/datasource/loki/shardQuerySplitting.test.ts",
+      "line_number": 95,
+      "category": "test_correctness",
+      "severity": "medium",
+      "confidence": 0.8,
+      "comment": "Test creates datasource with 'replace' function but doesn't mock 'applyTemplateVariables' method, which is inconsistent with other tests in the same file (lines 56-60) that explicitly mock 'applyTemplateVariables'. This inconsistency could lead to flaky test behavior.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "public/app/plugins/datasource/loki/shardQuerySplitting.test.ts",
+      "line_number": 56,
+      "category": "api_misuse",
+      "severity": "low",
+      "confidence": 0.6,
+      "comment": "Mock implementation of 'applyTemplateVariables' mutates the input query object and returns it, but the real method signature suggests it should return a new/modified query. If the real implementation doesn't mutate inputs, this mock could mask bugs in production code.",
+      "source_pass": "batched_review"
+    }
+  ]
+}

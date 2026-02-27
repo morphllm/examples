@@ -1,0 +1,88 @@
+{
+  "https://github.com/keycloak/keycloak/pull/37429": {
+    "opus_warpgrep": [
+      {
+        "text": "Lithuanian properties file gets Italian text 'Installa una delle seguenti applicazioni sul tuo cellulare:' instead of Lithuanian translation, causing wrong language display for Lithuanian users.",
+        "path": "themes/src/main/resources-community/theme/base/account/messages/messages_lt.properties",
+        "line": 141,
+        "source": "extracted"
+      },
+      {
+        "text": "href attribute has malformed syntax 'href=LT\"' instead of 'href=\"' causing invalid HTML anchor tag.",
+        "path": "themes/src/main/resources-community/theme/base/email/messages/messages_lt.properties",
+        "line": 3,
+        "source": "extracted"
+      },
+      {
+        "text": "Test references 'duplicateKeys_en.properties' file but this file is not added in the PR, causing FileNotFoundException when test runs.",
+        "path": "misc/theme-verifier/src/test/java/org/keycloak/themeverifier/VerifyMessagePropertiesTest.java",
+        "line": 32,
+        "source": "extracted"
+      },
+      {
+        "text": "totpStep1 contains Italian text 'Installa una delle seguenti applicazioni sul tuo cellulare:' but is in Lithuanian (_lt) locale file, causing wrong language to display to Lithuanian users.",
+        "path": "themes/src/main/resources-community/theme/base/account/messages/messages_lt.properties",
+        "line": 141,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/getsentry/sentry/pull/93824": {
+    "opus_warpgrep": [
+      {
+        "text": "Metrics tag key \"shards\" is inconsistent with \"shard\" used on lines 159 and 165, causing inconsistent metric tagging and broken dashboards.",
+        "path": "src/sentry/spans/consumers/process/flusher.py",
+        "line": 199,
+        "source": "extracted"
+      },
+      {
+        "text": "Metrics timer tag key 'shards' is inconsistent with 'shard' used on line 185 for the same shard_tag value, causing metrics aggregation issues.",
+        "path": "src/sentry/spans/consumers/process/flusher.py",
+        "line": 199,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/grafana/grafana/pull/97529": {
+    "opus_warpgrep": [
+      {
+        "text": "`ctx` variable is undefined in NewResourceServer function scope, causing compilation failure when calling s.Init(ctx).",
+        "path": "pkg/storage/unified/resource/server.go",
+        "line": 258,
+        "source": "extracted"
+      },
+      {
+        "text": "Removed cacheMu lock from protecting entire BuildIndex function, now only protects cache write. Multiple goroutines can concurrently build same index and race on cache assignment, potentially causing data corruption or lost work.",
+        "path": "pkg/storage/unified/search/bleve.go",
+        "line": 137,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/9": {
+    "opus_warpgrep": [
+      {
+        "text": "I18n.ensure_loaded! method does not exist on the I18n module. The ensure_loaded! method defined in translate_accelerator.rb is an instance method on a backend class, not a class method on I18n, causing NoMethodError at runtime.",
+        "path": "config/initializers/i18n.rb",
+        "line": 21,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/calcom/cal.com/pull/22532": {
+    "opus_warpgrep": [
+      {
+        "text": "sed command uses macOS-specific syntax `sed -i ''` but should use portable syntax. On Linux systems, this will fail because the empty string argument after -i is only valid on macOS.",
+        "path": "scripts/test-gcal-webhooks.sh",
+        "line": 67,
+        "source": "extracted"
+      },
+      {
+        "text": "`sed -i ''` uses macOS/BSD syntax but should be `sed -i` for Linux compatibility, causing the script to fail on Linux systems with 'sed: can't read : No such file or directory'.",
+        "path": "scripts/test-gcal-webhooks.sh",
+        "line": 67,
+        "source": "extracted"
+      }
+    ]
+  }
+}

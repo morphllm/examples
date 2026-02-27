@@ -1,0 +1,60 @@
+{
+  "pr_url": "https://github.com/keycloak/keycloak/pull/37038",
+  "total_issues": 6,
+  "issues": [
+    {
+      "file_path": "services/src/main/java/org/keycloak/services/resources/admin/permissions/UserPermissionsV2.java",
+      "line_number": 48,
+      "category": "logic_error",
+      "severity": "high",
+      "confidence": 0.85,
+      "comment": "Removed AdminRoles.ADMIN from hasOneAdminRole() check but kept AdminRoles.MANAGE_USERS and AdminRoles.VIEW_USERS, potentially denying access to users with ADMIN role who don't have the specific sub-roles, causing authorization failures.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "services/src/main/java/org/keycloak/services/resources/admin/UsersResource.java",
+      "line_number": 453,
+      "category": "security",
+      "severity": "critical",
+      "confidence": 0.95,
+      "comment": "Removed `.filter(usersEvaluator::canView)` from the user search stream, causing the method to return users that the evaluator cannot view, bypassing access control checks.",
+      "source_pass": "pass2"
+    },
+    {
+      "file_path": "services/src/main/java/org/keycloak/services/resources/admin/GroupResource.java",
+      "line_number": 179,
+      "category": "logic_error",
+      "severity": "high",
+      "confidence": 0.8,
+      "comment": "Changed filter logic from `canViewGlobal || auth.groups().canView(g)` to just `auth.groups()::canView`, removing the global view permission check and potentially making previously accessible groups inaccessible.",
+      "source_pass": "pass2"
+    },
+    {
+      "file_path": "services/src/main/java/org/keycloak/services/resources/admin/GroupsResource.java",
+      "line_number": 113,
+      "category": "logic_error",
+      "severity": "high",
+      "confidence": 0.8,
+      "comment": "Changed filter logic from `canViewGlobal || groupsEvaluator.canView(g)` to just `groupsEvaluator::canView`, removing the global view permission check and potentially making previously accessible groups inaccessible.",
+      "source_pass": "pass2"
+    },
+    {
+      "file_path": "rest/admin-ui-ext/src/main/java/org/keycloak/admin/ui/rest/BruteForceUsersResource.java",
+      "line_number": 147,
+      "category": "logic_error",
+      "severity": "medium",
+      "confidence": 0.75,
+      "comment": "Removed condition `!auth.users().canView()` that previously guarded setting session attribute, now always sets UserModel.GROUPS attribute when groupIds is not empty, changing authorization behavior.",
+      "source_pass": "pass2"
+    },
+    {
+      "file_path": "services/src/main/java/org/keycloak/services/resources/admin/UsersResource.java",
+      "line_number": 448,
+      "category": "logic_error",
+      "severity": "medium",
+      "confidence": 0.75,
+      "comment": "Removed condition `!auth.users().canView()` that previously guarded setting session attribute, now always sets UserModel.GROUPS attribute when groupIds is not empty, changing authorization behavior.",
+      "source_pass": "pass2"
+    }
+  ]
+}

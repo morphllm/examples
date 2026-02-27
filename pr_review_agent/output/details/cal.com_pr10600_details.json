@@ -1,0 +1,33 @@
+{
+  "pr_url": "https://github.com/calcom/cal.com/pull/10600",
+  "total_issues": 3,
+  "issues": [
+    {
+      "file_path": "apps/web/components/auth/BackupCode.tsx",
+      "line_number": 6,
+      "category": "incorrect_value",
+      "severity": "medium",
+      "confidence": 1.0,
+      "comment": "Function is named 'TwoFactor' but should be named 'BackupCode' to match the filename and import usage, causing confusion and potential maintenance issues when other developers expect a BackupCode component but see TwoFactor.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "apps/web/components/settings/EnableTwoFactorModal.tsx",
+      "line_number": 95,
+      "category": "resource_leaks",
+      "severity": "low",
+      "confidence": 0.8,
+      "comment": "Object URL created with URL.createObjectURL is not revoked when component unmounts, causing a memory leak. The URL should be revoked in a useEffect cleanup function to free browser memory.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "apps/web/components/settings/EnableTwoFactorModal.tsx",
+      "line_number": 94,
+      "category": "api_misuse",
+      "severity": "low",
+      "confidence": 0.7,
+      "comment": "URL.revokeObjectURL is called with an empty string on first render since backupCodesUrl is initialized as empty string, which while harmless, is unnecessary and indicates incorrect initialization logic.",
+      "source_pass": "batched_review"
+    }
+  ]
+}

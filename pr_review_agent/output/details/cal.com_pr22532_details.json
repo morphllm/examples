@@ -1,0 +1,24 @@
+{
+  "pr_url": "https://github.com/calcom/cal.com/pull/22532",
+  "total_issues": 2,
+  "issues": [
+    {
+      "file_path": "scripts/test-gcal-webhooks.sh",
+      "line_number": 67,
+      "category": "portability",
+      "severity": "medium",
+      "confidence": 0.95,
+      "comment": "sed command uses macOS-specific syntax `sed -i ''` but should use portable syntax. On Linux systems, this will fail because the empty string argument after -i is only valid on macOS.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "scripts/test-gcal-webhooks.sh",
+      "line_number": 67,
+      "category": "portability",
+      "severity": "medium",
+      "confidence": 0.95,
+      "comment": "`sed -i ''` uses macOS/BSD syntax but should be `sed -i` for Linux compatibility, causing the script to fail on Linux systems with 'sed: can't read : No such file or directory'.",
+      "source_pass": "pass2"
+    }
+  ]
+}

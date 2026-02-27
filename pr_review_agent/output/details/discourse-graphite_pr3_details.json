@@ -1,0 +1,69 @@
+{
+  "pr_url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/3",
+  "total_issues": 7,
+  "issues": [
+    {
+      "file_path": "app/models/blocked_email.rb",
+      "line_number": 11,
+      "category": "race_condition",
+      "severity": "medium",
+      "confidence": 0.9,
+      "comment": "BlockedEmail.should_block? method has a race condition where multiple concurrent calls with the same email can read the same match_count value, both increment it, and both save, causing incorrect statistics (e.g. 2 calls incrementing from 5 results in match_count=6 instead of 7).",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/models/blocked_email.rb",
+      "line_number": 16,
+      "category": "missing_validation",
+      "severity": "low",
+      "confidence": 0.8,
+      "comment": "record.save call ignores return value and potential failures, causing statistics updates to fail silently if save encounters validation errors or database issues.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/assets/javascripts/discourse/controllers/create_account_controller.js",
+      "line_number": 275,
+      "category": "null_reference",
+      "severity": "medium",
+      "confidence": 0.8,
+      "comment": "result.values.email access is not null-checked before pushObject call - if result.values.email is undefined/null, it will push undefined into rejectedEmails array, causing subsequent contains() checks to potentially misbehave.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/assets/javascripts/discourse/controllers/create_account_controller.js",
+      "line_number": 71,
+      "category": "incorrect_value",
+      "severity": "medium",
+      "confidence": 0.9,
+      "comment": "JavaScript uses I18n.t('user.email.invalid') for blocked emails but server-side EmailValidator uses I18n.t(:'user.email.blocked'), causing users to see different error messages for the same blocked email condition depending on client vs server-side validation.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/models/blocked_email.rb",
+      "line_number": 12,
+      "category": "missing_validation",
+      "severity": "medium",
+      "confidence": 0.7,
+      "comment": "Email matching in BlockedEmail.where(email: email) is likely case-sensitive, but email addresses should typically be treated case-insensitively - users could bypass blocks by changing email case (e.g. User@SPAM.com vs user@spam.com).",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/assets/javascripts/discourse/controllers/create_account_controller.js",
+      "line_number": 68,
+      "category": "missing_validation",
+      "severity": "medium",
+      "confidence": 0.7,
+      "comment": "rejectedEmails.contains(email) check is case-sensitive, allowing users to bypass client-side blocked email detection by changing email case between attempts.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "spec/components/validators/email_validator_spec.rb",
+      "line_number": 10,
+      "category": "test_correctness",
+      "severity": "low",
+      "confidence": 0.8,
+      "comment": "EmailValidator test only stubs BlockedEmail.should_block? but doesn't test the whitelist/blacklist validation logic that runs first in the validator, providing incomplete test coverage of the validator's full behavior.",
+      "source_pass": "batched_review"
+    }
+  ]
+}

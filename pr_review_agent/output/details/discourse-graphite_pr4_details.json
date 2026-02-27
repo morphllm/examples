@@ -1,0 +1,87 @@
+{
+  "pr_url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/4",
+  "total_issues": 9,
+  "issues": [
+    {
+      "file_path": "app/assets/javascripts/embed.js",
+      "line_number": 16,
+      "category": "security",
+      "severity": "high",
+      "confidence": 0.9,
+      "comment": "Origin validation uses indexOf() which allows substring matches, causing security bypass. `discourseUrl.indexOf(e.origin) === -1` should be `e.origin !== discourseUrl` or proper origin comparison, as current code allows any origin containing the discourse URL as substring.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/views/embed/best.html.erb",
+      "line_number": 6,
+      "category": "incorrect_value",
+      "severity": "critical",
+      "confidence": 1.0,
+      "comment": "ERB syntax error with `<%- end if %>` which should be `<% end %>`. The trailing `if` keyword is invalid syntax and will cause template compilation to fail.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/views/embed/best.html.erb",
+      "line_number": 19,
+      "category": "security",
+      "severity": "high",
+      "confidence": 0.9,
+      "comment": "XSS vulnerability using `raw post.cooked` without HTML escaping. User-generated content in post.cooked could contain malicious scripts that execute in the embedded context.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/views/layouts/embed.html.erb",
+      "line_number": 11,
+      "category": "security",
+      "severity": "high",
+      "confidence": 0.8,
+      "comment": "JavaScript injection vulnerability by interpolating `request.referer` directly into JavaScript string. If referer contains single quotes or JavaScript code, it will break/execute in the script context.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/models/topic_embed.rb",
+      "line_number": 12,
+      "category": "security",
+      "severity": "medium",
+      "confidence": 0.7,
+      "comment": "XSS vulnerability by interpolating unescaped `url` parameter into HTML anchor tag. URL could contain malicious HTML/JavaScript that executes when the content is rendered.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/jobs/scheduled/poll_feed.rb",
+      "line_number": 28,
+      "category": "security",
+      "severity": "high",
+      "confidence": 0.9,
+      "comment": "SSRF vulnerability using `open()` on user-controlled `SiteSetting.feed_polling_url`. Attacker could set URL to access internal services, file:// URLs, or other restricted resources.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/jobs/scheduled/poll_feed.rb",
+      "line_number": 35,
+      "category": "null_reference",
+      "severity": "medium",
+      "confidence": 0.8,
+      "comment": "NoMethodError if `i.content` is nil when calling `.scrub`. Should check `i.content.present?` or use safe navigation `i.content&.scrub` before processing.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "app/models/topic_embed.rb",
+      "line_number": 57,
+      "category": "missing_validation",
+      "severity": "medium",
+      "confidence": 0.7,
+      "comment": "URI parsing with `URI(url)` can raise URI::InvalidURIError for malformed URLs but exception is not caught in this method, causing method to crash on invalid URLs.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "spec/controllers/embed_controller_spec.rb",
+      "line_number": 40,
+      "category": "test_correctness",
+      "severity": "medium",
+      "confidence": 0.9,
+      "comment": "Test expects `TopicRetriever.new` to be called directly, but actual controller implementation calls `Jobs.enqueue(:retrieve_topic)` instead. Test doesn't match implementation behavior and will fail or pass for wrong reasons.",
+      "source_pass": "batched_review"
+    }
+  ]
+}

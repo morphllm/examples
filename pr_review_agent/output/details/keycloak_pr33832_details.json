@@ -1,0 +1,24 @@
+{
+  "pr_url": "https://github.com/keycloak/keycloak/pull/33832",
+  "total_issues": 2,
+  "issues": [
+    {
+      "file_path": "authz/client/src/main/java/org/keycloak/authorization/client/util/crypto/AuthzClientCryptoProvider.java",
+      "line_number": 113,
+      "category": "logic_error",
+      "severity": "low",
+      "confidence": 1.0,
+      "comment": "ASN1Encoder.create().write(rBigInteger) creates an encoder and writes to it but discards the result, making this line dead code that serves no purpose.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "authz/client/src/main/java/org/keycloak/authorization/client/util/crypto/AuthzClientCryptoProvider.java",
+      "line_number": 114,
+      "category": "logic_error",
+      "severity": "low",
+      "confidence": 0.9,
+      "comment": "ASN1Encoder.create().write(sBigInteger) creates an encoder and writes to it but discards the result, making this line dead code that serves no purpose.",
+      "source_pass": "batched_review"
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "pr_url": "https://github.com/calcom/cal.com/pull/8087",
+  "total_issues": 4,
+  "issues": [
+    {
+      "file_path": "packages/app-store/vital/lib/reschedule.ts",
+      "line_number": 125,
+      "category": "race_condition",
+      "severity": "high",
+      "confidence": 0.9,
+      "comment": "forEach callback is marked async but forEach doesn't wait for async callbacks to complete. The calendar deletions will run concurrently without proper coordination, potentially causing race conditions and the function may complete before all deletions finish.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "packages/app-store/wipemycalother/lib/reschedule.ts",
+      "line_number": 125,
+      "category": "race_condition",
+      "severity": "high",
+      "confidence": 0.9,
+      "comment": "forEach callback is marked async but forEach doesn't wait for async callbacks to complete. The calendar deletions will run concurrently without proper coordination, potentially causing race conditions and the function may complete before all deletions finish.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "packages/features/bookings/lib/handleCancelBooking.ts",
+      "line_number": 461,
+      "category": "race_condition",
+      "severity": "high",
+      "confidence": 0.9,
+      "comment": "forEach callback is marked async but forEach doesn't wait for async callbacks to complete. The calendar deletions for recurring events will run concurrently without coordination, potentially causing the function to complete before all deletions finish.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "packages/trpc/server/routers/viewer/bookings.tsx",
+      "line_number": 553,
+      "category": "race_condition",
+      "severity": "high",
+      "confidence": 0.9,
+      "comment": "forEach callback is marked async but forEach doesn't wait for async callbacks to complete. The calendar deletions will run concurrently without proper coordination, potentially causing race conditions and the function may complete before all deletions finish.",
+      "source_pass": "batched_review"
+    }
+  ]
+}

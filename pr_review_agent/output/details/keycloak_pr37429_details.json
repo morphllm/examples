@@ -1,0 +1,33 @@
+{
+  "pr_url": "https://github.com/keycloak/keycloak/pull/37429",
+  "total_issues": 3,
+  "issues": [
+    {
+      "file_path": "themes/src/main/resources-community/theme/base/account/messages/messages_lt.properties",
+      "line_number": 141,
+      "category": "localization",
+      "severity": "high",
+      "confidence": 1.0,
+      "comment": "totpStep1 contains Italian text 'Installa una delle seguenti applicazioni sul tuo cellulare:' but should contain Lithuanian text, causing incorrect language display for Lithuanian users.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "themes/src/main/resources-community/theme/base/account/messages/messages_zh_CN.properties",
+      "line_number": 112,
+      "category": "localization",
+      "severity": "high",
+      "confidence": 0.95,
+      "comment": "totpStep1 contains Traditional Chinese text '\u5728\u60a8\u7684\u624b\u6a5f\u4e0a\u5b89\u88dd\u4ee5\u4e0b\u61c9\u7528\u7a0b\u5f0f\u4e4b\u4e00\uff1a' but should contain Simplified Chinese text, causing incorrect character display for Simplified Chinese users.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "themes/src/main/resources-community/theme/base/account/messages/messages_zh_CN.properties",
+      "line_number": 112,
+      "category": "localization",
+      "severity": "medium",
+      "confidence": 0.85,
+      "comment": "totpStep1 contains Traditional Chinese text '\u5728\u60a8\u7684\u624b\u6a5f\u4e0a\u5b89\u88dd\u4ee5\u4e0b\u61c9\u7528\u7a0b\u5f0f\u4e4b\u4e00\uff1a' (using \u6a5f, \u61c9\u7528\u7a0b\u5f0f) but should contain Simplified Chinese text since this is the Simplified Chinese locale file (_zh_CN.properties), causing Traditional Chinese to appear for Simplified Chinese users.",
+      "source_pass": "pass2"
+    }
+  ]
+}

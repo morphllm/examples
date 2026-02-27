@@ -1,0 +1,15 @@
+{
+  "pr_url": "https://github.com/getsentry/sentry/pull/80528",
+  "total_issues": 1,
+  "issues": [
+    {
+      "file_path": "src/sentry/monitors/logic/incident_occurrence.py",
+      "line_number": 165,
+      "category": "incorrect_value",
+      "severity": "medium",
+      "confidence": 0.9,
+      "comment": "Return value uses 'monitor_environment.monitor.config' but should use the local 'config' variable that was potentially modified with schedule_type display value, causing the modified config to be ignored.",
+      "source_pass": "pass2"
+    }
+  ]
+}

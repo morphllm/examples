@@ -1,0 +1,33 @@
+{
+  "pr_url": "https://github.com/keycloak/keycloak/pull/36882",
+  "total_issues": 3,
+  "issues": [
+    {
+      "file_path": "quarkus/runtime/src/main/java/org/keycloak/quarkus/runtime/cli/command/UpdateCompatibilityCheck.java",
+      "line_number": 48,
+      "category": "api_misuse",
+      "severity": "high",
+      "confidence": 0.95,
+      "comment": "Method call `picocli.exit()` is incorrect - `picocli` is a package name, not a class. Should be `CommandLine.exit()` based on the import statement.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "quarkus/runtime/src/main/java/org/keycloak/quarkus/runtime/cli/command/UpdateCompatibilityMetadata.java",
+      "line_number": 48,
+      "category": "api_misuse",
+      "severity": "high",
+      "confidence": 0.95,
+      "comment": "Method call `picocli.exit()` is incorrect - `picocli` is a package name, not a class. Should be `CommandLine.exit()` based on the import statement.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "quarkus/runtime/src/main/java/org/keycloak/quarkus/runtime/compatibility/CompatibilityResult.java",
+      "line_number": 34,
+      "category": "incorrect_value",
+      "severity": "medium",
+      "confidence": 0.8,
+      "comment": "Constant `RECREATE_UPGRADE_EXIT_CODE` value changed from 4 to 3, which breaks backward compatibility for external tools expecting exit code 4 for recreate upgrades.",
+      "source_pass": "batched_review"
+    }
+  ]
+}

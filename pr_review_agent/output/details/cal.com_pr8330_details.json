@@ -1,0 +1,51 @@
+{
+  "pr_url": "https://github.com/calcom/cal.com/pull/8330",
+  "total_issues": 5,
+  "issues": [
+    {
+      "file_path": "packages/lib/slots.ts",
+      "line_number": 212,
+      "category": "null_reference",
+      "severity": "high",
+      "confidence": 0.8,
+      "comment": "override.timeZone may be undefined/null but is passed directly to dayjs().tz() without validation, causing runtime error when timezone is missing.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "packages/trpc/server/routers/viewer/slots.ts",
+      "line_number": 142,
+      "category": "logic_error",
+      "severity": "critical",
+      "confidence": 0.95,
+      "comment": "Variable 'end' is calculated identically to 'start' using slotStartTime instead of slotEndTime, causing working hours validation to always compare the slot start time against working hours instead of checking if the entire slot duration fits.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "packages/trpc/server/routers/viewer/slots.ts",
+      "line_number": 107,
+      "category": "logic_error",
+      "severity": "medium",
+      "confidence": 0.7,
+      "comment": "UTC offset calculation multiplies by -1 which inverts the timezone offset direction, potentially causing incorrect timezone conversions when comparing dates.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "packages/trpc/server/routers/viewer/slots.ts",
+      "line_number": 111,
+      "category": "incorrect_value",
+      "severity": "medium",
+      "confidence": 0.8,
+      "comment": "Date format string 'YYYY MM DD' uses spaces instead of hyphens, creating non-standard date format that may cause comparison failures - should be 'YYYY-MM-DD' for ISO format.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "packages/lib/slots.ts",
+      "line_number": 218,
+      "category": "logic_error",
+      "severity": "medium",
+      "confidence": 0.6,
+      "comment": "dayjs(override.start).utc().add(offset, 'minute') is called twice per calculation, which could theoretically produce inconsistent results if minute boundary is crossed between calls, though timing makes this very unlikely in practice.",
+      "source_pass": "batched_review"
+    }
+  ]
+}

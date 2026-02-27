@@ -1,0 +1,96 @@
+{
+  "pr_url": "https://github.com/grafana/grafana/pull/80329",
+  "total_issues": 10,
+  "issues": [
+    {
+      "file_path": "pkg/services/annotations/annotationsimpl/cleanup_test.go",
+      "line_number": 271,
+      "category": "type_error",
+      "severity": "high",
+      "confidence": 1.0,
+      "comment": "annotationTag type is undefined but used in slice creation, causing compilation failure.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "pkg/services/annotations/annotationsimpl/cleanup_test.go",
+      "line_number": 277,
+      "category": "api_misuse",
+      "severity": "medium",
+      "confidence": 0.8,
+      "comment": "min() function requires Go 1.21+ but project may be using older Go version, causing compilation failure if Go version is < 1.21.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "pkg/services/annotations/annotationsimpl/cleanup_test.go",
+      "line_number": 240,
+      "category": "logic_error",
+      "severity": "medium",
+      "confidence": 0.7,
+      "comment": "Manual ID assignment ID: int64(i + 1) may conflict with database auto-increment behavior, potentially causing primary key constraint violations or unexpected behavior.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "pkg/services/annotations/annotationsimpl/xorm_store.go",
+      "line_number": 533,
+      "category": "incorrect_value",
+      "severity": "low",
+      "confidence": 1.0,
+      "comment": "r.log.Error() logs normal cleanup operations at Error level but should use Debug or Info level since this is not an error condition.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "pkg/services/annotations/annotationsimpl/xorm_store.go",
+      "line_number": 536,
+      "category": "incorrect_value",
+      "severity": "low",
+      "confidence": 1.0,
+      "comment": "r.log.Error() logs successful cleanup at Error level but should use Debug or Info level since this is not an error condition.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "pkg/services/annotations/annotationsimpl/xorm_store.go",
+      "line_number": 555,
+      "category": "incorrect_value",
+      "severity": "low",
+      "confidence": 1.0,
+      "comment": "r.log.Error() logs normal tag cleanup operations at Error level but should use Debug or Info level since this is not an error condition.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "pkg/services/annotations/annotationsimpl/xorm_store.go",
+      "line_number": 558,
+      "category": "incorrect_value",
+      "severity": "low",
+      "confidence": 1.0,
+      "comment": "r.log.Error() logs successful tag cleanup at Error level but should use Debug or Info level since this is not an error condition.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "pkg/services/annotations/annotationsimpl/xorm_store.go",
+      "line_number": 576,
+      "category": "incorrect_value",
+      "severity": "low",
+      "confidence": 1.0,
+      "comment": "r.log.Error() logs normal tag orphan operations at Error level but should use Debug or Info level since this is not an error condition.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "pkg/services/annotations/annotationsimpl/xorm_store.go",
+      "line_number": 579,
+      "category": "incorrect_value",
+      "severity": "low",
+      "confidence": 1.0,
+      "comment": "r.log.Error() logs successful tag orphan cleanup at Error level but should use Debug or Info level since this is not an error condition.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "pkg/services/cleanup/cleanup.go",
+      "line_number": 77,
+      "category": "incorrect_value",
+      "severity": "medium",
+      "confidence": 0.8,
+      "comment": "Cleanup interval changed from 10 minutes to 1 minute increases cleanup frequency by 10x, potentially causing significant performance impact in production if not intentional.",
+      "source_pass": "batched_review"
+    }
+  ]
+}

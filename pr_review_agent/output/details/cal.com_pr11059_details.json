@@ -1,0 +1,78 @@
+{
+  "pr_url": "https://github.com/calcom/cal.com/pull/11059",
+  "total_issues": 8,
+  "issues": [
+    {
+      "file_path": ".env.example",
+      "line_number": 242,
+      "category": "incorrect_value",
+      "severity": "high",
+      "confidence": 0.9,
+      "comment": "Comment suggests `openssl rand -base64 24` to generate encryption key but states 'must be 32 bytes for AES256'. Base64 encoding of 24 bytes produces only 32 characters (24 raw bytes), but AES256 requires 32 raw bytes, causing encryption/decryption failures.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "packages/app-store/_utils/oauth/parseRefreshTokenResponse.ts",
+      "line_number": 8,
+      "category": "type_error",
+      "severity": "critical",
+      "confidence": 1.0,
+      "comment": "Zod schema uses invalid syntax `[z.string().toString()]: z.number()` for dynamic keys, causing runtime errors when schema is parsed.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "packages/app-store/_utils/oauth/parseRefreshTokenResponse.ts",
+      "line_number": 10,
+      "category": "type_error",
+      "severity": "critical",
+      "confidence": 1.0,
+      "comment": "Zod schema uses invalid syntax `[z.string().optional().toString()]: z.unknown().optional()` for dynamic keys, causing runtime errors when schema is parsed.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "packages/app-store/_utils/oauth/parseRefreshTokenResponse.ts",
+      "line_number": 25,
+      "category": "incorrect_value",
+      "severity": "medium",
+      "confidence": 0.8,
+      "comment": "refresh_token is set to hardcoded string 'refresh_token' when missing, but should preserve actual refresh token or handle missing token appropriately, causing OAuth refresh failures.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "apps/web/pages/api/webhook/app-credential.ts",
+      "line_number": 58,
+      "category": "security",
+      "severity": "high",
+      "confidence": 0.9,
+      "comment": "symmetricDecrypt() is called with empty string fallback when CALCOM_APP_CREDENTIAL_ENCRYPTION_KEY is undefined, which will cause decryption failures or use weak encryption instead of failing fast.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "packages/app-store/salesforce/lib/CalendarService.ts",
+      "line_number": 35,
+      "category": "logic_error",
+      "severity": "medium",
+      "confidence": 0.7,
+      "comment": "Token refresh API call is now executed unconditionally at the start of connection setup, but original code only refreshed when needed, causing unnecessary API calls and potential rate limit issues.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "packages/app-store/zoho-bigin/api/add.ts",
+      "line_number": 17,
+      "category": "incorrect_value",
+      "severity": "medium",
+      "confidence": 0.9,
+      "comment": "redirectUri uses hardcoded 'zoho-bigin' instead of `appConfig.slug`, causing OAuth callback URL mismatch if app slug differs from hardcoded value.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "packages/app-store/_utils/oauth/refreshOAuthTokens.ts",
+      "line_number": 10,
+      "category": "api_misuse",
+      "severity": "low",
+      "confidence": 0.6,
+      "comment": "URLSearchParams body is sent without explicit Content-Type header, potentially causing API request failures if the endpoint expects 'application/x-www-form-urlencoded'.",
+      "source_pass": "batched_review"
+    }
+  ]
+}

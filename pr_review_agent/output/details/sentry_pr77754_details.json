@@ -1,0 +1,15 @@
+{
+  "pr_url": "https://github.com/getsentry/sentry/pull/77754",
+  "total_issues": 1,
+  "issues": [
+    {
+      "file_path": "src/sentry/integrations/services/assignment_source.py",
+      "line_number": 17,
+      "category": "logic_error",
+      "severity": "medium",
+      "confidence": 1.0,
+      "comment": "queued: datetime = timezone.now() evaluates timezone.now() at class definition time, not instance creation time, causing all AssignmentSource instances to have the same timestamp. Should use field(default_factory=timezone.now) instead.",
+      "source_pass": "batched_review"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "pr_url": "https://github.com/grafana/grafana/pull/103633",
+  "total_issues": 2,
+  "issues": [
+    {
+      "file_path": "pkg/services/authz/rbac/service_test.go",
+      "line_number": 982,
+      "category": "test_correctness",
+      "severity": "medium",
+      "confidence": 0.9,
+      "comment": "Test sets permission cache to `false` but comment says \"Allow access to the dashboard to prove this is not checked\". Should be `true` to actually test that denial cache takes precedence over permission cache.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "pkg/services/authz/rbac/service_test.go",
+      "line_number": 992,
+      "category": "test_correctness",
+      "severity": "medium",
+      "confidence": 0.9,
+      "comment": "Permission cache value is set to `false` but the comment says 'Allow access to the dashboard to prove this is not checked', which indicates it should be `true` to properly test that denial cache takes precedence over permission cache.",
+      "source_pass": "pass2"
+    }
+  ]
+}

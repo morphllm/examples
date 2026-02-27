@@ -1,0 +1,69 @@
+{
+  "pr_url": "https://github.com/calcom/cal.com/pull/14740",
+  "total_issues": 7,
+  "issues": [
+    {
+      "file_path": "apps/web/components/dialog/AddGuestsDialog.tsx",
+      "line_number": 49,
+      "category": "logic_error",
+      "severity": "medium",
+      "confidence": 0.9,
+      "comment": "Empty array check `multiEmailValue.length === 0` will never be true because multiEmailValue is initialized with `[\"\"]` (length 1), causing the function to always proceed even with only empty strings, which may cause validation errors later.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "packages/emails/email-manager.ts",
+      "line_number": 541,
+      "category": "logic_error",
+      "severity": "high",
+      "confidence": 0.85,
+      "comment": "Email logic is inverted: `if (newGuests.includes(attendee.email))` sends AttendeeScheduledEmail to new guests but AttendeeAddGuestsEmail to existing attendees, when it should be the opposite - existing attendees should get add guests notification, new guests should get scheduled notification.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "packages/trpc/server/routers/viewer/bookings/addGuests.handler.ts",
+      "line_number": 47,
+      "category": "logic_error",
+      "severity": "high",
+      "confidence": 0.9,
+      "comment": "Permission check uses `isTeamAdmin(user.id, booking.eventType?.teamId ?? 0) && isTeamOwner(user.id, booking.eventType?.teamId ?? 0)` requiring user to be BOTH admin AND owner, but should typically use OR (||) to allow either role, making the permission too restrictive.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "packages/trpc/server/routers/viewer/bookings/addGuests.handler.ts",
+      "line_number": 77,
+      "category": "logic_error",
+      "severity": "medium",
+      "confidence": 0.7,
+      "comment": "Blacklisted email filtering calls `email.toLowerCase()` on blacklisted emails but compares against guest emails that may not be lowercased, potentially missing matches and allowing blacklisted guests to be added.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "packages/trpc/server/routers/viewer/bookings/addGuests.handler.ts",
+      "line_number": 164,
+      "category": "logic_error",
+      "severity": "medium",
+      "confidence": 0.8,
+      "comment": "Database update at line 92-106 succeeds before calendar update at line 164, but calendar update has no error handling - if calendar update fails, guests are added to database but not calendar, leaving inconsistent state.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "packages/ui/form/MultiEmail.tsx",
+      "line_number": 14,
+      "category": "logic_error",
+      "severity": "low",
+      "confidence": 0.8,
+      "comment": "Parameter reassignment `value = value || []` modifies the input parameter which can cause unexpected behavior and makes the function impure, should use a local variable instead.",
+      "source_pass": "batched_review"
+    },
+    {
+      "file_path": "packages/ui/form/MultiEmail.tsx",
+      "line_number": 40,
+      "category": "missing_validation",
+      "severity": "low",
+      "confidence": 0.6,
+      "comment": "Array splice operation `updatedValue.splice(index, 1)` lacks bounds checking - if index is somehow invalid, it could cause unexpected array modification or errors.",
+      "source_pass": "batched_review"
+    }
+  ]
+}
