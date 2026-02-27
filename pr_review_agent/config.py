@@ -4,6 +4,11 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+# Load .env from pr_review_agent/ directory
+load_dotenv(Path(__file__).parent / ".env")
+
 
 @dataclass
 class Config:
@@ -19,38 +24,43 @@ class Config:
     output_dir: Path = Path("")
 
     # Model settings
-    model: str = "claude-sonnet-4-20250514"
+    model: str = "claude-opus-4-6"
     max_tokens: int = 16000
 
     # Confidence thresholds (lower = more recall, higher = more precision)
-    base_confidence_threshold: float = 0.6
+    base_confidence_threshold: float = 0.50
     category_thresholds: dict = field(default_factory=lambda: {
-        "logic_error": 0.55,
-        "incorrect_value": 0.55,
-        "incorrect_values": 0.55,
-        "wrong_parameter": 0.55,
-        "race_condition": 0.65,
-        "type_mismatch": 0.65,
-        "type_error": 0.65,
-        "null_reference": 0.75,  # FP-prone
-        "api_misuse": 0.6,
-        "missing_validation": 0.85,  # very FP-prone
-        "resource_leak": 0.85,  # very FP-prone
-        "resource_leaks": 0.85,
-        "security": 0.65,
-        "localization": 0.55,
-        "test_correctness": 0.65,
-        "portability": 0.65,
+        # High-value categories: keep thresholds at 0.50
+        "logic_error": 0.50,
+        "incorrect_value": 0.50,
+        "incorrect_values": 0.50,
+        "wrong_parameter": 0.50,
+        "api_misuse": 0.50,
+        "localization": 0.50,
+        "test_correctness": 0.50,
+        "portability": 0.50,
+        # Medium-value: raise thresholds
+        "race_condition": 0.60,
+        "type_mismatch": 0.60,
+        "type_error": 0.60,
+        "security": 0.60,
+        "null_reference": 0.70,  # FP-prone
+        # Low-value / FP-prone: suppress
+        "missing_validation": 0.99,
+        "resource_leak": 0.99,
+        "resource_leaks": 0.99,
+        "performance": 0.99,
+        "documentation": 0.99,
         "style": 0.99,
         "naming": 0.99,
         "refactor": 0.99,
-        "documentation": 0.99,
-        "performance": 0.99,
     })
 
     # WarpGrep settings
-    warpgrep_model: str = "morph-warpgrep"
+    warpgrep_model: str = "morph-warp-grep-v1"
     warpgrep_base_url: str = "https://api.morphllm.com/v1"
+    warpgrep_max_turns: int = 4
+    warpgrep_validate_issues: bool = True
 
     # Pipeline settings
     max_concurrent_prs: int = 3

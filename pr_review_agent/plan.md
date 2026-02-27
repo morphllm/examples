@@ -8,6 +8,8 @@ Beat Augment's 53.8% F1 on withmartian/code-review-benchmark using Opus 4.6 + Wa
 |-----------|-----------|--------|-----|----|----|-------|
 | 1 (calib) | 43.5% | 66.7% | 52.6% | 10/15 | 13 | Sonnet4 + thinking, batched review |
 | 2 (full) | 31.3% | 51.8% | 39.0% | 71/137 | 160 | Same settings, 50 PRs. Precision collapsed. |
+| 3 (full) | 47.7% | 37.2% | 41.8% | 51/137 | 57 | Precision-focused prompts, dual-pass, cap 4 |
+| 4 (full) | 45.8% | 43.8% | 44.8% | 60/137 | 73 | Better prompts, adaptive thinking, cap 8 |
 
 ## Benchmark Targets (Augment = 47%P / 62.8%R / 53.8% F1)
 - F1 > 54% (beat Augment)
@@ -54,11 +56,28 @@ Beat Augment's 53.8% F1 on withmartian/code-review-benchmark using Opus 4.6 + Wa
 - Root cause: 70% of comments are FPs. Prompt encourages speculation. No verification.
 - Key FP categories: missing_validation, null_reference, resource_leak - all speculative
 
-### Iteration 3 - Precision-focused (in progress)
+### Iteration 3 - Precision-focused
+- Status: COMPLETE
+- Changes: Precision-focused prompts, dual-pass review, cap 4, self-contained comments
+- Results: 47.7% P / 37.2% R / 41.8% F1 (51 TP, 57 FP, 107 candidates)
+- Per-repo: cal.com 42.3%, discourse 44.0%, grafana 50.0%, keycloak 45.5%, sentry 37.7%
+- Analysis: Precision improved dramatically (31% -> 48%) but recall dropped (52% -> 37%). Too conservative.
+
+### Iteration 4 - Recall recovery with improved prompts
+- Status: COMPLETE
 - Changes:
-  1. Rewrote system prompt: "only report proven bugs" instead of "be comprehensive"
-  2. Added verification pass: model re-checks each finding against the diff
-  3. Raised confidence thresholds: base 0.7, null_reference 0.8, missing_validation 0.9
-  4. Removed "missing_validation" from prompt categories
-  5. Cap 4 per PR (was 6), closer to golden avg of 2.7
-- Target: Precision >50%, Recall >50%, F1 >50%
+  1. Linter rewrote prompts with much more specific bug patterns (12+ categories)
+  2. Adaptive thinking (budget 10k)
+  3. Pass 2 prompt redesigned with 10 commonly-missed pattern categories
+  4. More aggressive dedup with _issues_same method
+  5. Cap raised to 8 per PR
+  6. Thresholds lowered: base 0.50, logic_error 0.50, incorrect_value 0.50
+- Results: 45.8% P / 43.8% R / 44.8% F1 (60 TP, 73 FP, 131 candidates)
+- Per-repo: cal.com 52.5%, grafana 47.8%, keycloak 43.5%, sentry 41.4%, discourse 38.6%
+- Analysis: Found 9 more TPs vs iter 3. Still 10 points below Augment (54%). Need more recall.
+
+### Next Steps
+- Need ~75 TP to reach F1=55%. Currently at 60. Need +15 more TP.
+- FP at 73 is acceptable, precision at 46% is close to Augment's 47%.
+- Key missing: subtle bugs in sentry (monkeypatched sleep, isinstance hierarchy), grafana (React props, traceID)
+- Potential improvements: WarpGrep for cross-file context, third focused pass, higher thinking budget

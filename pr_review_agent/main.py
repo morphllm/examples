@@ -30,6 +30,17 @@ from pr_review_agent.pipeline.reviewer import Reviewer
 
 TOOL_NAME = "opus_warpgrep"
 
+# Map benchmark source_repo values to local clone directory names
+REPO_PATH_MAP = {
+    "keycloak": "keycloak",
+    "keycloak-greptile": "keycloak",
+    "sentry": "sentry",
+    "sentry-greptile": "sentry",
+    "grafana": "grafana",
+    "discourse-graphite": "discourse",
+    "cal.com": "cal.com",
+}
+
 
 def load_benchmark_data(config: Config) -> dict:
     data_file = config.benchmark_dir / "results" / "benchmark_data.json"
@@ -132,9 +143,16 @@ def run_benchmark(config: Config, args: argparse.Namespace) -> None:
         added = sum(f.total_added for f in file_diffs)
         print(f"  {len(file_diffs)} files, {added} added lines")
 
+        # Resolve repo_path from source_repo
+        source_repo = entry.get("source_repo", "")
+        base_name = REPO_PATH_MAP.get(source_repo, source_repo.split("-")[0])
+        repo_path = str(config.clone_dir / base_name)
+        if not Path(repo_path).is_dir():
+            repo_path = None  # fallback if clone not available
+
         # Review
         try:
-            issues = reviewer.review_pr(file_diffs, repo_path=None)
+            issues = reviewer.review_pr(file_diffs, repo_path=repo_path)
         except Exception as e:
             print(f"  ERROR: {e}")
             errors += 1
@@ -145,10 +163,10 @@ def run_benchmark(config: Config, args: argparse.Namespace) -> None:
         # Filter
         filtered = confidence_filter.filter(issues)
 
-        # Cap at 4 comments per PR (golden avg is 2.7/PR, cap slightly above)
-        if len(filtered) > 4:
+        # Cap at 8 comments per PR (some PRs have 5-6 golden, need room)
+        if len(filtered) > 8:
             filtered.sort(key=lambda x: x.confidence, reverse=True)
-            filtered = filtered[:4]
+            filtered = filtered[:8]
 
         total_after += len(filtered)
         print(f"  {len(issues)} raw -> {len(filtered)} filtered")
