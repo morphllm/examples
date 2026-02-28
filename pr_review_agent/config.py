@@ -25,7 +25,7 @@ class Config:
 
     # Model settings
     model: str = "claude-opus-4-6"
-    max_tokens: int = 16000
+    max_tokens: int = 64000
 
     # Confidence thresholds (lower = more recall, higher = more precision)
     base_confidence_threshold: float = 0.50
@@ -61,6 +61,7 @@ class Config:
     warpgrep_base_url: str = "https://api.morphllm.com/v1"
     warpgrep_max_turns: int = 4
     warpgrep_validate_issues: bool = True
+    warpgrep_tool_enabled: bool = True  # Enable WarpGrep as a Claude tool during review
 
     # Pipeline settings
     max_concurrent_prs: int = 3

@@ -111,9 +111,9 @@ class Reviewer:
 
             # Alternate between comprehensive and commonly-missed prompts
             if pass_num % 2 == 0:
-                issues = self._pass1_review(shuffled, warpgrep_context=warpgrep_context)
+                issues = self._pass1_review(shuffled, warpgrep_context=warpgrep_context, repo_path=repo_path)
             else:
-                issues = self._pass2_review(shuffled, warpgrep_context=warpgrep_context)
+                issues = self._pass2_review(shuffled, warpgrep_context=warpgrep_context, repo_path=repo_path)
 
             for issue in issues:
                 issue.source_pass = f"pass{pass_num + 1}"
@@ -122,7 +122,7 @@ class Reviewer:
             print(f"  Pass {pass_num + 1}/{num_passes}: {len(issues)} issues", file=sys.stderr)
 
         # Additional quick-wins pass for low-severity real issues
-        quick_issues = self._quick_wins_review(file_diffs, warpgrep_context=warpgrep_context)
+        quick_issues = self._quick_wins_review(file_diffs, warpgrep_context=warpgrep_context, repo_path=repo_path)
         if quick_issues:
             for issue in quick_issues:
                 issue.source_pass = "quick_wins"
@@ -137,63 +137,106 @@ class Reviewer:
     def _gather_strategic_context(self, file_diffs: list[FileDiff], repo_path: str) -> str:
         """Pre-gather codebase context via WarpGrep for the entire PR.
 
-        Makes 1-2 strategic WarpGrep searches to understand:
+        Makes up to 6 strategic WarpGrep searches to understand:
         1. Callers/contracts of changed functions
-        2. Related code patterns
+        2. Related code patterns and tests
+        3. Type definitions and interfaces
+        4. Concurrency/sync patterns (if relevant)
+        5. Error handling and validation
+        6. Configuration and constants
         """
         import sys
         from pr_review_agent.warpgrep.client import search_codebase_text
 
         # Build a summary of what changed for WarpGrep to search intelligently
         changed_functions = []
+        changed_classes = []
         changed_files_summary = []
+        import re
         for fd in file_diffs[:15]:  # Cap to avoid huge queries
             changed_files_summary.append(f"- {fd.file_path} ({fd.language})")
-            # Extract key identifiers from diff
-            import re
-            for line in fd.raw_diff.split("\n")[:100]:
+            for line in fd.raw_diff.split("\n")[:150]:
                 if line.startswith("+") and not line.startswith("+++"):
                     # Function/method definitions
-                    m = re.search(r'(?:def|func|function|public|private)\s+(\w+)', line)
+                    m = re.search(r'(?:def|func|function|public|private|protected)\s+(\w+)', line)
                     if m and m.group(1) not in ("__init__", "main", "test"):
                         changed_functions.append(m.group(1))
+                    # Class definitions
+                    m = re.search(r'(?:class|interface|struct|type)\s+(\w+)', line)
+                    if m:
+                        changed_classes.append(m.group(1))
 
-        changed_functions = list(dict.fromkeys(changed_functions))[:8]
+        changed_functions = list(dict.fromkeys(changed_functions))[:10]
+        changed_classes = list(dict.fromkeys(changed_classes))[:5]
 
-        context_parts = []
-
-        # Search 1: Find callers and contracts for changed functions
-        if changed_functions:
-            func_list = ", ".join(changed_functions[:5])
-            query = f"Find callers, usages, and interface contracts for these functions/methods: {func_list}"
-            try:
-                result = search_codebase_text(query, repo_path, self.config.morph_api_key, max_turns=3)
-                if result and len(result) > 50:
-                    context_parts.append(f"### Callers and contracts of changed functions\n{result[:10000]}")
-            except Exception as e:
-                print(f"  WarpGrep search 1 failed: {e}", file=sys.stderr)
-
-        # Search 2: Look for concurrency patterns, resource access, test files
-        # Detect if the diff contains lock/mutex changes to ask targeted questions
         diff_text = "\n".join(fd.raw_diff[:500] for fd in file_diffs[:5])
         has_sync_changes = any(
             kw in diff_text.lower()
             for kw in ["mutex", "lock", "unlock", "rwlock", "sync.", "synchronized", "atomic"]
         )
 
-        files_list = "\n".join(changed_files_summary[:10])
-        if has_sync_changes:
-            # Specifically search for readers/writers of protected resources
-            query2 = f"Find all functions that read or write to the same fields/variables protected by locks or mutexes in these files:\n{files_list}"
-        else:
-            query2 = f"Find test files, type definitions, and related code for these changed files:\n{files_list}"
+        # Build up to 6 search queries
+        queries: list[tuple[str, str]] = []
 
-        try:
-            result2 = search_codebase_text(query2, repo_path, self.config.morph_api_key, max_turns=3)
-            if result2 and len(result2) > 50:
-                context_parts.append(f"### Related code and access patterns\n{result2[:10000]}")
-        except Exception as e:
-            print(f"  WarpGrep search 2 failed: {e}", file=sys.stderr)
+        # Search 1: Callers and contracts for changed functions
+        if changed_functions:
+            func_list = ", ".join(changed_functions[:6])
+            queries.append((
+                "Callers and contracts of changed functions",
+                f"Find callers, usages, and interface contracts for these functions/methods: {func_list}",
+            ))
+
+        # Search 2: Type definitions and interfaces
+        if changed_classes:
+            class_list = ", ".join(changed_classes[:4])
+            queries.append((
+                "Type definitions and interfaces",
+                f"Find definitions, implementations, and usages of these types/classes: {class_list}",
+            ))
+
+        # Search 3: Test files for changed code
+        files_list = "\n".join(changed_files_summary[:10])
+        queries.append((
+            "Test files and assertions",
+            f"Find test files that test the code in these changed files:\n{files_list}",
+        ))
+
+        # Search 4: Related code patterns
+        if has_sync_changes:
+            queries.append((
+                "Concurrency and synchronization",
+                f"Find all functions that read or write to the same fields/variables protected by locks or mutexes in these files:\n{files_list}",
+            ))
+        else:
+            queries.append((
+                "Related code and dependencies",
+                f"Find code that imports from or depends on these changed files:\n{files_list}",
+            ))
+
+        # Search 5: Error handling patterns
+        if len(changed_functions) > 2:
+            func_subset = ", ".join(changed_functions[:4])
+            queries.append((
+                "Error handling and validation",
+                f"Find error handling, validation, and edge case handling related to: {func_subset}",
+            ))
+
+        # Search 6: Constants, config, and shared state
+        if changed_files_summary:
+            queries.append((
+                "Constants and configuration",
+                f"Find constants, configuration values, and shared state used by these files:\n{files_list}",
+            ))
+
+        # Execute searches (up to 6)
+        context_parts = []
+        for i, (label, query) in enumerate(queries[:6]):
+            try:
+                result = search_codebase_text(query, repo_path, self.config.morph_api_key, max_turns=3)
+                if result and len(result) > 50:
+                    context_parts.append(f"### {label}\n{result}")
+            except Exception as e:
+                print(f"  WarpGrep search {i+1} ({label}) failed: {e}", file=sys.stderr)
 
         return "\n\n".join(context_parts)
 
@@ -215,7 +258,7 @@ class Reviewer:
 
         return "\n".join(diff_sections)
 
-    def _pass1_review(self, file_diffs: list[FileDiff], warpgrep_context: str = "") -> list[ReviewIssue]:
+    def _pass1_review(self, file_diffs: list[FileDiff], warpgrep_context: str = "", repo_path: str | None = None) -> list[ReviewIssue]:
         """Pass 1: Comprehensive bug-finding review with pre-gathered context."""
         combined_diff = self._build_diff_text(file_diffs)
 
@@ -236,31 +279,43 @@ The following code exists in the repository outside the diff. Use this to verify
 {warpgrep_context}
 """
 
+        tools_section = ""
+        if repo_path:
+            tools_section = """
+## Available Tools
+You have tools to read files and search the codebase. Use them to strengthen your findings:
+- Use grep_pattern to find callers of changed functions, verify naming inconsistencies, or check if imports exist.
+- Use read_file to read function definitions, understand calling conventions, or check surrounding context.
+- These tools help you find MORE bugs and provide stronger evidence. Use them proactively.
+
+IMPORTANT: Do NOT use tools as a reason to dismiss findings. If the diff shows a clear bug (wrong locale, typo, inverted logic), report it directly. Only use tools to gather additional evidence or find bugs that require context beyond the diff.
+"""
+
         prompt = f"""Review this pull request for bugs and correctness issues.
 
 ## Changed Files ({len(file_diffs)} files)
 {combined_diff}
 
 {f"## Language-Specific Notes{chr(10)}{lang_hints}" if lang_hints else ""}
-{context_section}
+{context_section}{tools_section}
 ## What to Look For
 {self._review_instructions if self._review_instructions else self._default_review_instructions()}
 
 Return a JSON array:
 {{"file_path": "...", "line_number": N, "category": "logic_error|incorrect_value|api_misuse|race_condition|null_reference|type_error|security|localization|test_correctness|portability", "severity": "critical|high|medium|low", "confidence": 0.5-1.0, "comment": "Describe the bug: what code is wrong, what it should be, and the consequence."}}"""
 
-        response_text = self._call_opus(prompt)
+        response_text = self._call_opus(prompt, repo_path=repo_path)
         issues = self._parse_issues(response_text, source_pass="pass1")
 
         # Retry once if we got 0 issues from a non-trivial diff
         total_added = sum(fd.total_added for fd in file_diffs)
         if not issues and total_added > 20:
-            response_text = self._call_opus(prompt)
+            response_text = self._call_opus(prompt, repo_path=repo_path)
             issues = self._parse_issues(response_text, source_pass="pass1_retry")
 
         return issues
 
-    def _pass2_review(self, file_diffs: list[FileDiff], warpgrep_context: str = "") -> list[ReviewIssue]:
+    def _pass2_review(self, file_diffs: list[FileDiff], warpgrep_context: str = "", repo_path: str | None = None) -> list[ReviewIssue]:
         """Pass 2: Different focus to catch bugs missed by first pass."""
         combined_diff = self._build_diff_text(file_diffs)
 
@@ -273,13 +328,22 @@ Use this context to verify claims about function signatures, callers, contracts,
 {warpgrep_context}
 """
 
+        tools_section = ""
+        if repo_path:
+            tools_section = """
+## Available Tools
+You have tools: read_file, grep_pattern, list_directory. Use them to find more bugs:
+- Use grep_pattern to find callers of changed functions, check naming consistency, or find related code.
+- Use read_file to understand function signatures, check surrounding context, or verify claims about code behavior.
+- Do NOT over-verify obvious bugs from the diff. Report clear bugs immediately. Use tools for bugs that need context.
+"""
+
         prompt = f"""Review this PR diff with fresh eyes. Look for bugs that a FIRST reviewer commonly misses.
 
 ## Changed Files
 {combined_diff}
 
-{context_section}
-
+{context_section}{tools_section}
 ## Commonly Missed Bug Patterns
 
 Check each of these SPECIFICALLY against the diff:
@@ -328,10 +392,10 @@ Return [] if nothing found.
 
 {{"file_path": "...", "line_number": N, "category": "logic_error|incorrect_value|api_misuse|race_condition|null_reference|type_error|security|localization|test_correctness|portability", "severity": "critical|high|medium|low", "confidence": 0.5-1.0, "comment": "Describe the specific bug."}}"""
 
-        response_text = self._call_opus(prompt)
+        response_text = self._call_opus(prompt, repo_path=repo_path)
         return self._parse_issues(response_text, source_pass="pass2")
 
-    def _quick_wins_review(self, file_diffs: list[FileDiff], warpgrep_context: str = "") -> list[ReviewIssue]:
+    def _quick_wins_review(self, file_diffs: list[FileDiff], warpgrep_context: str = "", repo_path: str | None = None) -> list[ReviewIssue]:
         """Quick-wins pass targeting commonly-missed low-severity but real issues.
 
         Focuses on: typos, naming bugs, doc mismatches, wrong constants,
@@ -389,7 +453,7 @@ Return [] if nothing found.
 Return a JSON array. Return [] if nothing found.
 {{"file_path": "...", "line_number": N, "category": "incorrect_value|test_correctness|localization|portability|logic_error", "severity": "low|medium", "confidence": 0.5-1.0, "comment": "Describe the specific bug."}}"""
 
-        response_text = self._call_opus(prompt)
+        response_text = self._call_opus(prompt, repo_path=repo_path)
         return self._parse_issues(response_text, source_pass="quick_wins")
 
     def _majority_vote_merge(
@@ -461,37 +525,135 @@ Return a JSON array. Return [] if nothing found.
             issue.source_pass = f"{issue.source_pass}(v{vi.vote_count})"
             result.append(issue)
 
+        # Final cross-file deduplication: collapse same conceptual bug across files.
+        # After voting, issues like "forEach with async" may appear for 3 files.
+        # Keep only the highest-confidence instance of each conceptual bug.
+        result = self._cross_file_dedup(result)
+
         return result
+
+    def _cross_file_dedup(self, issues: list[ReviewIssue]) -> list[ReviewIssue]:
+        """Collapse same conceptual bug reported across multiple files.
+
+        E.g., "forEach with async callback" in vital/reschedule.ts,
+        wipemycalother/reschedule.ts, and bookings.tsx should be kept once.
+        """
+        if len(issues) <= 1:
+            return issues
+
+        from difflib import SequenceMatcher
+
+        # Sort by confidence desc so we keep the best version
+        severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+        issues.sort(key=lambda x: (-x.confidence, severity_order.get(x.severity, 4)))
+
+        kept: list[ReviewIssue] = []
+        for issue in issues:
+            is_cross_file_dup = False
+            for existing in kept:
+                # Only check cross-file (same-file already handled by vote merge)
+                if issue.file_path == existing.file_path:
+                    continue
+                if issue.category != existing.category:
+                    continue
+                # Check text similarity
+                ratio = SequenceMatcher(
+                    None,
+                    issue.comment.lower()[:250],
+                    existing.comment.lower()[:250],
+                ).ratio()
+                if ratio > 0.60:
+                    is_cross_file_dup = True
+                    break
+            if not is_cross_file_dup:
+                kept.append(issue)
+
+        return kept
 
     @staticmethod
     def _issues_same(a: ReviewIssue, b: ReviewIssue) -> bool:
         """Check if two issues describe the same bug (for pass merge dedup).
 
-        Requires same file + (same category on nearby lines OR high word overlap).
-        Line proximity alone is not enough - two different bugs can be on adjacent lines.
+        Matches within same file: same category on nearby lines OR high text similarity.
+        Also matches CROSS-FILE when the bug description is essentially identical
+        (e.g., "forEach with async" reported in 3 different files).
         """
-        if a.file_path != b.file_path:
-            return False
-        # Same line + same category = same issue
-        if (a.line_number > 0 and b.line_number > 0
-                and abs(a.line_number - b.line_number) <= 5
-                and a.category == b.category):
+        same_file = a.file_path == b.file_path
+
+        if same_file:
+            nearby = (a.line_number > 0 and b.line_number > 0
+                      and abs(a.line_number - b.line_number) <= 5)
+            # Same file + same line + same category = same issue
+            if nearby and a.category == b.category:
+                return True
+            # Same file + exact same line + any category = likely same issue
+            # (different passes may categorize the same bug differently)
+            if (a.line_number > 0 and b.line_number > 0
+                    and a.line_number == b.line_number):
+                return True
+
+        # Word-level overlap check (more robust than character SequenceMatcher
+        # for rephrased descriptions of the same bug)
+        stop_words = {
+            "the", "a", "an", "is", "in", "to", "of", "and", "or", "but",
+            "for", "on", "at", "by", "with", "from", "this", "that", "it",
+            "not", "be", "are", "was", "will", "can", "should", "could",
+            "may", "which", "when", "if", "has", "have", "does", "do",
+            "same", "also", "as", "here", "too", "so", "its", "been",
+        }
+        a_words = set(a.comment.lower()[:300].split()) - stop_words
+        b_words = set(b.comment.lower()[:300].split()) - stop_words
+        if a_words and b_words:
+            overlap = len(a_words & b_words) / min(len(a_words), len(b_words))
+            if same_file and overlap > 0.50:
+                return True
+            if not same_file and a.category == b.category and overlap > 0.55:
+                return True
+            if not same_file and overlap > 0.65:
+                return True
+
+        # Character-level similarity for nearly identical comments
+        from difflib import SequenceMatcher
+        ratio = SequenceMatcher(
+            None, a.comment.lower()[:250], b.comment.lower()[:250]
+        ).ratio()
+        if same_file and ratio > 0.55:
             return True
-        # High word overlap in comments (regardless of line)
-        stop_words = {"the", "a", "an", "is", "in", "to", "of", "and", "or", "but",
-                       "for", "on", "at", "by", "with", "from", "this", "that", "it",
-                       "not", "be", "are", "was", "will", "can", "should", "could"}
-        a_words = set(a.comment.lower()[:200].split()) - stop_words
-        b_words = set(b.comment.lower()[:200].split()) - stop_words
-        if not a_words or not b_words:
-            return False
-        overlap = len(a_words & b_words) / min(len(a_words), len(b_words))
-        return overlap > 0.6
+        if not same_file and ratio > 0.70:
+            return True
+
+        # Keyword-based matching: extract identifiers and technical terms
+        import re
+        def extract_key_terms(text: str) -> set[str]:
+            terms: set[str] = set()
+            lower = text.lower()
+            # Backtick-quoted terms
+            terms.update(re.findall(r'`([^`]+)`', lower))
+            # camelCase/PascalCase identifiers (4+ chars)
+            for w in re.findall(r'[a-zA-Z_]\w{3,}', text):
+                if any(c.isupper() for c in w[1:]) or '_' in w:
+                    terms.add(w.lower())
+            return terms
+
+        a_terms = extract_key_terms(a.comment)
+        b_terms = extract_key_terms(b.comment)
+
+        if a_terms and b_terms:
+            shared = a_terms & b_terms
+            # If they share 2+ technical identifiers and same category
+            if len(shared) >= 2 and a.category == b.category:
+                return True
+            # 3+ shared identifiers regardless of category
+            if len(shared) >= 3:
+                return True
+
+        return False
 
     def judge_issues(
         self,
         issues: list[ReviewIssue],
         file_diffs: list[FileDiff],
+        repo_path: str | None = None,
     ) -> list[ReviewIssue]:
         """Dedicated judge pass: validate each issue against the diff.
 
@@ -511,6 +673,16 @@ Return a JSON array. Return [] if nothing found.
 
         judge_body = self._judge_prompt if self._judge_prompt else self._default_judge_prompt()
 
+        verification_note = ""
+        if repo_path:
+            verification_note = """
+## Verification Tools
+You have read_file and grep_pattern to verify claims:
+- If an issue claims something is "undefined" or "missing", grep for it. If found, REMOVE the issue.
+- If an issue claims a naming inconsistency, grep both variants to confirm.
+- Only REMOVE issues when you have concrete counter-evidence. Do NOT remove issues just because you didn't find proof.
+"""
+
         judge_prompt = f"""You are a STRICT code review validator. Your job is to examine each claimed bug and decide: KEEP or REMOVE.
 
 ## The PR Diff
@@ -520,7 +692,7 @@ Return a JSON array. Return [] if nothing found.
 {issues_json}
 
 {judge_body}
-
+{verification_note}
 ## Output
 
 Return a JSON array containing ONLY the validated true bugs. AGGRESSIVELY remove false positives - when in doubt, REMOVE.
@@ -528,7 +700,7 @@ Keep the exact same format as the input.
 
 Return [] if all issues are false positives."""
 
-        response_text = self._call_opus(judge_prompt)
+        response_text = self._call_opus(judge_prompt, repo_path=repo_path)
 
         # Parse validated issues
         validated = self._parse_issues(response_text, source_pass="validated")
@@ -655,24 +827,195 @@ If two issues describe the SAME bug at the SAME location (or same conceptual bug
 - "ctx is undefined in this scope" -> REMOVE (likely defined in surrounding code)
 - "Missing error handling for edge case" -> REMOVE (defensive)"""
 
-    def _call_opus(self, prompt: str, thinking_budget: int = 10000, repo_path: str | None = None, timeout: int = 300) -> str:
-        """Call Claude with extended thinking, optionally with WarpGrep tool.
+    def _build_tools(self, repo_path: str | None) -> tuple[list[dict] | None, dict | None]:
+        """Build the tool list for Opus code review.
 
-        If repo_path is provided and WarpGrep is configured, Claude gets the
-        WarpGrep tool and can search the codebase on-demand during review.
+        Tools:
+        1. read_file - Read a specific file from the repo (fast, local)
+        2. grep_pattern - Search for regex patterns via ripgrep (fast, local)
+        3. list_directory - See repo structure (fast, local)
+        4. warpgrep_codebase_search - Semantic code search via Morph API
         """
-        import sys
+        if not repo_path:
+            return None, None
 
-        # Build tool list if repo_path available and WarpGrep tool is enabled
-        tools = None
+        tools = [
+            {
+                "name": "read_file",
+                "description": (
+                    "Read a file from the repository. Returns the file contents with line numbers. "
+                    "Use this to verify assumptions about code before claiming bugs. For example, "
+                    "read the full file to check if a variable IS defined outside the diff, or read "
+                    "callers of a changed function to confirm they'll break. "
+                    "You can specify line ranges to read specific sections. "
+                    "This is a fast local operation - use it liberally."
+                ),
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "path": {
+                            "type": "string",
+                            "description": "File path relative to repo root, e.g. 'src/auth/login.ts'",
+                        },
+                        "lines": {
+                            "type": "string",
+                            "description": "Optional line ranges to read, e.g. '1-50,100-120'. Omit to read entire file.",
+                        },
+                    },
+                    "required": ["path"],
+                },
+                "input_examples": [
+                    {"path": "src/auth/login.ts"},
+                    {"path": "src/models/user.py", "lines": "1-30"},
+                    {"path": "pkg/storage/index.go", "lines": "100-150,200-220"},
+                ],
+            },
+            {
+                "name": "grep_pattern",
+                "description": (
+                    "Search for a regex pattern across the repository using ripgrep. "
+                    "Returns matching lines with file paths and line numbers. Use this to: "
+                    "find all callers of a changed function, check if a variable name is used "
+                    "elsewhere, verify imports exist, or confirm string constants match across files. "
+                    "This is the PRIMARY verification tool - use it to PROVE bugs exist before reporting them."
+                ),
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "pattern": {
+                            "type": "string",
+                            "description": "Regex pattern to search for, e.g. 'def authenticate', 'import.*UserService', 'TODO|FIXME'",
+                        },
+                        "sub_dir": {
+                            "type": "string",
+                            "description": "Subdirectory to search in, e.g. 'src/auth'. Defaults to entire repo.",
+                        },
+                        "glob": {
+                            "type": "string",
+                            "description": "File glob filter, e.g. '*.py', '*.ts', '*.go'. Defaults to all files.",
+                        },
+                    },
+                    "required": ["pattern"],
+                },
+                "input_examples": [
+                    {"pattern": "sanitizeAnchors"},
+                    {"pattern": "def process_shard", "glob": "*.py"},
+                    {"pattern": "shards|shard_count", "sub_dir": "src/metrics"},
+                ],
+            },
+            {
+                "name": "list_directory",
+                "description": (
+                    "List the directory structure of a path in the repository. "
+                    "Shows files and subdirectories up to 3 levels deep. "
+                    "Use this to understand the project layout, find test directories, "
+                    "or locate related files."
+                ),
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "path": {
+                            "type": "string",
+                            "description": "Directory path relative to repo root, e.g. 'src/auth'. Use '.' for repo root.",
+                        },
+                        "pattern": {
+                            "type": "string",
+                            "description": "Optional regex to filter results, e.g. 'test|spec' to find test files.",
+                        },
+                    },
+                    "required": ["path"],
+                },
+                "input_examples": [
+                    {"path": ".", "pattern": "test|spec"},
+                    {"path": "src/auth"},
+                ],
+            },
+        ]
+
         warpgrep_tool_def = None
-        if repo_path and self.config.morph_api_key and self.config.warpgrep_tool_enabled:
+        if self.config.morph_api_key and self.config.warpgrep_tool_enabled:
             warpgrep_tool_def = create_warpgrep_tool(repo_path, self.config.morph_api_key)
-            tools = [{
+            tools.append({
                 "name": warpgrep_tool_def["name"],
                 "description": warpgrep_tool_def["description"],
                 "input_schema": warpgrep_tool_def["input_schema"],
-            }]
+            })
+
+        return tools, warpgrep_tool_def
+
+    def _execute_tool(self, tool_block, repo_path: str, warpgrep_tool_def: dict | None) -> dict:
+        """Execute a single tool call and return the tool_result."""
+        import sys
+        from pr_review_agent.warpgrep.client import (
+            _execute_grep, _execute_read, _execute_list_directory,
+        )
+
+        name = tool_block.name
+        inp = tool_block.input
+
+        if name == "read_file":
+            result_text = _execute_read(repo_path, inp.get("path", ""), inp.get("lines"))
+            return {
+                "type": "tool_result",
+                "tool_use_id": tool_block.id,
+                "content": result_text,
+            }
+
+        elif name == "grep_pattern":
+            result_text = _execute_grep(
+                repo_path,
+                inp.get("pattern", ""),
+                inp.get("sub_dir", "."),
+                inp.get("glob"),
+            )
+            return {
+                "type": "tool_result",
+                "tool_use_id": tool_block.id,
+                "content": result_text,
+            }
+
+        elif name == "list_directory":
+            result_text = _execute_list_directory(
+                repo_path,
+                inp.get("path", "."),
+                inp.get("pattern"),
+            )
+            return {
+                "type": "tool_result",
+                "tool_use_id": tool_block.id,
+                "content": result_text,
+            }
+
+        elif name == WARPGREP_TOOL_NAME and warpgrep_tool_def:
+            query = inp.get("search_string", "")
+            print(f"    WarpGrep: {query[:80]}", file=sys.stderr)
+            result_text = execute_warpgrep_tool(inp, warpgrep_tool_def)
+            return {
+                "type": "tool_result",
+                "tool_use_id": tool_block.id,
+                "content": result_text if result_text else "No results found.",
+            }
+
+        else:
+            return {
+                "type": "tool_result",
+                "tool_use_id": tool_block.id,
+                "content": f"Unknown tool: {name}",
+                "is_error": True,
+            }
+
+    def _call_opus(self, prompt: str, thinking_budget: int = 10000, repo_path: str | None = None, timeout: int = 300) -> str:
+        """Call Claude with extended thinking, optionally with code review tools.
+
+        If repo_path is provided, Claude gets tools for code review:
+        - read_file: Read specific files from the repo
+        - grep_pattern: Search for patterns via ripgrep
+        - list_directory: Browse repo structure
+        - warpgrep_codebase_search: Semantic code search via Morph API
+        """
+        import sys
+
+        tools, warpgrep_tool_def = self._build_tools(repo_path)
 
         for attempt in range(2):
             messages = [{"role": "user", "content": prompt}]
@@ -680,7 +1023,7 @@ If two issues describe the SAME bug at the SAME location (or same conceptual bug
             try:
                 # If we have tools, use a non-streaming agentic loop
                 if tools:
-                    return self._agentic_loop(messages, tools, warpgrep_tool_def, thinking_budget)
+                    return self._agentic_loop(messages, tools, repo_path, warpgrep_tool_def, thinking_budget)
 
                 # Use streaming with get_final_message for reliability
                 with self.client.messages.stream(
@@ -721,19 +1064,21 @@ If two issues describe the SAME bug at the SAME location (or same conceptual bug
         self,
         messages: list[dict],
         tools: list[dict],
-        warpgrep_tool_def: dict,
+        repo_path: str,
+        warpgrep_tool_def: dict | None,
         thinking_budget: int,
-        max_tool_rounds: int = 10,
+        max_tool_rounds: int = 25,
     ) -> str:
-        """Run Claude with WarpGrep tool in an agentic loop.
+        """Run Claude with code review tools in an agentic loop.
 
-        Opus can call WarpGrep as many times as it needs to gather context.
-        When it stops calling tools, we return the text directly if it contains
-        JSON, otherwise make one final call without tools to force JSON output.
+        Opus can call any tool (read_file, grep_pattern, list_directory,
+        warpgrep_codebase_search) as many times as it needs. When it stops
+        calling tools, we return the text if it contains JSON, otherwise
+        make one final call without tools to force JSON output.
         """
         import sys
 
-        total_searches = 0
+        tool_counts: dict[str, int] = {}
 
         for round_num in range(max_tool_rounds):
             response = self.client.messages.create(
@@ -741,7 +1086,7 @@ If two issues describe the SAME bug at the SAME location (or same conceptual bug
                 max_tokens=self.config.max_tokens,
                 thinking={"type": "adaptive"},
                 temperature=1,
-                system=SYSTEM_PROMPT,
+                system=self.active_system_prompt,
                 tools=tools,
                 messages=messages,
             )
@@ -755,46 +1100,34 @@ If two issues describe the SAME bug at the SAME location (or same conceptual bug
                 elif block.type == "tool_use":
                     tool_use_blocks.append(block)
 
-            # If no tool calls or end_turn, Claude is done
-            if not tool_use_blocks or response.stop_reason == "end_turn":
+            # If no tool calls, Claude is done
+            if not tool_use_blocks:
                 result = "\n".join(text_parts)
                 if result.strip() and "[" in result:
-                    print(f"  Review complete (used {total_searches} WarpGrep searches)", file=sys.stderr)
+                    summary = ", ".join(f"{n}={c}" for n, c in tool_counts.items())
+                    print(f"  Review complete (tools: {summary or 'none'})", file=sys.stderr)
                     return result
                 # No JSON in response, need final call without tools
                 break
 
-            # Execute all tool calls
+            # Execute all tool calls in parallel
             messages.append({"role": "assistant", "content": response.content})
             tool_results = []
             for tool_block in tool_use_blocks:
-                if tool_block.name == WARPGREP_TOOL_NAME:
-                    query = tool_block.input.get('search_string', '')
-                    print(f"  WarpGrep [{total_searches+1}]: {query[:80]}", file=sys.stderr)
-                    result_text = execute_warpgrep_tool(tool_block.input, warpgrep_tool_def)
-                    total_searches += 1
-                    tool_results.append({
-                        "type": "tool_result",
-                        "tool_use_id": tool_block.id,
-                        "content": result_text[:12000] if result_text else "No results found.",
-                    })
-                else:
-                    tool_results.append({
-                        "type": "tool_result",
-                        "tool_use_id": tool_block.id,
-                        "content": "Unknown tool.",
-                        "is_error": True,
-                    })
+                tool_counts[tool_block.name] = tool_counts.get(tool_block.name, 0) + 1
+                result = self._execute_tool(tool_block, repo_path, warpgrep_tool_def)
+                tool_results.append(result)
             messages.append({"role": "user", "content": tool_results})
 
         # Final call WITHOUT tools to force JSON output
-        print(f"  Final review call (after {total_searches} WarpGrep searches)", file=sys.stderr)
+        summary = ", ".join(f"{n}={c}" for n, c in tool_counts.items())
+        print(f"  Final review call (tools used: {summary or 'none'})", file=sys.stderr)
         final_response = self.client.messages.create(
             model=self.config.model,
             max_tokens=self.config.max_tokens,
             thinking={"type": "adaptive"},
             temperature=1,
-            system=SYSTEM_PROMPT,
+            system=self.active_system_prompt,
             messages=messages,
         )
 

@@ -204,8 +204,13 @@ def filter_reviewable_files(files: list[FileDiff]) -> list[FileDiff]:
         # Skip non-code files
         if any(p in f.file_path for p in skip_patterns):
             continue
-        # Prefer known languages
-        if f.language in reviewable_languages or f.total_added > 0:
+        # Include known languages and other reviewable files
+        reviewable_extensions = {
+            ".properties", ".scss", ".css", ".erb", ".hbs",
+            ".html", ".htm", ".yml", ".yaml", ".json",
+        }
+        is_reviewable_ext = any(f.file_path.endswith(ext) for ext in reviewable_extensions)
+        if f.language in reviewable_languages or is_reviewable_ext or f.total_added > 0:
             result.append(f)
 
     return result

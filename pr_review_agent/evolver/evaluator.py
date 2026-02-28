@@ -17,7 +17,6 @@ from pr_review_agent.evolver.failure_case import CodeReviewFailureCase
 from pr_review_agent.evolver.organism import CodeReviewOrganism
 from pr_review_agent.pipeline.confidence_filter import ConfidenceFilter
 from pr_review_agent.pipeline.diff_parser import filter_reviewable_files, parse_diff
-from pr_review_agent.pipeline.output_formatter import format_candidates
 from pr_review_agent.pipeline.reviewer import Reviewer
 
 # Map benchmark source_repo values to local clone directory names
@@ -206,7 +205,7 @@ class CodeReviewEvaluator(
 
             # Judge pass
             try:
-                issues = reviewer.judge_issues(issues, file_diffs)
+                issues = reviewer.judge_issues(issues, file_diffs, repo_path=repo_path)
             except Exception as e:
                 print(f"    Judge error: {e}", file=sys.stderr)
 

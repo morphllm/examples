@@ -3,50 +3,57 @@
 # Map of language to specific things to watch for
 LANGUAGE_HINTS = {
     "python": """Python-specific checks:
-- Division by zero (use of / without checking denominator)
+- Missing import causing NameError (e.g., math.floor without import math)
 - Mutable default arguments (def f(x=[]))
-- Late binding closures in loops
+- Class field datetime.now() evaluated at definition time, not per-instance
 - Missing await on async functions
-- Dictionary key errors (missing .get() or key checks)
-- Type coercion issues (str vs bytes, int vs float)
-- Context manager misuse (missing __exit__, unclosed resources)
-- Django/Flask specific: SQL injection in raw queries, missing CSRF""",
+- Django QuerySet does NOT support negative slicing
+- queue.shutdown() doesn't exist in standard library
+- Late binding closures in loops
+- isinstance checks that are always true/false""",
 
     "go": """Go-specific checks:
-- Unchecked error returns (err ignored after function call)
-- Goroutine leaks (goroutine started but never joined/cancelled)
-- Race conditions on shared state (missing mutex/channel)
+- Race conditions: lock scope reduced, missing mutex. When a lock scope is reduced, check ALL readers/writers of the previously-protected resource for unsynchronized access
+- Goroutine leaks (started but never cancelled)
 - Nil pointer dereference (interface nil vs typed nil)
-- Slice append gotchas (shared underlying array)
+- Exec/Query args format: Exec(query, args...) not Exec(args...)
+- Incomplete double-checked locking (must re-check after acquiring lock)
+- Missing error return checks
 - Context cancellation not propagated
-- Deferred function call order (LIFO)""",
+- Concurrent map read/write without sync.Map or mutex
+- File descriptor / connection leaks (defer close missing after open)""",
 
     "typescript": """TypeScript-specific checks:
-- Null/undefined not handled (missing ?. or nullish checks)
-- Type assertions hiding bugs (as SomeType without validation)
+- forEach with async callbacks does NOT await (use for...of)
+- === compares object references, not values (dayjs objects need .isSame())
+- Null/undefined from array access without length check
 - Promise not awaited (missing await)
-- Array index out of bounds (no length check)
-- Event handler memory leaks (missing removeEventListener)
-- React-specific: stale closures in useEffect, missing dependencies
-- Incorrect type narrowing""",
+- Invalid Zod schema syntax (computed property keys)
+- SafeParseResult vs unwrapped data confusion
+- React: missing key prop in list rendering""",
 
     "ruby": """Ruby-specific checks:
-- NoMethodError on nil (missing &. or nil checks)
-- Incorrect use of == vs === vs eql?
-- Thread safety issues with shared mutable state
-- ActiveRecord N+1 queries
-- Missing strong parameters in controllers
-- SQL injection in string interpolation
-- Symbol/string key confusion in hashes""",
+- Method called on nil (find_by returns nil, then .method called)
+- method redefinition silently overwrites previous def
+- before_validation on nil receiver
+- Missing ? suffix on predicate methods (Rails expects include_X? not include_X)
+- Fabricator/factory defined for wrong model
+- Regex anchoring: @(#{domains}) matches suffixes, not full domains
+- String interpolation in SQL queries
+- invalid ERB syntax (end if instead of end)
+- Thread-safety: lazy @instance_variable without synchronization races under concurrent requests (use Mutex or eager init)
+- Symbol vs String: :en != "en" in Ruby. Hash lookups and include? checks can silently fail when mixing Symbol keys with String values
+- Return value changes: adding a new last expression in a method changes its return value. In around_action/around_filter, this can break the filter chain
+- Locale loading: I18n backends may not be thread-safe for lazy loading""",
 
     "java": """Java-specific checks:
-- NullPointerException (missing null checks)
-- Unchecked casts (ClassCastException)
-- Resource leaks (missing try-with-resources)
-- ConcurrentModificationException (modifying collection during iteration)
-- Incorrect equals/hashCode implementations
-- Thread safety issues (missing synchronized/volatile)
-- Incorrect generics usage (type erasure issues)""",
+- NullPointerException: Optional.get() without isPresent()
+- Method doesn't exist on the type (wrong class/interface)
+- Wrong parameter in null check (checking param A instead of param B)
+- Inverted substring/equality logic
+- Missing abstract method implementation
+- ConcurrentModificationException
+- Contract violation (returning null when contract says non-null)""",
 }
 
 

@@ -83,6 +83,19 @@ def select_calibration_prs(benchmark_data: dict) -> list[str]:
     return [urls[0] for urls in repo_prs.values() if urls]
 
 
+def select_mini_prs(benchmark_data: dict) -> list[str]:
+    """Pick 3 PRs per base repo for mini evaluation (15 total)."""
+    repo_prs: dict[str, list[str]] = {}
+    for url, entry in benchmark_data.items():
+        repo = entry.get("source_repo", "unknown")
+        base = repo.split("-")[0] if "-" in repo else repo
+        repo_prs.setdefault(base, []).append(url)
+    selected = []
+    for urls in repo_prs.values():
+        selected.extend(urls[:3])
+    return selected
+
+
 def run_benchmark(config: Config, args: argparse.Namespace) -> None:
     print("=" * 60)
     print("PR Review Agent - Benchmark Pipeline")
@@ -96,11 +109,13 @@ def run_benchmark(config: Config, args: argparse.Namespace) -> None:
     confidence_filter = ConfidenceFilter(config)
 
     # Apply organism overrides if specified
+    max_issues_per_pr = 6  # default cap
     if args.organism:
         from pr_review_agent.evolver.run import load_organism_json
         organism = load_organism_json(Path(args.organism))
         reviewer.configure_from_organism(organism)
         confidence_filter = ConfidenceFilter(config, base_threshold_override=organism.confidence_threshold)
+        max_issues_per_pr = organism.max_issues_per_pr
         print(f"Organism: {args.organism}")
         print(f"  confidence_threshold={organism.confidence_threshold}, "
               f"num_passes={organism.num_passes}, "
@@ -111,6 +126,9 @@ def run_benchmark(config: Config, args: argparse.Namespace) -> None:
     # Select PRs
     if args.pr_url:
         pr_urls = [u for u in benchmark_data if args.pr_url in u]
+    elif args.mini:
+        pr_urls = select_mini_prs(benchmark_data)
+        print(f"Mini eval: {len(pr_urls)} PRs (3 per repo)")
     elif args.calibrate:
         pr_urls = select_calibration_prs(benchmark_data)
         print(f"Calibration: {len(pr_urls)} PRs (1 per repo)")
@@ -172,17 +190,17 @@ def run_benchmark(config: Config, args: argparse.Namespace) -> None:
 
         # Judge pass: validate issues against the diff to remove FPs
         try:
-            issues = reviewer.judge_issues(issues, file_diffs)
+            issues = reviewer.judge_issues(issues, file_diffs, repo_path=repo_path)
         except Exception as e:
             print(f"  Judge error (skipping): {e}")
 
         # Confidence filter
         filtered = confidence_filter.filter(issues)
 
-        # Cap at 6 comments per PR (most PRs have 2-5 golden, too many = FPs)
-        if len(filtered) > 6:
+        # Cap comments per PR (organism controls this, default 6)
+        if len(filtered) > max_issues_per_pr:
             filtered.sort(key=lambda x: x.confidence, reverse=True)
-            filtered = filtered[:6]
+            filtered = filtered[:max_issues_per_pr]
 
         total_after += len(filtered)
         print(f"  {len(issues)} raw -> {len(filtered)} filtered")
@@ -259,6 +277,7 @@ def main():
     parser.add_argument("--repo", help="Filter by repo (sentry, grafana, etc.)")
     parser.add_argument("--limit", type=int, help="Max PRs to review")
     parser.add_argument("--calibrate", action="store_true", help="5 PRs, 1 per repo")
+    parser.add_argument("--mini", action="store_true", help="15 PRs, 3 per repo (fast eval)")
     parser.add_argument("--threshold", type=float, help="Override confidence threshold")
     parser.add_argument("--no-warpgrep", action="store_true", help="Skip WarpGrep")
     parser.add_argument("--organism", help="Path to organism JSON (evolved prompts)")

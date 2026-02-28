@@ -98,107 +98,144 @@ class ConfidenceFilter:
     def _deduplicate(self, issues: list[ReviewIssue]) -> list[ReviewIssue]:
         """Remove near-duplicate issues, keeping highest confidence.
 
-        Deduplicates both within-file (same line or similar text) and
-        cross-file (same root cause reported at multiple call sites).
+        Uses a multi-layered approach:
+        1. Same file + nearby lines (within 5 lines) + same category
+        2. Word-level overlap (robust to rephrasing)
+        3. Character-level SequenceMatcher (catches near-identical text)
+        4. Bug signature matching (keyword extraction for technical identifiers)
+
+        This aggressively deduplicates the same conceptual bug across files
+        (e.g., "forEach with async" in 3 files -> 1 report).
         """
+        from difflib import SequenceMatcher
+
         if len(issues) <= 1:
             return issues
+
+        # Common stop words for word overlap
+        stop_words = {
+            "the", "a", "an", "is", "in", "to", "of", "and", "or", "but",
+            "for", "on", "at", "by", "with", "from", "this", "that", "it",
+            "not", "be", "are", "was", "will", "can", "should", "could",
+            "may", "which", "when", "if", "has", "have", "does", "do",
+            "same", "also", "as", "here", "too", "so", "its", "been",
+        }
 
         # Sort by confidence descending, then severity (critical first)
         severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
         issues.sort(key=lambda x: (-x.confidence, severity_order.get(x.severity, 4)))
-        kept = []
+        kept: list[ReviewIssue] = []
         for issue in issues:
             is_dup = False
+            i_lower = issue.comment.lower()[:300]
+            i_words = set(i_lower.split()) - stop_words
+            i_sig = self._extract_bug_signature(issue.comment)
+
             for existing in kept:
-                # Same file + nearby lines = almost certainly same issue
-                if (issue.file_path == existing.file_path and
+                e_lower = existing.comment.lower()[:300]
+                same_file = issue.file_path == existing.file_path
+
+                # Layer 1: Same file + nearby lines + same category
+                if (same_file and
                     issue.line_number > 0 and existing.line_number > 0 and
-                    abs(issue.line_number - existing.line_number) <= 5):
+                    abs(issue.line_number - existing.line_number) <= 5 and
+                    issue.category == existing.category):
                     is_dup = True
                     break
-                # Same file + very similar comment text
-                if (issue.file_path == existing.file_path and
-                    self._is_similar(issue.comment, existing.comment)):
+
+                # Layer 2: Word-level overlap (robust to rephrasing)
+                e_words = set(e_lower.split()) - stop_words
+                if i_words and e_words:
+                    overlap = len(i_words & e_words) / min(len(i_words), len(e_words))
+                    if same_file and overlap > 0.50:
+                        is_dup = True
+                        break
+                    if not same_file and issue.category == existing.category and overlap > 0.55:
+                        is_dup = True
+                        break
+                    if not same_file and overlap > 0.65:
+                        is_dup = True
+                        break
+
+                # Layer 3: Character-level similarity (near-identical text)
+                ratio = SequenceMatcher(None, i_lower, e_lower).ratio()
+                if same_file and ratio > 0.55:
                     is_dup = True
                     break
-                # Cross-file: same root cause at different call sites
-                if (issue.file_path != existing.file_path and
-                    issue.category == existing.category and
-                    self._is_same_root_cause(issue.comment, existing.comment)):
+                if not same_file and ratio > 0.70:
                     is_dup = True
                     break
-                # Same file, different lines but same root cause
-                if (issue.file_path == existing.file_path and
-                    issue.category == existing.category and
-                    self._is_same_root_cause(issue.comment, existing.comment)):
-                    is_dup = True
-                    break
-                # Cross-file: same API pattern issue (e.g., forEach+async in multiple files)
-                if (issue.file_path != existing.file_path and
-                    self._is_similar(issue.comment, existing.comment)):
-                    is_dup = True
-                    break
+
+                # Layer 4: Bug signature matching (keyword-based)
+                if i_sig:
+                    e_sig = self._extract_bug_signature(existing.comment)
+                    if e_sig and self._signatures_match(i_sig, e_sig, issue.category == existing.category):
+                        is_dup = True
+                        break
+
             if not is_dup:
                 kept.append(issue)
         return kept
 
     @staticmethod
-    def _is_same_root_cause(a: str, b: str) -> bool:
-        """Check if two comments describe the same root cause bug.
+    def _extract_bug_signature(comment: str) -> set[str]:
+        """Extract the core technical terms that identify a bug.
 
-        This catches cases like "isinstance(process, multiprocessing.Process)
-        won't match SpawnProcess" reported at two different call sites.
+        Returns a set of normalized identifiers, method names, and
+        key phrases that constitute the "signature" of the bug.
         """
-        a_norm = a.lower().strip()[:300]
-        b_norm = b.lower().strip()[:300]
-
-        # Extract key technical terms (identifiers, types, method names)
         import re
-        a_ids = set(re.findall(r'`([^`]+)`', a_norm))
-        b_ids = set(re.findall(r'`([^`]+)`', b_norm))
+        comment_lower = comment.lower()
+        terms: set[str] = set()
 
-        if a_ids and b_ids:
-            # If they share 2+ backtick-quoted identifiers, likely same root cause
-            shared = a_ids & b_ids
-            if len(shared) >= 2:
-                return True
+        # Backtick-quoted identifiers (e.g., `forEach`, `recordLegacyDuration`)
+        terms.update(re.findall(r'`([^`]+)`', comment_lower))
 
-        # High word overlap (stricter than _is_similar, uses more words)
-        stop_words = {"the", "a", "an", "is", "in", "to", "of", "and", "or", "but",
-                       "for", "on", "at", "by", "with", "from", "this", "that", "it",
-                       "not", "be", "are", "was", "will", "can", "should", "could",
-                       "may", "which", "when", "if", "has", "have", "does", "do",
-                       "same", "also", "as", "here", "too"}
-        a_words = set(a_norm.split()) - stop_words
-        b_words = set(b_norm.split()) - stop_words
-        if not a_words or not b_words:
-            return False
-        overlap = len(a_words & b_words) / min(len(a_words), len(b_words))
-        return overlap > 0.75
+        # camelCase/PascalCase identifiers (4+ chars with internal caps)
+        for w in re.findall(r'[a-zA-Z_]\w{3,}', comment):
+            if any(c.isupper() for c in w[1:]) or '_' in w:
+                terms.add(w.lower())
+
+        # Technical compound phrases (2-3 word patterns)
+        tech_patterns = [
+            r'foreach\s+(?:with\s+)?async',
+            r'negative\s+(?:indexing|slicing|offset)',
+            r'null\s+(?:reference|dereference|pointer)',
+            r'race\s+condition',
+            r'copy[- ]paste\s+error',
+            r'inverted?\s+(?:logic|condition)',
+            r'wrong\s+(?:method|function|parameter|variable|log\s+level)',
+            r'dead\s+code',
+            r'lock\s+scope',
+            r'double[- ]checked\s+locking',
+            r'sql\s+injection',
+            r'xss\s+vulnerabilit',
+            r'ssrf\s+vulnerabilit',
+            r'origin\s+validation',
+        ]
+        for pat in tech_patterns:
+            if re.search(pat, comment_lower):
+                terms.add(re.sub(r'\s+', '_', pat.replace(r'\s+', ' ').replace('?', '').replace(r'[- ]', '_')))
+
+        return terms
 
     @staticmethod
-    def _is_similar(a: str, b: str) -> bool:
-        """Check if two comments describe the same issue."""
-        # Normalize
-        a_norm = a.lower().strip()[:200]
-        b_norm = b.lower().strip()[:200]
-
-        # Exact prefix match
-        if a_norm[:60] == b_norm[:60]:
-            return True
-
-        # Word overlap (excluding common words)
-        stop_words = {"the", "a", "an", "is", "in", "to", "of", "and", "or", "but",
-                       "for", "on", "at", "by", "with", "from", "this", "that", "it",
-                       "not", "be", "are", "was", "will", "can", "should", "could",
-                       "may", "which", "when", "if", "has", "have", "does", "do"}
-        a_words = set(a_norm.split()) - stop_words
-        b_words = set(b_norm.split()) - stop_words
-        if not a_words or not b_words:
+    def _signatures_match(sig_a: set[str], sig_b: set[str], same_category: bool) -> bool:
+        """Check if two bug signatures represent the same bug."""
+        if not sig_a or not sig_b:
             return False
-        overlap = len(a_words & b_words) / min(len(a_words), len(b_words))
-        return overlap > 0.65
+        shared = sig_a & sig_b
+        # Same category + 2 shared terms = same bug
+        if same_category and len(shared) >= 2:
+            return True
+        # 3+ shared terms regardless of category
+        if len(shared) >= 3:
+            return True
+        # High Jaccard overlap for smaller sets
+        union = sig_a | sig_b
+        if union and len(shared) / len(union) > 0.5:
+            return True
+        return False
 
     def _get_threshold(self, category: str) -> float:
         """Get confidence threshold for a category."""
