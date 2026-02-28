@@ -3,7 +3,6 @@
 import asyncio
 import logging
 import shutil
-import tempfile
 from pathlib import Path
 
 import httpx

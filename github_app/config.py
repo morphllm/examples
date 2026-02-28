@@ -28,7 +28,7 @@ class AppConfig:
         self.github_app_id = self.github_app_id or os.environ.get("GITHUB_APP_ID", "")
         self.github_webhook_secret = self.github_webhook_secret or os.environ.get(
             "GITHUB_WEBHOOK_SECRET", ""
-        )
+        ) or os.environ.get("GHAPP_INTERNAL_SECRET", "")
         self.anthropic_api_key = self.anthropic_api_key or os.environ.get(
             "ANTHROPIC_API_KEY", ""
         )

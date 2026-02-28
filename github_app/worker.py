@@ -39,6 +39,7 @@ async def process_review(payload: dict, app_config: AppConfig):
         )
         client = GitHubClient(token)
         clone_path = None
+        check_run_id = None
 
         try:
             check_run_id = await client.create_check_run(owner, repo, head_sha)
@@ -100,15 +101,16 @@ async def process_review(payload: dict, app_config: AppConfig):
 
         except Exception:
             logger.exception("Review failed for %s PR #%d", full_name, pr_number)
-            try:
-                await client.complete_check_run(
-                    owner, repo, check_run_id,
-                    "neutral",
-                    "Review failed",
-                    "An error occurred during the review. Check server logs for details.",
-                )
-            except Exception:
-                logger.exception("Failed to update check run")
+            if check_run_id:
+                try:
+                    await client.complete_check_run(
+                        owner, repo, check_run_id,
+                        "neutral",
+                        "Review failed",
+                        "An error occurred during the review. Check server logs for details.",
+                    )
+                except Exception:
+                    logger.exception("Failed to update check run")
         finally:
             if clone_path:
                 GitHubClient.cleanup_clone(clone_path)

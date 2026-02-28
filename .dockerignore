@@ -1,0 +1,13 @@
+__pycache__
+*.pyc
+.git
+.env
+*.log
+pr_review_agent/output/
+pr_review_agent/research/
+pr_review_agent/evolver/output/
+darwinian_evolver/
+pr-agent/
+code-review-benchmark/
+pr_clones/
+.claude/

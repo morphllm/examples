@@ -5,6 +5,7 @@ import hmac
 import json
 import logging
 from collections import OrderedDict
+from functools import lru_cache
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 
@@ -14,17 +15,21 @@ from github_app.worker import process_review
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="PR Review Agent")
-config = AppConfig()
-
-# Configure logging
-logging.basicConfig(
-    level=getattr(logging, config.log_level),
-    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-)
 
 # Delivery dedup (bounded LRU)
 _seen_deliveries: OrderedDict[str, None] = OrderedDict()
 _MAX_SEEN = 1000
+
+
+@lru_cache
+def _get_config() -> AppConfig:
+    """Lazy-load config on first request, not at import time."""
+    cfg = AppConfig()
+    logging.basicConfig(
+        level=getattr(logging, cfg.log_level),
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
+    return cfg
 
 
 def _verify_signature(body: bytes, secret: str, signature_header: str) -> bool:
@@ -39,6 +44,7 @@ def _verify_signature(body: bytes, secret: str, signature_header: str) -> bool:
 
 @app.post("/webhook")
 async def webhook(request: Request, background_tasks: BackgroundTasks):
+    config = _get_config()
     body = await request.body()
 
     # Verify signature
