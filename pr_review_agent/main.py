@@ -19,7 +19,6 @@ from pathlib import Path
 
 from pr_review_agent.config import Config
 from pr_review_agent.pipeline.confidence_filter import ConfidenceFilter
-from pr_review_agent.pipeline.context_gatherer import ContextGatherer
 from pr_review_agent.pipeline.diff_parser import filter_reviewable_files, parse_diff
 from pr_review_agent.pipeline.output_formatter import (
     format_candidates,
@@ -93,10 +92,21 @@ def run_benchmark(config: Config, args: argparse.Namespace) -> None:
     print(f"Loaded {len(benchmark_data)} PRs")
 
     # Components
-    context_gatherer = None if args.no_warpgrep else ContextGatherer(config)
-    reviewer = Reviewer(config, context_gatherer)
+    reviewer = Reviewer(config)
     confidence_filter = ConfidenceFilter(config)
-    print(f"WarpGrep: {'ENABLED' if context_gatherer else 'DISABLED'}")
+
+    # Apply organism overrides if specified
+    if args.organism:
+        from pr_review_agent.evolver.run import load_organism_json
+        organism = load_organism_json(Path(args.organism))
+        reviewer.configure_from_organism(organism)
+        confidence_filter = ConfidenceFilter(config, base_threshold_override=organism.confidence_threshold)
+        print(f"Organism: {args.organism}")
+        print(f"  confidence_threshold={organism.confidence_threshold}, "
+              f"num_passes={organism.num_passes}, "
+              f"max_issues={organism.max_issues_per_pr}")
+
+    print(f"WarpGrep: {'ENABLED' if config.warpgrep_tool_enabled else 'DISABLED'}")
 
     # Select PRs
     if args.pr_url:
@@ -150,7 +160,7 @@ def run_benchmark(config: Config, args: argparse.Namespace) -> None:
         if not Path(repo_path).is_dir():
             repo_path = None  # fallback if clone not available
 
-        # Review
+        # Review (shuffled multi-pass + majority voting)
         try:
             issues = reviewer.review_pr(file_diffs, repo_path=repo_path)
         except Exception as e:
@@ -160,13 +170,19 @@ def run_benchmark(config: Config, args: argparse.Namespace) -> None:
 
         total_before += len(issues)
 
-        # Filter
+        # Judge pass: validate issues against the diff to remove FPs
+        try:
+            issues = reviewer.judge_issues(issues, file_diffs)
+        except Exception as e:
+            print(f"  Judge error (skipping): {e}")
+
+        # Confidence filter
         filtered = confidence_filter.filter(issues)
 
-        # Cap at 8 comments per PR (some PRs have 5-6 golden, need room)
-        if len(filtered) > 8:
+        # Cap at 6 comments per PR (most PRs have 2-5 golden, too many = FPs)
+        if len(filtered) > 6:
             filtered.sort(key=lambda x: x.confidence, reverse=True)
-            filtered = filtered[:8]
+            filtered = filtered[:6]
 
         total_after += len(filtered)
         print(f"  {len(issues)} raw -> {len(filtered)} filtered")
@@ -245,11 +261,22 @@ def main():
     parser.add_argument("--calibrate", action="store_true", help="5 PRs, 1 per repo")
     parser.add_argument("--threshold", type=float, help="Override confidence threshold")
     parser.add_argument("--no-warpgrep", action="store_true", help="Skip WarpGrep")
+    parser.add_argument("--organism", help="Path to organism JSON (evolved prompts)")
+    parser.add_argument("--evolve", action="store_true", help="Run darwinian evolution")
     args = parser.parse_args()
+
+    if args.evolve:
+        from pr_review_agent.evolver.run import main as evolve_main
+        sys.argv = [sys.argv[0]]  # Reset argv for evolver's argparse
+        evolve_main()
+        return
 
     config = Config()
     if args.threshold:
         config.base_confidence_threshold = args.threshold
+    if args.no_warpgrep:
+        config.warpgrep_tool_enabled = False
+        config.warpgrep_validate_issues = False
 
     run_benchmark(config, args)
 

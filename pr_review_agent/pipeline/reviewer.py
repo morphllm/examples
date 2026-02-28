@@ -1,22 +1,17 @@
-"""Opus 4.6 multi-pass review engine."""
+"""Opus 4.6 multi-pass review engine with shuffled ensemble + majority voting."""
 
 from __future__ import annotations
 
 import json
+import random
 from dataclasses import dataclass, field
 
 import anthropic
 
 from pr_review_agent.config import Config
-from pr_review_agent.pipeline.context_gatherer import ContextGatherer
 from pr_review_agent.pipeline.diff_parser import FileDiff
 from pr_review_agent.prompts.review import get_language_hint
-from pr_review_agent.prompts.system import (
-    CALIBRATION_PROMPT,
-    CROSS_FILE_PROMPT,
-    FILE_REVIEW_PROMPT,
-    SYSTEM_PROMPT,
-)
+from pr_review_agent.prompts.system import SYSTEM_PROMPT
 from pr_review_agent.warpgrep.client import (
     create_warpgrep_tool,
     execute_warpgrep_tool,
@@ -50,55 +45,157 @@ class ReviewIssue:
         return d
 
 
-@dataclass
-class ReviewResult:
-    """Result of reviewing a single PR."""
-    pr_url: str
-    issues: list[ReviewIssue] = field(default_factory=list)
-    file_count: int = 0
-    total_added_lines: int = 0
-    error: str | None = None
-
-
 class Reviewer:
     """Multi-pass code reviewer using Opus 4.6."""
 
-    def __init__(self, config: Config, context_gatherer: ContextGatherer | None = None):
+    def __init__(self, config: Config):
         self.config = config
         import httpx
         self.client = anthropic.Anthropic(
             api_key=config.anthropic_api_key,
             timeout=httpx.Timeout(600.0, connect=30.0),
         )
-        self.context_gatherer = context_gatherer
+        # Prompt overrides (set via configure_from_organism)
+        self._system_prompt: str | None = None
+        self._review_instructions: str | None = None
+        self._judge_prompt: str | None = None
+        self._num_passes: int | None = None
+
+    def configure_from_organism(self, organism) -> None:
+        """Override prompts with evolved values from a CodeReviewOrganism."""
+        self._system_prompt = organism.system_prompt
+        self._review_instructions = organism.review_instructions
+        self._judge_prompt = organism.judge_prompt
+        self._num_passes = organism.num_passes
+
+    @property
+    def active_system_prompt(self) -> str:
+        return self._system_prompt if self._system_prompt is not None else SYSTEM_PROMPT
 
     def review_pr(
         self,
         file_diffs: list[FileDiff],
         repo_path: str | None = None,
+        num_passes: int | None = None,
     ) -> list[ReviewIssue]:
-        """Run dual-pass review on a PR with WarpGrep as a tool.
+        """Run shuffled multi-pass review with majority voting.
 
-        Claude gets the WarpGrep tool so it can search the codebase on-demand
-        during each review pass. No separate pre-fetch phase needed.
-
-        Pass 1: Comprehensive bug-finding with WarpGrep tool available.
-        Pass 2: Second pass with different focus, also with WarpGrep tool.
-        Merge: Combine unique issues, boost confirmed ones.
-        Validate: WarpGrep validation to kill remaining FPs.
+        Phase 0: Pre-search with WarpGrep to gather codebase context.
+        Passes 1-4: Each pass shuffles file order and alternates between
+                     comprehensive and commonly-missed prompts.
+        Pass 5: Quick-wins pass targeting low-severity but real issues
+                 (typos, naming, doc mismatches).
+        Merge: Majority voting with confidence adjustments.
         """
-        # Pass 1 + Pass 2 with WarpGrep tool available
-        pass1_issues = self._pass1_review(file_diffs, repo_path=repo_path)
-        pass2_issues = self._pass2_review(file_diffs, repo_path=repo_path)
+        import sys
 
-        # Merge
-        all_issues = self._merge_passes(pass1_issues, pass2_issues)
+        # Resolve num_passes: argument > organism override > default
+        if num_passes is None:
+            num_passes = self._num_passes if self._num_passes is not None else 4
 
-        # Validate issues with WarpGrep (kill FPs)
-        if all_issues and repo_path and self.config.warpgrep_validate_issues and self.context_gatherer:
-            all_issues = self._validate_with_warpgrep(all_issues, repo_path)
+        # Phase 0: Gather codebase context via WarpGrep (1-2 strategic searches)
+        warpgrep_context = ""
+        if repo_path and self.config.morph_api_key and self.config.warpgrep_tool_enabled:
+            warpgrep_context = self._gather_strategic_context(file_diffs, repo_path)
+            if warpgrep_context:
+                ctx_len = len(warpgrep_context)
+                print(f"  WarpGrep context: {ctx_len} chars", file=sys.stderr)
 
-        return all_issues
+        # Run N passes with shuffled file ordering
+        all_pass_issues: list[list[ReviewIssue]] = []
+        for pass_num in range(num_passes):
+            # Shuffle file order for each pass (different ordering = different attention)
+            shuffled = list(file_diffs)
+            if pass_num > 0:  # Keep first pass in original order
+                random.shuffle(shuffled)
+
+            # Alternate between comprehensive and commonly-missed prompts
+            if pass_num % 2 == 0:
+                issues = self._pass1_review(shuffled, warpgrep_context=warpgrep_context)
+            else:
+                issues = self._pass2_review(shuffled, warpgrep_context=warpgrep_context)
+
+            for issue in issues:
+                issue.source_pass = f"pass{pass_num + 1}"
+
+            all_pass_issues.append(issues)
+            print(f"  Pass {pass_num + 1}/{num_passes}: {len(issues)} issues", file=sys.stderr)
+
+        # Additional quick-wins pass for low-severity real issues
+        quick_issues = self._quick_wins_review(file_diffs, warpgrep_context=warpgrep_context)
+        if quick_issues:
+            for issue in quick_issues:
+                issue.source_pass = "quick_wins"
+            all_pass_issues.append(quick_issues)
+            print(f"  Quick-wins pass: {len(quick_issues)} issues", file=sys.stderr)
+
+        # Majority voting merge
+        merged = self._majority_vote_merge(all_pass_issues)
+
+        return merged
+
+    def _gather_strategic_context(self, file_diffs: list[FileDiff], repo_path: str) -> str:
+        """Pre-gather codebase context via WarpGrep for the entire PR.
+
+        Makes 1-2 strategic WarpGrep searches to understand:
+        1. Callers/contracts of changed functions
+        2. Related code patterns
+        """
+        import sys
+        from pr_review_agent.warpgrep.client import search_codebase_text
+
+        # Build a summary of what changed for WarpGrep to search intelligently
+        changed_functions = []
+        changed_files_summary = []
+        for fd in file_diffs[:15]:  # Cap to avoid huge queries
+            changed_files_summary.append(f"- {fd.file_path} ({fd.language})")
+            # Extract key identifiers from diff
+            import re
+            for line in fd.raw_diff.split("\n")[:100]:
+                if line.startswith("+") and not line.startswith("+++"):
+                    # Function/method definitions
+                    m = re.search(r'(?:def|func|function|public|private)\s+(\w+)', line)
+                    if m and m.group(1) not in ("__init__", "main", "test"):
+                        changed_functions.append(m.group(1))
+
+        changed_functions = list(dict.fromkeys(changed_functions))[:8]
+
+        context_parts = []
+
+        # Search 1: Find callers and contracts for changed functions
+        if changed_functions:
+            func_list = ", ".join(changed_functions[:5])
+            query = f"Find callers, usages, and interface contracts for these functions/methods: {func_list}"
+            try:
+                result = search_codebase_text(query, repo_path, self.config.morph_api_key, max_turns=3)
+                if result and len(result) > 50:
+                    context_parts.append(f"### Callers and contracts of changed functions\n{result[:10000]}")
+            except Exception as e:
+                print(f"  WarpGrep search 1 failed: {e}", file=sys.stderr)
+
+        # Search 2: Look for concurrency patterns, resource access, test files
+        # Detect if the diff contains lock/mutex changes to ask targeted questions
+        diff_text = "\n".join(fd.raw_diff[:500] for fd in file_diffs[:5])
+        has_sync_changes = any(
+            kw in diff_text.lower()
+            for kw in ["mutex", "lock", "unlock", "rwlock", "sync.", "synchronized", "atomic"]
+        )
+
+        files_list = "\n".join(changed_files_summary[:10])
+        if has_sync_changes:
+            # Specifically search for readers/writers of protected resources
+            query2 = f"Find all functions that read or write to the same fields/variables protected by locks or mutexes in these files:\n{files_list}"
+        else:
+            query2 = f"Find test files, type definitions, and related code for these changed files:\n{files_list}"
+
+        try:
+            result2 = search_codebase_text(query2, repo_path, self.config.morph_api_key, max_turns=3)
+            if result2 and len(result2) > 50:
+                context_parts.append(f"### Related code and access patterns\n{result2[:10000]}")
+        except Exception as e:
+            print(f"  WarpGrep search 2 failed: {e}", file=sys.stderr)
+
+        return "\n\n".join(context_parts)
 
     def _build_diff_text(self, file_diffs: list[FileDiff], max_chars: int = 80000) -> str:
         """Build combined diff text from file diffs."""
@@ -118,28 +215,8 @@ class Reviewer:
 
         return "\n".join(diff_sections)
 
-    def _build_context_section(self, file_contexts: dict[str, str]) -> str:
-        """Build context section from WarpGrep results."""
-        if not file_contexts:
-            return ""
-
-        parts = ["## Codebase Context (from repository search)",
-                 "The following code exists in the repository outside the diff. "
-                 "Use this to verify whether functions/variables exist before claiming they're undefined, "
-                 "understand codebase patterns, and check if callers match function signature changes.\n"]
-
-        total_chars = 0
-        for file_path, ctx in file_contexts.items():
-            if total_chars > 15000:
-                break
-            section = f"### Context for {file_path}\n{ctx}\n"
-            parts.append(section)
-            total_chars += len(section)
-
-        return "\n".join(parts)
-
-    def _pass1_review(self, file_diffs: list[FileDiff], repo_path: str | None = None) -> list[ReviewIssue]:
-        """Pass 1: Comprehensive bug-finding review with WarpGrep tool."""
+    def _pass1_review(self, file_diffs: list[FileDiff], warpgrep_context: str = "") -> list[ReviewIssue]:
+        """Pass 1: Comprehensive bug-finding review with pre-gathered context."""
         combined_diff = self._build_diff_text(file_diffs)
 
         # Gather language hints
@@ -150,17 +227,13 @@ class Reviewer:
             if get_language_hint(lang)
         )
 
-        warpgrep_instruction = ""
-        if repo_path and self.config.morph_api_key:
-            warpgrep_instruction = """
-## WarpGrep Tool Available
-You have access to a `warpgrep_codebase_search` tool that searches this repository.
-USE IT to verify claims before reporting issues:
-- Before claiming a function/variable is "undefined" or "missing", search for it
-- Before claiming an import is missing, search for it
-- To understand how a changed function is called, search for its callers
-- To check type definitions or interfaces, search for them
-This tool is your key advantage. Use it proactively to avoid false positives.
+        context_section = ""
+        if warpgrep_context:
+            context_section = f"""
+## Codebase Context (from repository search)
+The following code exists in the repository outside the diff. Use this to verify function signatures, understand callers, and check contracts before claiming something is undefined or broken.
+
+{warpgrep_context}
 """
 
         prompt = f"""Review this pull request for bugs and correctness issues.
@@ -169,9 +242,333 @@ This tool is your key advantage. Use it proactively to avoid false positives.
 {combined_diff}
 
 {f"## Language-Specific Notes{chr(10)}{lang_hints}" if lang_hints else ""}
-{warpgrep_instruction}
+{context_section}
 ## What to Look For
-Focus ONLY on changed lines (+ and - lines). Find issues that WILL cause incorrect behavior:
+{self._review_instructions if self._review_instructions else self._default_review_instructions()}
+
+Return a JSON array:
+{{"file_path": "...", "line_number": N, "category": "logic_error|incorrect_value|api_misuse|race_condition|null_reference|type_error|security|localization|test_correctness|portability", "severity": "critical|high|medium|low", "confidence": 0.5-1.0, "comment": "Describe the bug: what code is wrong, what it should be, and the consequence."}}"""
+
+        response_text = self._call_opus(prompt)
+        issues = self._parse_issues(response_text, source_pass="pass1")
+
+        # Retry once if we got 0 issues from a non-trivial diff
+        total_added = sum(fd.total_added for fd in file_diffs)
+        if not issues and total_added > 20:
+            response_text = self._call_opus(prompt)
+            issues = self._parse_issues(response_text, source_pass="pass1_retry")
+
+        return issues
+
+    def _pass2_review(self, file_diffs: list[FileDiff], warpgrep_context: str = "") -> list[ReviewIssue]:
+        """Pass 2: Different focus to catch bugs missed by first pass."""
+        combined_diff = self._build_diff_text(file_diffs)
+
+        context_section = ""
+        if warpgrep_context:
+            context_section = f"""
+## Codebase Context (from repository search)
+Use this context to verify claims about function signatures, callers, contracts, and definitions before reporting issues.
+
+{warpgrep_context}
+"""
+
+        prompt = f"""Review this PR diff with fresh eyes. Look for bugs that a FIRST reviewer commonly misses.
+
+## Changed Files
+{combined_diff}
+
+{context_section}
+
+## Commonly Missed Bug Patterns
+
+Check each of these SPECIFICALLY against the diff:
+
+1. **Behavioral regressions from removals**: Did the PR remove safety checks, filters, permission checks, or error handling that was protecting against something? Look for removed .filter(), removed if-guards, removed permission checks.
+
+2. **Cross-file inconsistency**: Are metric tags, string constants, or key names consistent across all files? (e.g., 'shard' vs 'shards'). Do function signatures match their call sites?
+
+3. **Concurrency — cross-reference after lock changes**: If a lock/mutex scope is reduced or removed, find ALL readers/writers of the previously-protected resource. ANY reader that accesses the resource without holding the lock is now a race condition. Don't just report the lock change; report every unsynchronized access point.
+
+4. **Loop early termination skipping cleanup**: For any loop with break/return, verify that cleanup/finalization still executes for ALL items. If a loop breaks early, do remaining items still get properly handled (joined, closed, terminated)?
+
+5. **Parallel iteration mismatch**: When two collections are iterated in parallel (zip, dual iterators, nested find()), verify they handle size mismatches. If collection A has more items than B, the iteration may go out of bounds.
+
+6. **Return value changes**: Adding a new expression as the last line of a method changes its return value. In Ruby around_action, in Python __exit__, in any callback framework, this can silently break the control flow.
+
+7. **Framework contract violations**: In Ruby, does before_validation work on nil? In Python, is a class field mutable default? In TypeScript, does === compare objects by reference? In Go, does Exec() expect (query, args...) format?
+
+8. **Test validity**: Does a monkeypatch make the thing being tested a no-op? Does the test HTTP method match the route? Does the test name match what it tests? Do test assertions match test comments?
+
+9. **Thread-safety of lazy initialization**: Instance variables initialized lazily (||=, ??=, or if-nil patterns) without synchronization are unsafe under concurrent access. Multiple threads may both see the uninitialized state and race.
+
+10. **Symbol vs String confusion** (Ruby): :symbol != "string". Hash keys and include? checks can silently fail when mixing types.
+
+11. **Security surface changes**: Any weakening of auth, frame options, origin validation, URL validation, or input sanitization?
+
+12. **Scope/naming errors**: Is a variable referenced from the wrong scope? Is a property name misspelled? Does a method name have a typo that prevents it from being called?
+
+Also check for:
+- Method/function name typos that prevent discovery or matching
+- Property name typos (misspelled identifiers)
+- Dead code where results are computed then discarded
+- Docstring that contradicts implementation
+- Wrong log level (Error for debug info)
+- Hardcoded values ignoring configuration
+
+CRITICAL RULES:
+- Do NOT claim variables/functions are "undefined" or "not imported" unless you can PROVE it from the diff. The diff only shows changed lines - definitions may exist in the file outside the diff context.
+- Do NOT suggest defensive null checks ("X could be null") without a CONCRETE path where null arrives.
+- Do NOT report speculative edge cases without evidence they occur.
+- Do NOT report the same bug multiple times across different files. Report it ONCE.
+- Quality over quantity: 3 real bugs > 8 questionable ones.
+
+Each comment must be SELF-CONTAINED: name the specific code element, state what's wrong, and explain the runtime consequence.
+Return [] if nothing found.
+
+{{"file_path": "...", "line_number": N, "category": "logic_error|incorrect_value|api_misuse|race_condition|null_reference|type_error|security|localization|test_correctness|portability", "severity": "critical|high|medium|low", "confidence": 0.5-1.0, "comment": "Describe the specific bug."}}"""
+
+        response_text = self._call_opus(prompt)
+        return self._parse_issues(response_text, source_pass="pass2")
+
+    def _quick_wins_review(self, file_diffs: list[FileDiff], warpgrep_context: str = "") -> list[ReviewIssue]:
+        """Quick-wins pass targeting commonly-missed low-severity but real issues.
+
+        Focuses on: typos, naming bugs, doc mismatches, wrong constants,
+        portability issues, and broken test names.
+        """
+        combined_diff = self._build_diff_text(file_diffs)
+
+        context_section = ""
+        if warpgrep_context:
+            context_section = f"""
+## Codebase Context
+{warpgrep_context}
+"""
+
+        prompt = f"""You are a meticulous code reviewer focused on finding SMALL BUT REAL bugs that other reviewers miss.
+
+## Changed Files
+{combined_diff}
+
+{context_section}
+
+## What to Find (ONLY these specific patterns)
+
+1. **Method/function name typos**: Misspelled method names that prevent test discovery (e.g., test_inalid instead of test_invalid), break interface matching, or won't be called (e.g., santizeAnchors instead of sanitizeAnchors)
+
+2. **Property/variable name typos**: Misspelled identifiers like 'stopNotificiationsText' instead of 'stopNotificationsText'
+
+3. **Wrong string constants**: Inconsistent metric tags ('shard' vs 'shards'), wrong cleanup aliases, wrong locale strings
+
+4. **Locale/translation bugs**: Text in wrong language for the locale file (Italian in Lithuanian file), Traditional Chinese characters in Simplified Chinese file
+
+5. **Docstring contradicts code**: Comment says "returns list" but method returns dict; test comment says "allow access" but map stores false
+
+6. **Dead code**: Encoder/builder created and written to but output never used or returned
+
+7. **Wrong log level**: Using Error level for debug/informational messages
+
+8. **Portability issues**: BSD-only sed syntax (-i '' fails on Linux), -ms-align-items (never existed, should be -ms-flex-align)
+
+9. **CSS value bugs**: Wrong lightness percentage in color conversion, mixing float:left with flexbox
+
+10. **Test name/assertion mismatch**: Test named 'test_empty_array' but tests empty dict; HTTP method in test doesn't match route
+
+11. **Hardcoded values ignoring config**: Magic numbers that should use configurable settings
+
+12. **Redundant code after guard**: Optional chaining (?.) after a null check already guarantees non-null
+
+## Rules
+- Each issue must be PROVABLE from the diff shown
+- Do NOT report issues about undefined variables (they likely exist outside the diff)
+- Do NOT report defensive programming suggestions
+- Focus on REAL bugs with concrete runtime consequences
+- These may be low severity but they ARE real defects
+
+Return a JSON array. Return [] if nothing found.
+{{"file_path": "...", "line_number": N, "category": "incorrect_value|test_correctness|localization|portability|logic_error", "severity": "low|medium", "confidence": 0.5-1.0, "comment": "Describe the specific bug."}}"""
+
+        response_text = self._call_opus(prompt)
+        return self._parse_issues(response_text, source_pass="quick_wins")
+
+    def _majority_vote_merge(
+        self, all_pass_issues: list[list[ReviewIssue]]
+    ) -> list[ReviewIssue]:
+        """Merge issues from N passes using majority voting.
+
+        Each unique issue gets a vote count (how many passes found it).
+        - 3+ votes: confidence += 0.15 (high consensus)
+        - 2 votes: confidence += 0.05 (moderate consensus)
+        - 1 vote: confidence -= 0.15 (no consensus, likely FP)
+
+        This is the BugBot technique: shuffled multi-pass + consensus filtering.
+        """
+        if not all_pass_issues:
+            return []
+
+        # Flatten all issues and track which pass they came from
+        @dataclass
+        class VotedIssue:
+            issue: ReviewIssue
+            vote_count: int = 1
+            pass_indices: list = field(default_factory=list)
+
+        # Start with issues from first pass as the canonical set
+        voted: list[VotedIssue] = []
+        for issue in all_pass_issues[0]:
+            voted.append(VotedIssue(issue=issue, vote_count=1, pass_indices=[0]))
+
+        # Match issues from subsequent passes
+        for pass_idx in range(1, len(all_pass_issues)):
+            for new_issue in all_pass_issues[pass_idx]:
+                matched = False
+                for vi in voted:
+                    if self._issues_same(vi.issue, new_issue):
+                        vi.vote_count += 1
+                        vi.pass_indices.append(pass_idx)
+                        # Keep the higher-confidence version
+                        if new_issue.confidence > vi.issue.confidence:
+                            new_issue.source_pass = vi.issue.source_pass  # preserve original pass label
+                            vi.issue = new_issue
+                        matched = True
+                        break
+                if not matched:
+                    voted.append(VotedIssue(
+                        issue=new_issue,
+                        vote_count=1,
+                        pass_indices=[pass_idx],
+                    ))
+
+        # Apply confidence adjustments based on vote count
+        num_passes = len(all_pass_issues)
+        result = []
+        for vi in voted:
+            issue = vi.issue
+            if num_passes >= 4:
+                if vi.vote_count >= 3:
+                    issue.confidence = min(1.0, issue.confidence + 0.15)
+                elif vi.vote_count == 2:
+                    issue.confidence = min(1.0, issue.confidence + 0.05)
+                else:  # vote_count == 1
+                    issue.confidence = max(0.0, issue.confidence - 0.15)
+            elif num_passes >= 2:
+                if vi.vote_count >= 2:
+                    issue.confidence = min(1.0, issue.confidence + 0.10)
+                else:
+                    issue.confidence = max(0.0, issue.confidence - 0.10)
+
+            issue.source_pass = f"{issue.source_pass}(v{vi.vote_count})"
+            result.append(issue)
+
+        return result
+
+    @staticmethod
+    def _issues_same(a: ReviewIssue, b: ReviewIssue) -> bool:
+        """Check if two issues describe the same bug (for pass merge dedup).
+
+        Requires same file + (same category on nearby lines OR high word overlap).
+        Line proximity alone is not enough - two different bugs can be on adjacent lines.
+        """
+        if a.file_path != b.file_path:
+            return False
+        # Same line + same category = same issue
+        if (a.line_number > 0 and b.line_number > 0
+                and abs(a.line_number - b.line_number) <= 5
+                and a.category == b.category):
+            return True
+        # High word overlap in comments (regardless of line)
+        stop_words = {"the", "a", "an", "is", "in", "to", "of", "and", "or", "but",
+                       "for", "on", "at", "by", "with", "from", "this", "that", "it",
+                       "not", "be", "are", "was", "will", "can", "should", "could"}
+        a_words = set(a.comment.lower()[:200].split()) - stop_words
+        b_words = set(b.comment.lower()[:200].split()) - stop_words
+        if not a_words or not b_words:
+            return False
+        overlap = len(a_words & b_words) / min(len(a_words), len(b_words))
+        return overlap > 0.6
+
+    def judge_issues(
+        self,
+        issues: list[ReviewIssue],
+        file_diffs: list[FileDiff],
+    ) -> list[ReviewIssue]:
+        """Dedicated judge pass: validate each issue against the diff.
+
+        Uses a strict, skeptical prompt with few-shot examples to filter FPs.
+        Research shows this two-phase approach (detect aggressively, then validate
+        strictly) eliminates 72-96% of FPs while retaining TPs.
+        """
+        import sys
+
+        if not issues:
+            return []
+
+        combined_diff = self._build_diff_text(file_diffs, max_chars=60000)
+
+        # Format issues for the judge
+        issues_json = json.dumps([i.to_dict() for i in issues], indent=2)
+
+        judge_body = self._judge_prompt if self._judge_prompt else self._default_judge_prompt()
+
+        judge_prompt = f"""You are a STRICT code review validator. Your job is to examine each claimed bug and decide: KEEP or REMOVE.
+
+## The PR Diff
+{combined_diff}
+
+## Claimed Issues to Validate
+{issues_json}
+
+{judge_body}
+
+## Output
+
+Return a JSON array containing ONLY the validated true bugs. AGGRESSIVELY remove false positives - when in doubt, REMOVE.
+Keep the exact same format as the input.
+
+Return [] if all issues are false positives."""
+
+        response_text = self._call_opus(judge_prompt)
+
+        # Parse validated issues
+        validated = self._parse_issues(response_text, source_pass="validated")
+
+        # Match validated issues back to originals to preserve vote metadata
+        result = []
+        for v_issue in validated:
+            # Find the original issue this corresponds to
+            best_match = None
+            best_overlap = 0.0
+            for orig in issues:
+                if orig.file_path == v_issue.file_path and self._issues_same(orig, v_issue):
+                    # Preserve original source_pass (with vote count)
+                    v_issue.source_pass = orig.source_pass
+                    best_match = v_issue
+                    break
+                # Fallback: word overlap matching
+                stop = {"the", "a", "an", "is", "in", "to", "of", "and", "or"}
+                o_words = set(orig.comment.lower()[:200].split()) - stop
+                v_words = set(v_issue.comment.lower()[:200].split()) - stop
+                if o_words and v_words:
+                    overlap = len(o_words & v_words) / min(len(o_words), len(v_words))
+                    if overlap > best_overlap:
+                        best_overlap = overlap
+                        best_match = v_issue
+                        best_match.source_pass = orig.source_pass
+
+            if best_match:
+                result.append(best_match)
+
+        removed = len(issues) - len(result)
+        if removed > 0:
+            print(f"  Judge removed {removed} FPs ({len(issues)} -> {len(result)})", file=sys.stderr)
+
+        return result
+
+    @staticmethod
+    def _default_review_instructions() -> str:
+        """Default review instructions when no organism override is set."""
+        return """Focus ONLY on changed lines (+ and - lines). Find issues that WILL cause incorrect behavior:
 
 1. **Wrong variable/value**: Copy-paste errors, wrong parameter checked, wrong string constant, wrong method called (e.g. recordLegacyDuration vs recordStorageDuration), returning original instead of modified copy
 2. **Wrong locale/translation**: Text in wrong language for locale file
@@ -196,221 +593,69 @@ Focus ONLY on changed lines (+ and - lines). Find issues that WILL cause incorre
 - Interface contract changes that break existing implementations
 
 ## CRITICAL: Avoid False Positives
-- Do NOT claim a variable/function/import is "undefined" or "missing" unless you can PROVE it from the diff. The diff only shows changed lines - the rest of the file exists but isn't shown. If a function is called and you don't see its definition in the diff, it's likely defined elsewhere in the file.
+- Do NOT claim a variable/function/import is "undefined" or "missing" unless you can PROVE it from the diff. The diff only shows changed lines - the rest of the file exists but isn't shown. If a function is called and you don't see its definition in the diff, it's almost certainly defined elsewhere.
 - Do NOT claim a variable is "used before defined" unless you can prove the ordering from the diff.
 - Do NOT claim a module is "not imported" unless you see the file's complete import section in the diff and it's definitely missing.
+- Do NOT suggest defensive null checks ("X could be null") unless you can trace a CONCRETE path where null arrives.
+- Do NOT suggest "consider using X instead of Y" when Y works correctly.
+- Do NOT report speculative edge cases ("if input is empty/malformed...") without evidence they occur.
+- Do NOT report the same bug multiple times across different files. If forEach+async appears in 3 files, report it ONCE for the most important file.
 - When in doubt about whether something exists outside the diff, DO NOT report it.
 
 ## Rules
 - Point to the EXACT line and explain WHY it's wrong
 - Each comment must be SELF-CONTAINED
 - Return [] if no real bugs exist
-- Do NOT report: pure formatting preferences, defensive programming for impossible paths, general performance suggestions
-
-Return a JSON array:
-{{"file_path": "...", "line_number": N, "category": "logic_error|incorrect_value|api_misuse|race_condition|null_reference|type_error|security|localization|test_correctness|portability", "severity": "critical|high|medium|low", "confidence": 0.5-1.0, "comment": "Describe the bug: what code is wrong, what it should be, and the consequence."}}"""
-
-        response_text = self._call_opus(prompt, repo_path=repo_path)
-        issues = self._parse_issues(response_text, source_pass="pass1")
-
-        # Retry once if we got 0 issues from a non-trivial diff
-        total_added = sum(fd.total_added for fd in file_diffs)
-        if not issues and total_added > 20:
-            response_text = self._call_opus(prompt, repo_path=repo_path)
-            issues = self._parse_issues(response_text, source_pass="pass1_retry")
-
-        return issues
-
-    def _pass2_review(self, file_diffs: list[FileDiff], repo_path: str | None = None) -> list[ReviewIssue]:
-        """Pass 2: Different focus to catch bugs missed by first pass."""
-        combined_diff = self._build_diff_text(file_diffs)
-
-        warpgrep_instruction = ""
-        if repo_path and self.config.morph_api_key:
-            warpgrep_instruction = """
-## WarpGrep Tool Available
-You have access to a `warpgrep_codebase_search` tool. Use it to verify any claims about missing definitions, undefined variables, or broken contracts before reporting them.
-"""
-
-        prompt = f"""Review this PR diff with fresh eyes. Look for bugs that a FIRST reviewer commonly misses.
-
-## Changed Files
-{combined_diff}
-
-{warpgrep_instruction}
-
-## Commonly Missed Bug Patterns
-
-Check each of these SPECIFICALLY against the diff:
-
-1. **Behavioral regressions from removals**: Did the PR remove safety checks, filters, permission checks, or error handling that was protecting against something? Look for removed .filter(), removed if-guards, removed permission checks.
-
-2. **Cross-file inconsistency**: Are metric tags, string constants, or key names consistent across all files? (e.g., 'shard' vs 'shards'). Do function signatures match their call sites?
-
-3. **Concurrency / ordering bugs**: Does code assume dict ordering? Does zip() assume aligned iteration? Are there stale variable reads that could race? Are threads/processes properly joined/waited?
-
-4. **Return value confusion**: Does a function return a wrapper (SafeParseResult, Optional, Promise) when callers expect the unwrapped value? Does it return the original variable when it should return the modified copy?
-
-5. **Framework contract violations**: In Ruby, does before_validation work on nil? In Python, is a class field mutable default? In TypeScript, does === compare objects by reference? In Go, does Exec() expect (query, args...) format?
-
-6. **Test validity**: Does a monkeypatch make the thing being tested a no-op? Does the test HTTP method match the route? Does the test name match what it tests? Do test assertions match test comments?
-
-7. **Scope/naming errors**: Is a variable referenced from the wrong scope? Is a property name misspelled? Does a method name have a typo that prevents it from being called?
-
-8. **Security surface changes**: Any weakening of auth, frame options, origin validation, URL validation, or input sanitization?
-
-9. **CSS value errors**: In color conversions or theme changes, are lightness/opacity values correct? Are vendor prefixes valid?
-
-10. **Import/definition errors**: Are all referenced modules imported? Are all used functions/methods defined? Does method redefinition accidentally overwrite a previous version?
-
-Also check for:
-- Method/function name typos that prevent discovery or matching
-- Property name typos (misspelled identifiers)
-- Dead code where results are computed then discarded
-- Docstring that contradicts implementation
-- Wrong log level (Error for debug info)
-- Hardcoded values ignoring configuration
-
-CRITICAL: Do NOT claim variables/functions are "undefined" or "not imported" unless you can PROVE it from the diff. The diff only shows changed lines - definitions may exist in the file outside the diff context.
-
-Each comment must be SELF-CONTAINED: name the specific code element, state what's wrong, and explain the runtime consequence.
-Return [] if nothing found.
-
-{{"file_path": "...", "line_number": N, "category": "logic_error|incorrect_value|api_misuse|race_condition|null_reference|type_error|security|localization|test_correctness|portability", "severity": "critical|high|medium|low", "confidence": 0.5-1.0, "comment": "Describe the specific bug."}}"""
-
-        response_text = self._call_opus(prompt, thinking_budget=10000, repo_path=repo_path)
-        return self._parse_issues(response_text, source_pass="pass2")
-
-    def _merge_passes(
-        self, pass1: list[ReviewIssue], pass2: list[ReviewIssue]
-    ) -> list[ReviewIssue]:
-        """Merge issues from two passes, deduplicating similar findings.
-
-        Issues found in both passes get a confidence boost.
-        """
-        confirmed_p1 = set()
-        merged = list(pass1)
-
-        for p2_issue in pass2:
-            is_dup = False
-            for idx, p1_issue in enumerate(merged):
-                if self._issues_same(p1_issue, p2_issue):
-                    # Boost confidence for issues found in both passes
-                    p1_issue.confidence = min(1.0, p1_issue.confidence + 0.1)
-                    confirmed_p1.add(idx)
-                    is_dup = True
-                    break
-            if not is_dup:
-                merged.append(p2_issue)
-
-        # Penalize issues only found in a single pass (likely FPs)
-        for idx, issue in enumerate(merged):
-            if idx < len(pass1) and idx not in confirmed_p1:
-                issue.confidence = max(0.0, issue.confidence - 0.1)
-        # Pass2-only issues (appended after pass1) are also single-pass
-        for idx in range(len(pass1), len(merged)):
-            merged[idx].confidence = max(0.0, merged[idx].confidence - 0.1)
-
-        return merged
+- Quality over quantity: 3 real bugs > 8 questionable ones
+- Do NOT report: pure formatting preferences, defensive programming for impossible paths, general performance suggestions, "consider" suggestions"""
 
     @staticmethod
-    def _issues_same(a: ReviewIssue, b: ReviewIssue) -> bool:
-        """Check if two issues describe the same bug (stricter than dedup)."""
-        # Must be same file
-        if a.file_path != b.file_path:
-            return False
-        # Same line (within 5 lines)
-        if a.line_number > 0 and b.line_number > 0 and abs(a.line_number - b.line_number) <= 5:
-            return True
-        # High word overlap in comments
-        stop_words = {"the", "a", "an", "is", "in", "to", "of", "and", "or", "but",
-                       "for", "on", "at", "by", "with", "from", "this", "that", "it",
-                       "not", "be", "are", "was", "will", "can", "should", "could"}
-        a_words = set(a.comment.lower()[:200].split()) - stop_words
-        b_words = set(b.comment.lower()[:200].split()) - stop_words
-        if not a_words or not b_words:
-            return False
-        overlap = len(a_words & b_words) / min(len(a_words), len(b_words))
-        return overlap > 0.6
+    def _default_judge_prompt() -> str:
+        """Default judge prompt when no organism override is set."""
+        return """## KEEP an issue ONLY if ALL of these are true:
+1. The specific code element mentioned actually exists in the diff
+2. The claimed behavior is provably wrong from the code shown
+3. It causes incorrect runtime behavior, data corruption, security vulnerability, or broken tests
+4. The issue is in CHANGED code (+ or - lines), not unchanged context
 
-    def _validate_with_warpgrep(
-        self, issues: list[ReviewIssue], repo_path: str
-    ) -> list[ReviewIssue]:
-        """Validate issue claims against the actual codebase using WarpGrep.
+## REMOVE an issue if ANY of these patterns match:
 
-        For issues that claim something is undefined/missing, search the codebase
-        to verify. Drop issues that WarpGrep proves are false positives.
-        """
-        import re
-        import sys
+**Pattern A - Hallucinated entities:**
+"Variable X is undefined" / "function Y doesn't exist" / "Z is not imported" - the diff only shows CHANGED lines. Variables, functions, and imports almost certainly exist outside the diff context. REMOVE unless you see the COMPLETE import section and can confirm the import is truly missing.
 
-        validated = []
-        for issue in issues:
-            comment_lower = issue.comment.lower()
+**Pattern B - Defensive programming:**
+"Should add null check" / "could be null" / "might throw" / "potential NPE" - unless you can trace a CONCRETE code path where null/undefined actually arrives. "Could theoretically be null" is not a bug. REMOVE.
 
-            # Check if this issue makes a "missing/undefined" claim
-            undefined_patterns = [
-                "is undefined", "is not defined", "is not imported",
-                "does not exist", "never defined", "missing import",
-                "not imported", "without importing",
-            ]
+**Pattern C - Style preferences:**
+"Should use X instead of Y" / "consider using" / "would be better to" - when the current code works correctly. REMOVE.
 
-            needs_validation = any(p in comment_lower for p in undefined_patterns)
+**Pattern D - Speculative edge cases:**
+"If the input is empty/null/malformed..." / "cache collision possible" / "parameter limit could be exceeded" - theoretical problems without evidence they occur. REMOVE.
 
-            if needs_validation and self.context_gatherer:
-                # Extract the identifier being claimed as missing
-                identifiers = re.findall(
-                    r'[`\'"](\w+)[`\'"]',
-                    issue.comment,
-                )
-                if not identifiers:
-                    # Try to extract from common patterns like "X is undefined"
-                    m = re.search(r'(\w+)\s+(?:is|are)\s+(?:not\s+)?(?:defined|imported|declared)', issue.comment)
-                    if m:
-                        identifiers = [m.group(1)]
+**Pattern E - Performance / best practices:**
+"Inefficient algorithm" / "unnecessary allocation" / "should cache" - not bugs. REMOVE.
 
-                if identifiers:
-                    search_term = identifiers[0]
-                    try:
-                        ctx = self.context_gatherer.client.search(
-                            f"definition of {search_term}",
-                            repo_path,
-                            max_turns=2,
-                        )
-                        # If we found it in the codebase, it's a false positive
-                        if ctx and search_term in ctx and len(ctx) > 50:
-                            print(f"  WarpGrep DISPROVED: '{search_term}' exists in codebase, dropping FP", file=sys.stderr)
-                            continue
-                    except Exception:
-                        pass  # If validation fails, keep the issue
+**Pattern F - Duplicate of another issue:**
+If two issues describe the SAME bug at the SAME location (or same conceptual bug across files), keep only the better-written one. REMOVE the duplicate.
 
-            validated.append(issue)
+## TRUE BUG examples (keep these):
+- "forEach with async: callbacks aren't awaited" -> KEEP (provable API misuse)
+- "sed -i '' fails on Linux" -> KEEP (concrete portability bug)
+- "Italian text in Lithuanian locale file" -> KEEP (wrong language, provable)
+- "recordLegacyDuration called instead of recordStorageDuration" -> KEEP (wrong method)
+- "enableSqlExpressions always returns false" -> KEEP (inverted logic, provable)
+- "Test comment says 'allow' but map stores false" -> KEEP (contradiction, provable)
+- "Method name typo: santizeAnchors should be sanitizeAnchors" -> KEEP (real typo)
 
-        dropped = len(issues) - len(validated)
-        if dropped:
-            print(f"  WarpGrep validation: dropped {dropped} FPs", file=sys.stderr)
+## FALSE POSITIVE examples (remove these):
+- "config variable is used but never defined" -> REMOVE (defined outside diff)
+- "Should validate input before database call" -> REMOVE (defensive)
+- "Potential null pointer if X returns null" -> REMOVE (speculative)
+- "Consider using const instead of let" -> REMOVE (style)
+- "ctx is undefined in this scope" -> REMOVE (likely defined in surrounding code)
+- "Missing error handling for edge case" -> REMOVE (defensive)"""
 
-        return validated
-
-    def _calibration_pass(
-        self, issues: list[ReviewIssue], codebase_patterns: str
-    ) -> list[ReviewIssue]:
-        """Validate findings against codebase patterns."""
-        issues_json = json.dumps([i.to_dict() for i in issues], indent=2)
-
-        prompt = CALIBRATION_PROMPT.format(
-            issues_json=issues_json,
-            codebase_patterns=codebase_patterns,
-        )
-
-        response_text = self._call_opus(prompt)
-        calibrated = self._parse_issues(response_text, source_pass="calibration")
-
-        if calibrated:
-            return calibrated
-        return issues
-
-    def _call_opus(self, prompt: str, thinking_budget: int = 10000, repo_path: str | None = None) -> str:
+    def _call_opus(self, prompt: str, thinking_budget: int = 10000, repo_path: str | None = None, timeout: int = 300) -> str:
         """Call Claude with extended thinking, optionally with WarpGrep tool.
 
         If repo_path is provided and WarpGrep is configured, Claude gets the
@@ -418,10 +663,10 @@ Return [] if nothing found.
         """
         import sys
 
-        # Build tool list if repo_path available
+        # Build tool list if repo_path available and WarpGrep tool is enabled
         tools = None
         warpgrep_tool_def = None
-        if repo_path and self.config.morph_api_key:
+        if repo_path and self.config.morph_api_key and self.config.warpgrep_tool_enabled:
             warpgrep_tool_def = create_warpgrep_tool(repo_path, self.config.morph_api_key)
             tools = [{
                 "name": warpgrep_tool_def["name"],
@@ -430,7 +675,6 @@ Return [] if nothing found.
             }]
 
         for attempt in range(2):
-            text_parts = []
             messages = [{"role": "user", "content": prompt}]
 
             try:
@@ -438,38 +682,37 @@ Return [] if nothing found.
                 if tools:
                     return self._agentic_loop(messages, tools, warpgrep_tool_def, thinking_budget)
 
-                # Otherwise, use streaming (no tools)
+                # Use streaming with get_final_message for reliability
                 with self.client.messages.stream(
                     model=self.config.model,
                     max_tokens=self.config.max_tokens,
                     thinking={"type": "adaptive"},
                     temperature=1,
-                    system=SYSTEM_PROMPT,
+                    system=self.active_system_prompt,
                     messages=messages,
                 ) as stream:
-                    for event in stream:
-                        if hasattr(event, 'type'):
-                            if event.type == 'content_block_start':
-                                if hasattr(event, 'content_block') and event.content_block.type == 'text':
-                                    text_parts.append("")
-                            elif event.type == 'content_block_delta':
-                                if hasattr(event, 'delta') and event.delta.type == 'text_delta':
-                                    text_parts.append(event.delta.text)
+                    response = stream.get_final_message()
 
-                result = "".join(text_parts)
+                # Extract text from response
+                text_parts = []
+                for block in response.content:
+                    if block.type == "text":
+                        text_parts.append(block.text)
+
+                result = "\n".join(text_parts)
                 if result.strip():
                     return result
 
                 if attempt == 0:
-                    print(f"  WARNING: Empty response, retrying...", file=sys.stderr)
+                    print(f"  WARNING: Empty response (stop={response.stop_reason}), retrying...", file=sys.stderr)
                     continue
                 return "[]"
 
             except Exception as e:
                 if attempt == 0:
-                    print(f"  Stream error: {e}, retrying...", file=sys.stderr)
+                    print(f"  API error: {e}, retrying...", file=sys.stderr)
                     continue
-                print(f"  Stream error on retry: {e}", file=sys.stderr)
+                print(f"  API error on retry: {e}", file=sys.stderr)
                 return "[]"
 
         return "[]"
@@ -480,16 +723,19 @@ Return [] if nothing found.
         tools: list[dict],
         warpgrep_tool_def: dict,
         thinking_budget: int,
-        max_tool_rounds: int = 3,
+        max_tool_rounds: int = 10,
     ) -> str:
         """Run Claude with WarpGrep tool in an agentic loop.
 
-        Claude can call WarpGrep to search the codebase, get results back,
-        and continue reasoning before producing its final review output.
+        Opus can call WarpGrep as many times as it needs to gather context.
+        When it stops calling tools, we return the text directly if it contains
+        JSON, otherwise make one final call without tools to force JSON output.
         """
         import sys
 
-        for round_num in range(max_tool_rounds + 1):
+        total_searches = 0
+
+        for round_num in range(max_tool_rounds):
             response = self.client.messages.create(
                 model=self.config.model,
                 max_tokens=self.config.max_tokens,
@@ -500,7 +746,7 @@ Return [] if nothing found.
                 messages=messages,
             )
 
-            # Collect text blocks
+            # Collect text and tool blocks
             text_parts = []
             tool_use_blocks = []
             for block in response.content:
@@ -509,27 +755,54 @@ Return [] if nothing found.
                 elif block.type == "tool_use":
                     tool_use_blocks.append(block)
 
-            # If no tool calls, we're done
+            # If no tool calls or end_turn, Claude is done
             if not tool_use_blocks or response.stop_reason == "end_turn":
-                return "\n".join(text_parts) if text_parts else "[]"
+                result = "\n".join(text_parts)
+                if result.strip() and "[" in result:
+                    print(f"  Review complete (used {total_searches} WarpGrep searches)", file=sys.stderr)
+                    return result
+                # No JSON in response, need final call without tools
+                break
 
-            # Execute tool calls and feed results back
+            # Execute all tool calls
             messages.append({"role": "assistant", "content": response.content})
-
             tool_results = []
             for tool_block in tool_use_blocks:
                 if tool_block.name == WARPGREP_TOOL_NAME:
-                    print(f"  WarpGrep search: {tool_block.input.get('search_string', '')[:80]}", file=sys.stderr)
+                    query = tool_block.input.get('search_string', '')
+                    print(f"  WarpGrep [{total_searches+1}]: {query[:80]}", file=sys.stderr)
                     result_text = execute_warpgrep_tool(tool_block.input, warpgrep_tool_def)
+                    total_searches += 1
                     tool_results.append({
                         "type": "tool_result",
                         "tool_use_id": tool_block.id,
-                        "content": result_text[:15000] if result_text else "No results found.",
+                        "content": result_text[:12000] if result_text else "No results found.",
                     })
-
+                else:
+                    tool_results.append({
+                        "type": "tool_result",
+                        "tool_use_id": tool_block.id,
+                        "content": "Unknown tool.",
+                        "is_error": True,
+                    })
             messages.append({"role": "user", "content": tool_results})
 
-        # If we exhausted rounds, get final text
+        # Final call WITHOUT tools to force JSON output
+        print(f"  Final review call (after {total_searches} WarpGrep searches)", file=sys.stderr)
+        final_response = self.client.messages.create(
+            model=self.config.model,
+            max_tokens=self.config.max_tokens,
+            thinking={"type": "adaptive"},
+            temperature=1,
+            system=SYSTEM_PROMPT,
+            messages=messages,
+        )
+
+        text_parts = []
+        for block in final_response.content:
+            if block.type == "text":
+                text_parts.append(block.text)
+
         return "\n".join(text_parts) if text_parts else "[]"
 
     def _parse_issues(self, response_text: str, source_pass: str) -> list[ReviewIssue]:

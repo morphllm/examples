@@ -14,8 +14,8 @@ class ConfidenceFilter:
     with lower thresholds.
     """
 
-    def __init__(self, config: Config):
-        self.base_threshold = config.base_confidence_threshold
+    def __init__(self, config: Config, base_threshold_override: float | None = None):
+        self.base_threshold = base_threshold_override if base_threshold_override is not None else config.base_confidence_threshold
         self.category_thresholds = config.category_thresholds
 
     def filter(self, issues: list[ReviewIssue]) -> list[ReviewIssue]:
@@ -96,21 +96,25 @@ class ConfidenceFilter:
         return False
 
     def _deduplicate(self, issues: list[ReviewIssue]) -> list[ReviewIssue]:
-        """Remove near-duplicate issues, keeping highest confidence."""
+        """Remove near-duplicate issues, keeping highest confidence.
+
+        Deduplicates both within-file (same line or similar text) and
+        cross-file (same root cause reported at multiple call sites).
+        """
         if len(issues) <= 1:
             return issues
 
-        # Sort by confidence descending
-        issues.sort(key=lambda x: x.confidence, reverse=True)
+        # Sort by confidence descending, then severity (critical first)
+        severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+        issues.sort(key=lambda x: (-x.confidence, severity_order.get(x.severity, 4)))
         kept = []
         for issue in issues:
             is_dup = False
-            # Compare against kept issues
             for existing in kept:
-                # Same file + same line = almost certainly same issue
+                # Same file + nearby lines = almost certainly same issue
                 if (issue.file_path == existing.file_path and
                     issue.line_number > 0 and existing.line_number > 0 and
-                    abs(issue.line_number - existing.line_number) <= 2):
+                    abs(issue.line_number - existing.line_number) <= 5):
                     is_dup = True
                     break
                 # Same file + very similar comment text
@@ -118,9 +122,60 @@ class ConfidenceFilter:
                     self._is_similar(issue.comment, existing.comment)):
                     is_dup = True
                     break
+                # Cross-file: same root cause at different call sites
+                if (issue.file_path != existing.file_path and
+                    issue.category == existing.category and
+                    self._is_same_root_cause(issue.comment, existing.comment)):
+                    is_dup = True
+                    break
+                # Same file, different lines but same root cause
+                if (issue.file_path == existing.file_path and
+                    issue.category == existing.category and
+                    self._is_same_root_cause(issue.comment, existing.comment)):
+                    is_dup = True
+                    break
+                # Cross-file: same API pattern issue (e.g., forEach+async in multiple files)
+                if (issue.file_path != existing.file_path and
+                    self._is_similar(issue.comment, existing.comment)):
+                    is_dup = True
+                    break
             if not is_dup:
                 kept.append(issue)
         return kept
+
+    @staticmethod
+    def _is_same_root_cause(a: str, b: str) -> bool:
+        """Check if two comments describe the same root cause bug.
+
+        This catches cases like "isinstance(process, multiprocessing.Process)
+        won't match SpawnProcess" reported at two different call sites.
+        """
+        a_norm = a.lower().strip()[:300]
+        b_norm = b.lower().strip()[:300]
+
+        # Extract key technical terms (identifiers, types, method names)
+        import re
+        a_ids = set(re.findall(r'`([^`]+)`', a_norm))
+        b_ids = set(re.findall(r'`([^`]+)`', b_norm))
+
+        if a_ids and b_ids:
+            # If they share 2+ backtick-quoted identifiers, likely same root cause
+            shared = a_ids & b_ids
+            if len(shared) >= 2:
+                return True
+
+        # High word overlap (stricter than _is_similar, uses more words)
+        stop_words = {"the", "a", "an", "is", "in", "to", "of", "and", "or", "but",
+                       "for", "on", "at", "by", "with", "from", "this", "that", "it",
+                       "not", "be", "are", "was", "will", "can", "should", "could",
+                       "may", "which", "when", "if", "has", "have", "does", "do",
+                       "same", "also", "as", "here", "too"}
+        a_words = set(a_norm.split()) - stop_words
+        b_words = set(b_norm.split()) - stop_words
+        if not a_words or not b_words:
+            return False
+        overlap = len(a_words & b_words) / min(len(a_words), len(b_words))
+        return overlap > 0.75
 
     @staticmethod
     def _is_similar(a: str, b: str) -> bool:
