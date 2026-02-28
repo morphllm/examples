@@ -68,6 +68,9 @@ class Config:
     warpgrep_queries_per_file: int = 3
     review_passes: int = 3  # file-level, cross-file, calibration
 
+    # When True, skip benchmark path resolution and directory creation
+    skip_dir_creation: bool = False
+
     def __post_init__(self):
         # Set defaults from environment variables
         self.anthropic_api_key = self.anthropic_api_key or os.environ.get(
@@ -77,13 +80,14 @@ class Config:
             "MORPH_API_KEY", ""
         )
 
-        base = Path(__file__).parent.parent
-        if not self.benchmark_dir or str(self.benchmark_dir) == ".":
-            self.benchmark_dir = base / "code-review-benchmark" / "offline"
-        if not self.clone_dir or str(self.clone_dir) == ".":
-            self.clone_dir = base / "pr_clones"
-        if not self.output_dir or str(self.output_dir) == ".":
-            self.output_dir = base / "pr_review_agent" / "output"
+        if not self.skip_dir_creation:
+            base = Path(__file__).parent.parent
+            if not self.benchmark_dir or str(self.benchmark_dir) == ".":
+                self.benchmark_dir = base / "code-review-benchmark" / "offline"
+            if not self.clone_dir or str(self.clone_dir) == ".":
+                self.clone_dir = base / "pr_clones"
+            if not self.output_dir or str(self.output_dir) == ".":
+                self.output_dir = base / "pr_review_agent" / "output"
 
-        self.clone_dir.mkdir(parents=True, exist_ok=True)
-        self.output_dir.mkdir(parents=True, exist_ok=True)
+            self.clone_dir.mkdir(parents=True, exist_ok=True)
+            self.output_dir.mkdir(parents=True, exist_ok=True)
