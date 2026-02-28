@@ -24,7 +24,7 @@ class GitHubClient:
                 "Accept": "application/vnd.github+json",
                 "X-GitHub-Api-Version": "2022-11-28",
             },
-            timeout=60,
+            timeout=httpx.Timeout(120, connect=30),
         )
 
     async def close(self):
@@ -35,6 +35,7 @@ class GitHubClient:
         resp = await self._client.get(
             f"/repos/{owner}/{repo}/pulls/{pr_number}",
             headers={"Accept": "application/vnd.github.v3.diff"},
+            timeout=180,  # large diffs can be slow
         )
         resp.raise_for_status()
         return resp.text
@@ -54,7 +55,7 @@ class GitHubClient:
 
         clone_url = f"https://x-access-token:{self.token}@github.com/{owner}/{repo}.git"
 
-        # Shallow clone
+        # Shallow clone default branch
         proc = await asyncio.create_subprocess_exec(
             "git", "clone", "--depth=1", clone_url, str(dest),
             stdout=asyncio.subprocess.PIPE,
@@ -64,9 +65,9 @@ class GitHubClient:
         if proc.returncode != 0:
             raise RuntimeError(f"git clone failed: {stderr.decode()}")
 
-        # Fetch PR head
+        # Fetch PR head (shallow)
         proc = await asyncio.create_subprocess_exec(
-            "git", "-C", str(dest), "fetch", "origin",
+            "git", "-C", str(dest), "fetch", "--depth=1", "origin",
             f"pull/{pr_number}/head:review",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
@@ -130,12 +131,30 @@ class GitHubClient:
         owner: str,
         repo: str,
         pr_number: int,
+        commit_id: str,
         comments: list,
+        diff: str,
         summary: str,
     ):
-        """Post a PR review with inline comments."""
+        """Post a PR review with inline comments.
+
+        Comments with invalid line numbers (not in the diff) are filtered out
+        to prevent GitHub from rejecting the entire review with a 422 error.
+        """
+        # Build a set of valid (file_path, line_number) from the diff
+        valid_lines = _extract_valid_diff_lines(diff)
+
         review_comments = []
+        skipped = []
         for c in comments:
+            # Skip comments with invalid line numbers
+            if c.line_number <= 0:
+                skipped.append(c)
+                continue
+            if (c.file_path, c.line_number) not in valid_lines:
+                skipped.append(c)
+                continue
+
             review_comments.append({
                 "path": c.file_path,
                 "line": c.line_number,
@@ -146,9 +165,36 @@ class GitHubClient:
                 ),
             })
 
+        if skipped:
+            logger.warning(
+                "Skipped %d comments with invalid line numbers for %s/%s PR #%d",
+                len(skipped), owner, repo, pr_number,
+            )
+
+        if not review_comments:
+            # All comments had invalid lines; post as a plain PR comment instead
+            body = summary + "\n\n"
+            for c in comments:
+                body += (
+                    f"**{c.severity}** | `{c.category}` | "
+                    f"`{c.file_path}:{c.line_number}` | "
+                    f"confidence: {c.confidence:.0%}\n\n{c.body}\n\n---\n\n"
+                )
+            resp = await self._client.post(
+                f"/repos/{owner}/{repo}/issues/{pr_number}/comments",
+                json={"body": body},
+            )
+            resp.raise_for_status()
+            logger.info(
+                "Posted fallback comment on %s/%s PR #%d (%d comments as text)",
+                owner, repo, pr_number, len(comments),
+            )
+            return
+
         resp = await self._client.post(
             f"/repos/{owner}/{repo}/pulls/{pr_number}/reviews",
             json={
+                "commit_id": commit_id,
                 "event": "COMMENT",
                 "body": summary,
                 "comments": review_comments,
@@ -156,8 +202,8 @@ class GitHubClient:
         )
         resp.raise_for_status()
         logger.info(
-            "Posted review on %s/%s PR #%d with %d comments",
-            owner, repo, pr_number, len(review_comments),
+            "Posted review on %s/%s PR #%d with %d inline comments (%d skipped)",
+            owner, repo, pr_number, len(review_comments), len(skipped),
         )
 
     @staticmethod
@@ -166,3 +212,38 @@ class GitHubClient:
         if path and path.exists():
             shutil.rmtree(path, ignore_errors=True)
             logger.info("Cleaned up clone at %s", path)
+
+
+def _extract_valid_diff_lines(diff: str) -> set[tuple[str, int]]:
+    """Parse a unified diff to extract valid (file_path, new_line_number) pairs.
+
+    These are the line numbers that GitHub will accept for inline comments
+    on the RIGHT side of the diff.
+    """
+    valid = set()
+    current_file = None
+    current_line = 0
+
+    for line in diff.split("\n"):
+        if line.startswith("diff --git"):
+            parts = line.split(" ")
+            if len(parts) > 3:
+                current_file = parts[3][2:]  # strip "b/"
+        elif line.startswith("@@") and current_file:
+            # Parse @@ -old,count +new,count @@
+            import re
+            m = re.search(r"\+(\d+)", line)
+            if m:
+                current_line = int(m.group(1))
+        elif current_file and current_line > 0:
+            if line.startswith("+") and not line.startswith("+++"):
+                valid.add((current_file, current_line))
+                current_line += 1
+            elif line.startswith("-") and not line.startswith("---"):
+                pass  # deleted lines don't increment new line counter
+            elif not line.startswith("\\"):
+                # Context line: also valid for comments
+                valid.add((current_file, current_line))
+                current_line += 1
+
+    return valid

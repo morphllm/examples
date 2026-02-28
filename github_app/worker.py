@@ -79,7 +79,9 @@ async def process_review(payload: dict, app_config: AppConfig):
 
             if comments:
                 summary = f"Found {len(comments)} issue{'s' if len(comments) != 1 else ''}"
-                await client.post_review(owner, repo, pr_number, comments, summary)
+                await client.post_review(
+                    owner, repo, pr_number, head_sha, comments, diff, summary,
+                )
                 await client.complete_check_run(
                     owner, repo, check_run_id,
                     "action_required",

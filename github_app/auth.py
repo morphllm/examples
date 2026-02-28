@@ -1,7 +1,7 @@
 """GitHub App authentication: JWT generation and installation token caching."""
 
 import time
-from datetime import datetime, timezone
+from datetime import datetime
 
 import httpx
 import jwt
