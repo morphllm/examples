@@ -7,6 +7,7 @@ import random
 from dataclasses import dataclass, field
 
 import anthropic
+from pydantic import BaseModel, Field
 
 from pr_review_agent.config import Config
 from pr_review_agent.pipeline.diff_parser import FileDiff
@@ -17,6 +18,15 @@ from pr_review_agent.warpgrep.client import (
     execute_warpgrep_tool,
     WARPGREP_TOOL_NAME,
 )
+
+
+class SearchQuery(BaseModel):
+    query: str = Field(description="A specific codebase search query targeting a concrete bug suspicion")
+    reason: str = Field(description="Why this search matters — what bug could it reveal")
+
+
+class PlannedSearches(BaseModel):
+    searches: list[SearchQuery] = Field(min_length=4, max_length=4, description="Exactly 4 targeted searches")
 
 
 @dataclass
@@ -91,7 +101,7 @@ class Reviewer:
 
         # Resolve num_passes: argument > organism override > default
         if num_passes is None:
-            num_passes = self._num_passes if self._num_passes is not None else 4
+            num_passes = self._num_passes if self._num_passes is not None else 6
 
         # Phase 0: Gather codebase context via WarpGrep (1-2 strategic searches)
         warpgrep_context = ""
@@ -101,7 +111,9 @@ class Reviewer:
                 ctx_len = len(warpgrep_context)
                 print(f"  WarpGrep context: {ctx_len} chars", file=sys.stderr)
 
-        # Run N passes with shuffled file ordering
+        # Run N passes with shuffled file ordering and 3 contrastive prompt types
+        # Pass types cycle: comprehensive(0) -> commonly-missed(1) -> deep-investigation(2) -> repeat
+        pass_methods = [self._pass1_review, self._pass2_review, self._pass3_review]
         all_pass_issues: list[list[ReviewIssue]] = []
         for pass_num in range(num_passes):
             # Shuffle file order for each pass (different ordering = different attention)
@@ -109,11 +121,9 @@ class Reviewer:
             if pass_num > 0:  # Keep first pass in original order
                 random.shuffle(shuffled)
 
-            # Alternate between comprehensive and commonly-missed prompts
-            if pass_num % 2 == 0:
-                issues = self._pass1_review(shuffled, warpgrep_context=warpgrep_context, repo_path=repo_path)
-            else:
-                issues = self._pass2_review(shuffled, warpgrep_context=warpgrep_context, repo_path=repo_path)
+            # Cycle through 3 contrastive pass types
+            pass_method = pass_methods[pass_num % 3]
+            issues = pass_method(shuffled, warpgrep_context=warpgrep_context, repo_path=repo_path)
 
             for issue in issues:
                 issue.source_pass = f"pass{pass_num + 1}"
@@ -129,116 +139,127 @@ class Reviewer:
             all_pass_issues.append(quick_issues)
             print(f"  Quick-wins pass: {len(quick_issues)} issues", file=sys.stderr)
 
-        # Majority voting merge
-        merged = self._majority_vote_merge(all_pass_issues)
+        # LLM-based aggregation: replaces majority voting + judge in one step
+        aggregated = self._llm_aggregate(all_pass_issues, file_diffs, repo_path=repo_path)
 
-        return merged
+        return aggregated
 
     def _gather_strategic_context(self, file_diffs: list[FileDiff], repo_path: str) -> str:
-        """Pre-gather codebase context via WarpGrep for the entire PR.
+        """Pre-gather codebase context via Opus-planned WarpGrep searches.
 
-        Makes up to 6 strategic WarpGrep searches to understand:
-        1. Callers/contracts of changed functions
-        2. Related code patterns and tests
-        3. Type definitions and interfaces
-        4. Concurrency/sync patterns (if relevant)
-        5. Error handling and validation
-        6. Configuration and constants
+        Uses structured outputs to get exactly 4 targeted search queries from
+        Opus, then executes them in parallel via WarpGrep.
         """
         import sys
+        from concurrent.futures import ThreadPoolExecutor, as_completed
         from pr_review_agent.warpgrep.client import search_codebase_text
 
-        # Build a summary of what changed for WarpGrep to search intelligently
-        changed_functions = []
-        changed_classes = []
-        changed_files_summary = []
+        # Step 1: Build compact diff for the query planner (cap at 30K chars)
+        compact_diff = self._build_diff_text(file_diffs, max_chars=30000)
+
+        # Step 2: Ask Opus to plan the searches
+        planner_prompt = f"""You are about to review this PR diff for bugs. Before reviewing, you can search the codebase for context that will help you find real bugs.
+
+## PR Diff
+{compact_diff}
+
+## What searches would help you find BUGS in this diff?
+
+Think about what could go wrong with these specific changes:
+- If a function signature or behavior changed, who calls it? Will callers break with the new behavior?
+- If a lock, guard, or safety check was removed, what code depended on that protection?
+- If a type, interface, or abstract class changed, do implementations still satisfy the contract?
+- If error handling changed, what callers expect the old error behavior?
+- If string constants, metric tags, or enum values changed, are they consistent across producer and consumer?
+- If a class field has a potentially problematic default value, how is it instantiated?
+
+Generate exactly 4 search queries. Each should be a SPECIFIC question about this codebase targeting a SPECIFIC potential bug you see in the diff.
+
+Do NOT generate generic queries like "find test files" or "find related code" or "find dependencies". Every query must target a concrete suspicion."""
+
+        try:
+            planner_response = self.client.messages.create(
+                model=self.config.model,
+                max_tokens=8000,
+                temperature=1,
+                thinking={"type": "enabled", "budget_tokens": 4000},
+                messages=[{"role": "user", "content": planner_prompt}],
+                output_config={
+                    "format": {
+                        "type": "json_schema",
+                        "schema": PlannedSearches.model_json_schema(),
+                    }
+                },
+            )
+
+            # With thinking enabled, content has thinking blocks then text block
+            text_block = next(b for b in planner_response.content if b.type == "text")
+            parsed = json.loads(text_block.text)
+            result = PlannedSearches(**parsed)
+            queries = [(s.query, s.reason) for s in result.searches]
+        except Exception as e:
+            print(f"  Query planner failed: {e}, falling back to basic search", file=sys.stderr)
+            queries = self._fallback_queries(file_diffs)
+
+        if not queries:
+            queries = self._fallback_queries(file_diffs)
+
+        print(f"  Query planner: {len(queries)} searches planned", file=sys.stderr)
+        for i, (query, reason) in enumerate(queries):
+            print(f"    [{i+1}] {query[:80]}{'...' if len(query) > 80 else ''}", file=sys.stderr)
+
+        # Step 3: Execute queries via WarpGrep in parallel
+        def _run_search(idx_query_reason):
+            i, query, reason = idx_query_reason
+            try:
+                result = search_codebase_text(query, repo_path, self.config.morph_api_key, max_turns=4)
+                if result and len(result) > 50:
+                    return (i, reason, result)
+            except Exception as e:
+                print(f"  WarpGrep search {i+1} failed: {e}", file=sys.stderr)
+            return None
+
+        search_args = [(i, q, r) for i, (q, r) in enumerate(queries)]
+
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            futures = {executor.submit(_run_search, arg): arg for arg in search_args}
+            results = []
+            for future in as_completed(futures):
+                r = future.result()
+                if r:
+                    results.append(r)
+
+        # Sort by original index
+        results.sort(key=lambda x: x[0])
+
+        context_parts = []
+        for _, reason, text in results:
+            context_parts.append(f"### {reason}\n{text}")
+
+        return "\n\n".join(context_parts)
+
+    def _fallback_queries(self, file_diffs: list[FileDiff]) -> list[tuple[str, str]]:
+        """Minimal fallback queries if the planner fails."""
         import re
-        for fd in file_diffs[:15]:  # Cap to avoid huge queries
-            changed_files_summary.append(f"- {fd.file_path} ({fd.language})")
-            for line in fd.raw_diff.split("\n")[:150]:
+        changed_functions = []
+        for fd in file_diffs[:10]:
+            for line in fd.raw_diff.split("\n")[:200]:
                 if line.startswith("+") and not line.startswith("+++"):
-                    # Function/method definitions
                     m = re.search(r'(?:def|func|function|public|private|protected)\s+(\w+)', line)
                     if m and m.group(1) not in ("__init__", "main", "test"):
                         changed_functions.append(m.group(1))
-                    # Class definitions
-                    m = re.search(r'(?:class|interface|struct|type)\s+(\w+)', line)
-                    if m:
-                        changed_classes.append(m.group(1))
-
-        changed_functions = list(dict.fromkeys(changed_functions))[:10]
-        changed_classes = list(dict.fromkeys(changed_classes))[:5]
-
-        diff_text = "\n".join(fd.raw_diff[:500] for fd in file_diffs[:5])
-        has_sync_changes = any(
-            kw in diff_text.lower()
-            for kw in ["mutex", "lock", "unlock", "rwlock", "sync.", "synchronized", "atomic"]
-        )
-
-        # Build up to 6 search queries
-        queries: list[tuple[str, str]] = []
-
-        # Search 1: Callers and contracts for changed functions
+        changed_functions = list(dict.fromkeys(changed_functions))[:6]
         if changed_functions:
-            func_list = ", ".join(changed_functions[:6])
-            queries.append((
-                "Callers and contracts of changed functions",
-                f"Find callers, usages, and interface contracts for these functions/methods: {func_list}",
-            ))
-
-        # Search 2: Type definitions and interfaces
-        if changed_classes:
-            class_list = ", ".join(changed_classes[:4])
-            queries.append((
-                "Type definitions and interfaces",
-                f"Find definitions, implementations, and usages of these types/classes: {class_list}",
-            ))
-
-        # Search 3: Test files for changed code
-        files_list = "\n".join(changed_files_summary[:10])
-        queries.append((
-            "Test files and assertions",
-            f"Find test files that test the code in these changed files:\n{files_list}",
-        ))
-
-        # Search 4: Related code patterns
-        if has_sync_changes:
-            queries.append((
-                "Concurrency and synchronization",
-                f"Find all functions that read or write to the same fields/variables protected by locks or mutexes in these files:\n{files_list}",
-            ))
-        else:
-            queries.append((
-                "Related code and dependencies",
-                f"Find code that imports from or depends on these changed files:\n{files_list}",
-            ))
-
-        # Search 5: Error handling patterns
-        if len(changed_functions) > 2:
-            func_subset = ", ".join(changed_functions[:4])
-            queries.append((
-                "Error handling and validation",
-                f"Find error handling, validation, and edge case handling related to: {func_subset}",
-            ))
-
-        # Search 6: Constants, config, and shared state
-        if changed_files_summary:
-            queries.append((
-                "Constants and configuration",
-                f"Find constants, configuration values, and shared state used by these files:\n{files_list}",
-            ))
-
-        # Execute searches (up to 6)
-        context_parts = []
-        for i, (label, query) in enumerate(queries[:6]):
-            try:
-                result = search_codebase_text(query, repo_path, self.config.morph_api_key, max_turns=3)
-                if result and len(result) > 50:
-                    context_parts.append(f"### {label}\n{result}")
-            except Exception as e:
-                print(f"  WarpGrep search {i+1} ({label}) failed: {e}", file=sys.stderr)
-
-        return "\n\n".join(context_parts)
+            func_list = ", ".join(changed_functions)
+            return [(
+                f"Find all callers and usages of: {func_list}",
+                "Callers of changed functions",
+            )]
+        files_list = ", ".join(fd.file_path for fd in file_diffs[:5])
+        return [(
+            f"Find code that depends on these files: {files_list}",
+            "Dependencies of changed files",
+        )]
 
     def _build_diff_text(self, file_diffs: list[FileDiff], max_chars: int = 80000) -> str:
         """Build combined diff text from file diffs."""
@@ -283,12 +304,13 @@ The following code exists in the repository outside the diff. Use this to verify
         if repo_path:
             tools_section = """
 ## Available Tools
-You have tools to read files and search the codebase. Use them to strengthen your findings:
-- Use grep_pattern to find callers of changed functions, verify naming inconsistencies, or check if imports exist.
-- Use read_file to read function definitions, understand calling conventions, or check surrounding context.
-- These tools help you find MORE bugs and provide stronger evidence. Use them proactively.
+You have tools to read files and search the codebase. USE THEM AGGRESSIVELY to investigate every suspicious pattern:
+- Use grep_pattern to find all callers of changed functions - check if they break with the new behavior.
+- Use read_file to read the FULL context around changed code - understand what the code does before and after.
+- Use warpgrep_codebase_search for broader investigations - find related code, contracts, and patterns.
+- Investigate EVERY suspicious pattern you see. Deep investigation finds bugs that surface-level review misses.
 
-IMPORTANT: Do NOT use tools as a reason to dismiss findings. If the diff shows a clear bug (wrong locale, typo, inverted logic), report it directly. Only use tools to gather additional evidence or find bugs that require context beyond the diff.
+IMPORTANT: Tools are for INVESTIGATION, not dismissal. If you investigate and find confirming evidence of a bug, report it with the evidence. If the diff shows a clear bug (wrong locale, typo, inverted logic), report it immediately without needing tool verification.
 """
 
         prompt = f"""Review this pull request for bugs and correctness issues.
@@ -332,10 +354,13 @@ Use this context to verify claims about function signatures, callers, contracts,
         if repo_path:
             tools_section = """
 ## Available Tools
-You have tools: read_file, grep_pattern, list_directory. Use them to find more bugs:
-- Use grep_pattern to find callers of changed functions, check naming consistency, or find related code.
-- Use read_file to understand function signatures, check surrounding context, or verify claims about code behavior.
-- Do NOT over-verify obvious bugs from the diff. Report clear bugs immediately. Use tools for bugs that need context.
+You have tools: read_file, grep_pattern, list_directory, warpgrep_codebase_search. USE THEM AGGRESSIVELY:
+- Use grep_pattern to find ALL callers/consumers of changed functions - each caller is a potential breakage point.
+- Use read_file to read surrounding code, especially what happens BEFORE and AFTER the changed section.
+- Use warpgrep_codebase_search for semantic queries like "how is X used across the codebase".
+- Investigate every suspicious pattern. The more you investigate, the more real bugs you find.
+
+Report clear diff-visible bugs immediately. Use tools to find ADDITIONAL bugs that require cross-file context.
 """
 
         prompt = f"""Review this PR diff with fresh eyes. Look for bugs that a FIRST reviewer commonly misses.
@@ -394,6 +419,67 @@ Return [] if nothing found.
 
         response_text = self._call_opus(prompt, repo_path=repo_path)
         return self._parse_issues(response_text, source_pass="pass2")
+
+    def _pass3_review(self, file_diffs: list[FileDiff], warpgrep_context: str = "", repo_path: str | None = None) -> list[ReviewIssue]:
+        """Pass 3: Deep investigation pass - uses tools aggressively to find and confirm bugs."""
+        combined_diff = self._build_diff_text(file_diffs)
+
+        context_section = ""
+        if warpgrep_context:
+            context_section = f"""
+## Codebase Context
+{warpgrep_context}
+"""
+
+        tools_section = ""
+        if repo_path:
+            tools_section = """
+## Available Tools
+You have tools: read_file, grep_pattern, list_directory, warpgrep_codebase_search.
+THIS PASS REQUIRES DEEP TOOL-ASSISTED INVESTIGATION. Your goal is to find bugs that become apparent only after reading surrounding code.
+
+Strategy:
+1. For EVERY changed function: grep for all callers, then read each caller to check if it breaks
+2. For EVERY removed line: read the surrounding context to understand what it was protecting
+3. Use warpgrep_codebase_search to find how changed interfaces/types are used across the codebase
+4. Read test files to check if tests still match the changed behavior
+
+The MORE you investigate, the MORE bugs you will find. Each tool call is an opportunity to discover a real issue.
+"""
+
+        prompt = f"""You are a thorough code investigator. Read the diff, then USE TOOLS to investigate every suspicious change.
+
+## Changed Files
+{combined_diff}
+
+{context_section}{tools_section}
+## What to Investigate
+
+For each suspicious pattern in the diff, use tools to confirm or deny it:
+
+1. **Caller breakage**: Grep for all callers of changed functions. Read each caller. Do any pass wrong arguments now? Do any depend on the old return value?
+
+2. **Removed safety**: For removed lines (- lines), read the full file context. Was the removed code a guard, a check, a permission gate? What happens without it?
+
+3. **Contract violations**: Read the interface/abstract class. Does the changed implementation still satisfy the contract? Wrong return type? Missing case?
+
+4. **Cross-file consistency**: Grep for string constants, enum values, metric tags. Are they consistent across producer and consumer?
+
+5. **Behavioral regression**: Read downstream consumers. Does the behavioral change break their assumptions?
+
+6. **All diff-visible bugs too**: If you see a clear bug in the diff (wrong locale, typo, inverted logic, wrong variable), report it. Use tools to STRENGTHEN the finding with evidence, not to dismiss it.
+
+RULES:
+- Use tools to INVESTIGATE, not to dismiss. Finding context that confirms a bug is valuable.
+- Each finding should include evidence from your tool investigation when possible.
+- Do NOT report speculative issues without evidence.
+- Quality over quantity: report only bugs you're confident about.
+
+Return a JSON array. Return [] if no bugs found.
+{{"file_path": "...", "line_number": N, "category": "logic_error|incorrect_value|api_misuse|race_condition|null_reference|type_error|security|localization|test_correctness|portability", "severity": "critical|high|medium|low", "confidence": 0.5-1.0, "comment": "Describe the specific bug with evidence from your investigation."}}"""
+
+        response_text = self._call_opus(prompt, repo_path=repo_path)
+        return self._parse_issues(response_text, source_pass="pass3")
 
     def _quick_wins_review(self, file_diffs: list[FileDiff], warpgrep_context: str = "", repo_path: str | None = None) -> list[ReviewIssue]:
         """Quick-wins pass targeting commonly-missed low-severity but real issues.
@@ -455,6 +541,129 @@ Return a JSON array. Return [] if nothing found.
 
         response_text = self._call_opus(prompt, repo_path=repo_path)
         return self._parse_issues(response_text, source_pass="quick_wins")
+
+    def _llm_aggregate(
+        self,
+        all_pass_issues: list[list[ReviewIssue]],
+        file_diffs: list[FileDiff],
+        repo_path: str | None = None,
+    ) -> list[ReviewIssue]:
+        """LLM-based aggregation: replaces majority voting + judge in one intelligent step.
+
+        A single Opus call sees ALL issues from ALL passes alongside the diff,
+        then deduplicates, validates, and returns only confirmed real bugs with
+        calibrated confidence scores.
+        """
+        import sys
+
+        if not all_pass_issues:
+            return []
+
+        # Build per-pass issue lists for the LLM
+        pass_sections = []
+        total_issues = 0
+        for pass_idx, issues in enumerate(all_pass_issues):
+            if not issues:
+                continue
+            items = []
+            for issue in issues:
+                items.append({
+                    "file_path": issue.file_path,
+                    "line_number": issue.line_number,
+                    "category": issue.category,
+                    "severity": issue.severity,
+                    "confidence": issue.confidence,
+                    "comment": issue.comment,
+                })
+            pass_sections.append({
+                "pass": issue.source_pass if issues else f"pass{pass_idx+1}",
+                "issues": items,
+            })
+            total_issues += len(items)
+
+        if total_issues == 0:
+            return []
+
+        # Build compact diff for the aggregator
+        combined_diff = self._build_diff_text(file_diffs, max_chars=60000)
+
+        passes_json = json.dumps(pass_sections, indent=2)
+
+        prompt = f"""You are a code review aggregator. Multiple independent review passes have examined this PR.
+Your job is to synthesize their findings into a single, high-quality list of REAL bugs.
+
+## The PR Diff
+{combined_diff}
+
+## Review Findings from {len(all_pass_issues)} Independent Passes
+Each pass reviewed the same diff independently with shuffled file ordering and different prompts.
+Issues found by multiple passes are more likely to be real bugs.
+
+{passes_json}
+
+## Your Task
+
+Analyze all {total_issues} reported issues across {len(all_pass_issues)} passes and produce a FINAL curated list.
+
+### Step 1: Group Duplicates
+Multiple passes often find the same bug with different wording. Group issues that describe the SAME underlying problem (same file + nearby lines + same concept). Count how many passes independently found each unique bug.
+
+### Step 2: Validate Against the Diff
+For each unique bug, verify it against the actual diff:
+- Does the specific code element mentioned actually exist in the diff?
+- Is the claimed behavior provably wrong from the code shown?
+- Does it cause incorrect runtime behavior, not just a style preference?
+- Is the issue in CHANGED code (+ or - lines)?
+
+REMOVE issues matching these false positive patterns:
+- "Variable X is undefined" / "function Y doesn't exist" — the diff shows only changed lines; definitions exist outside the diff
+- "Should add null check" / "could be null" — speculative without a concrete null path
+- "Should use X instead of Y" — style preference when current code works
+- "If input is empty/null..." — speculative edge case without evidence
+- "Inefficient" / "should cache" — performance suggestions, not bugs
+- Duplicate of another issue already in the list
+
+KEEP issues like these (real bugs):
+- forEach with async callbacks (provable API misuse)
+- Wrong method name called (copy-paste error)
+- Text in wrong language for locale file
+- Inverted logic / always returns same value
+- sed -i '' portability bug
+- Test comment contradicts assertion
+- Method name typo preventing discovery
+
+### Step 3: Calibrate Confidence
+Set confidence based on cross-pass consensus AND bug severity:
+- Found by 3+ passes: confidence = 0.85-0.95 (strong consensus)
+- Found by 2 passes: confidence = 0.70-0.85 (moderate consensus)
+- Found by 1 pass but clearly provable from diff: confidence = 0.60-0.75
+- Found by 1 pass and requires inference: confidence = 0.45-0.55
+
+### Output Format
+Return a JSON array of the FINAL validated issues. Each issue should use the BEST description from any pass (most specific, most evidence-rich).
+
+```json
+[{{"file_path": "...", "line_number": N, "category": "logic_error|incorrect_value|api_misuse|race_condition|null_reference|type_error|security|localization|test_correctness|portability", "severity": "critical|high|medium|low", "confidence": 0.0-1.0, "comment": "Clear, specific description of the bug with evidence.", "pass_count": N}}]
+```
+
+Rules:
+- Quality over quantity: 5 real bugs > 12 questionable ones
+- Each comment must be SELF-CONTAINED: name the code element, state what's wrong, explain the consequence
+- Do NOT invent new issues — only synthesize from the passes above
+- When two descriptions of the same bug exist, keep the more specific/evidence-rich one
+- KEEP BIAS: When in doubt, KEEP the issue. False negatives (missing a real bug) are WORSE than false positives. Only REMOVE issues you are confident are false positives.
+- Single-pass findings from the deep investigation pass (pass3/pass6) may be uniquely valid — do not auto-remove just because only one pass found them
+- Think hard about each issue before deciding to remove it"""
+
+        print(f"  Aggregating {total_issues} issues from {len(all_pass_issues)} passes...", file=sys.stderr)
+
+        # Aggregator does NOT get tools — it works purely from the diff + issues
+        response_text = self._call_opus(prompt, repo_path=None)
+        aggregated = self._parse_issues(response_text, source_pass="aggregated")
+
+        print(f"  Aggregation: {total_issues} raw -> {len(aggregated)} curated", file=sys.stderr)
+
+        return aggregated
 
     def _majority_vote_merge(
         self, all_pass_issues: list[list[ReviewIssue]]
@@ -673,17 +882,7 @@ Return a JSON array. Return [] if nothing found.
 
         judge_body = self._judge_prompt if self._judge_prompt else self._default_judge_prompt()
 
-        verification_note = ""
-        if repo_path:
-            verification_note = """
-## Verification Tools
-You have read_file and grep_pattern to verify claims:
-- If an issue claims something is "undefined" or "missing", grep for it. If found, REMOVE the issue.
-- If an issue claims a naming inconsistency, grep both variants to confirm.
-- Only REMOVE issues when you have concrete counter-evidence. Do NOT remove issues just because you didn't find proof.
-"""
-
-        judge_prompt = f"""You are a STRICT code review validator. Your job is to examine each claimed bug and decide: KEEP or REMOVE.
+        judge_prompt = f"""You are a code review validator. Your job is to examine each claimed bug and decide: KEEP or REMOVE.
 
 ## The PR Diff
 {combined_diff}
@@ -692,15 +891,17 @@ You have read_file and grep_pattern to verify claims:
 {issues_json}
 
 {judge_body}
-{verification_note}
+
 ## Output
 
-Return a JSON array containing ONLY the validated true bugs. AGGRESSIVELY remove false positives - when in doubt, REMOVE.
+Return a JSON array containing ONLY the validated true bugs. Remove clear false positives but KEEP issues that describe real, provable bugs.
 Keep the exact same format as the input.
 
-Return [] if all issues are false positives."""
+When in doubt about whether an issue is real, KEEP it - false negatives are worse than false positives."""
 
-        response_text = self._call_opus(judge_prompt, repo_path=repo_path)
+        # Judge does NOT get tools - tools cause over-verification where
+        # the judge reads surrounding code and talks itself out of real bugs.
+        response_text = self._call_opus(judge_prompt, repo_path=None)
 
         # Parse validated issues
         validated = self._parse_issues(response_text, source_pass="validated")
@@ -844,11 +1045,11 @@ If two issues describe the SAME bug at the SAME location (or same conceptual bug
                 "name": "read_file",
                 "description": (
                     "Read a file from the repository. Returns the file contents with line numbers. "
-                    "Use this to verify assumptions about code before claiming bugs. For example, "
-                    "read the full file to check if a variable IS defined outside the diff, or read "
-                    "callers of a changed function to confirm they'll break. "
+                    "Use this to understand the FULL context around changed code - what happens before "
+                    "and after the diff. Read callers of changed functions to check if they break. "
+                    "Read the complete file to understand data flow and find issues the diff alone doesn't show. "
                     "You can specify line ranges to read specific sections. "
-                    "This is a fast local operation - use it liberally."
+                    "This is a fast local operation - use it aggressively."
                 ),
                 "input_schema": {
                     "type": "object",
@@ -875,9 +1076,11 @@ If two issues describe the SAME bug at the SAME location (or same conceptual bug
                 "description": (
                     "Search for a regex pattern across the repository using ripgrep. "
                     "Returns matching lines with file paths and line numbers. Use this to: "
-                    "find all callers of a changed function, check if a variable name is used "
-                    "elsewhere, verify imports exist, or confirm string constants match across files. "
-                    "This is the PRIMARY verification tool - use it to PROVE bugs exist before reporting them."
+                    "find all callers of a changed function (each caller could break), "
+                    "check string constants for inconsistencies across files, "
+                    "find related code that depends on changed behavior, "
+                    "or discover additional instances of a buggy pattern. "
+                    "This is your PRIMARY investigation tool - use it aggressively to find bugs that need cross-file context."
                 ),
                 "input_schema": {
                     "type": "object",
