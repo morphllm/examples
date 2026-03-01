@@ -39,6 +39,9 @@ def _strict_schema(schema: dict) -> dict:
         }
     if "items" in schema and isinstance(schema["items"], dict):
         schema["items"] = _strict_schema(schema["items"])
+    # Remove unsupported constraints (API only allows minItems 0 or 1)
+    for key in ("minItems", "maxItems"):
+        schema.pop(key, None)
     # Resolve $ref — Anthropic doesn't support $ref, inline the definition
     if "$ref" in schema:
         ref_path = schema["$ref"]  # e.g. "#/$defs/SearchQuery"
@@ -52,7 +55,7 @@ class SearchQuery(BaseModel):
 
 
 class PlannedSearches(BaseModel):
-    searches: list[SearchQuery] = Field(min_length=4, max_length=4, description="Exactly 4 targeted searches")
+    searches: list[SearchQuery] = Field(description="Exactly 4 targeted searches")
 
 
 @dataclass
@@ -222,7 +225,7 @@ Do NOT generate generic queries like "find test files" or "find related code" or
             text_block = next(b for b in planner_response.content if b.type == "text")
             parsed = json.loads(text_block.text)
             result = PlannedSearches(**parsed)
-            queries = [(s.query, s.reason) for s in result.searches]
+            queries = [(s.query, s.reason) for s in result.searches[:4]]
         except Exception as e:
             print(f"  Query planner failed: {e}, falling back to basic search", file=sys.stderr)
             queries = self._fallback_queries(file_diffs)
