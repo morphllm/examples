@@ -55,7 +55,30 @@ class SearchQuery(BaseModel):
 
 
 class PlannedSearches(BaseModel):
-    searches: list[SearchQuery] = Field(description="Exactly 4 targeted searches")
+    searches: list[SearchQuery] = Field(description="3-6 targeted searches")
+
+
+class ReviewPlan(BaseModel):
+    summary: str = Field(description="1-2 sentence summary of what this PR does")
+    risk_areas: list[str] = Field(description="3-5 specific risk areas identified")
+    investigation_findings: list[str] = Field(description="Key findings from tool investigation")
+
+
+class ReviewIssueSchema(BaseModel):
+    file_path: str = Field(description="Path to the file containing the issue")
+    line_number: int = Field(description="Line number where the issue occurs")
+    category: str = Field(description="Bug category: logic_error|incorrect_value|api_misuse|race_condition|null_reference|type_error|security|localization|test_correctness|portability")
+    severity: str = Field(description="Issue severity: critical|high|medium|low")
+    confidence: float = Field(description="Confidence score from 0.0 to 1.0")
+    comment: str = Field(description="Description of the bug: what code is wrong, what it should be, and the consequence")
+
+
+class ReviewResult(BaseModel):
+    issues: list[ReviewIssueSchema] = Field(description="List of issues found in this review pass")
+
+
+class AggregatedResult(BaseModel):
+    issues: list[ReviewIssueSchema] = Field(description="Final curated list of validated bugs")
 
 
 @dataclass
@@ -111,20 +134,43 @@ class Reviewer:
     def active_system_prompt(self) -> str:
         return self._system_prompt if self._system_prompt is not None else SYSTEM_PROMPT
 
+    @staticmethod
+    def _parse_structured_issues(text: str, source_pass: str) -> list[ReviewIssue]:
+        """Parse structured JSON output into ReviewIssue list.
+
+        Expects JSON with an 'issues' key (ReviewResult/AggregatedResult schema).
+        """
+        try:
+            parsed = json.loads(text)
+            result = ReviewResult(**parsed)
+            return [
+                ReviewIssue(
+                    file_path=i.file_path,
+                    line_number=i.line_number,
+                    category=i.category,
+                    severity=i.severity,
+                    confidence=i.confidence,
+                    comment=i.comment,
+                    source_pass=source_pass,
+                )
+                for i in result.issues
+            ]
+        except Exception:
+            return []
+
     def review_pr(
         self,
         file_diffs: list[FileDiff],
         repo_path: str | None = None,
         num_passes: int | None = None,
     ) -> list[ReviewIssue]:
-        """Run shuffled multi-pass review with majority voting.
+        """Run plan-guided multi-pass review with structured output.
 
-        Phase 0: Pre-search with WarpGrep to gather codebase context.
-        Passes 1-4: Each pass shuffles file order and alternates between
-                     comprehensive and commonly-missed prompts.
-        Pass 5: Quick-wins pass targeting low-severity but real issues
-                 (typos, naming, doc mismatches).
-        Merge: Majority voting with confidence adjustments.
+        Phase 1: Create review plan (agentic investigation + structured output).
+        Phase 2: Plan-informed WarpGrep searches for codebase context.
+        Phase 3: Multi-pass review (3 contrastive prompts, shuffled ordering).
+        Phase 4: Quick-wins pass for low-severity real issues.
+        Phase 5: LLM-based aggregation with structured output.
         """
         import sys
 
@@ -132,16 +178,20 @@ class Reviewer:
         if num_passes is None:
             num_passes = self._num_passes if self._num_passes is not None else 3
 
-        # Phase 0: Gather codebase context via WarpGrep (1-2 strategic searches)
+        # Phase 1: Create review plan (agentic investigation)
+        plan = None
+        if repo_path and self.config.warpgrep_tool_enabled:
+            plan = self._create_review_plan(file_diffs, repo_path)
+
+        # Phase 2: Plan-informed codebase searches via WarpGrep
         warpgrep_context = ""
         if repo_path and self.config.morph_api_key and self.config.warpgrep_tool_enabled:
-            warpgrep_context = self._gather_strategic_context(file_diffs, repo_path)
+            warpgrep_context = self._plan_and_execute_searches(plan, file_diffs, repo_path)
             if warpgrep_context:
                 ctx_len = len(warpgrep_context)
                 print(f"  WarpGrep context: {ctx_len} chars", file=sys.stderr)
 
-        # Run N passes with shuffled file ordering and 3 contrastive prompt types
-        # Pass types cycle: comprehensive(0) -> commonly-missed(1) -> deep-investigation(2) -> repeat
+        # Phase 3: Multi-pass review with plan context
         pass_methods = [self._pass1_review, self._pass2_review, self._pass3_review]
         all_pass_issues: list[list[ReviewIssue]] = []
         for pass_num in range(num_passes):
@@ -152,7 +202,7 @@ class Reviewer:
 
             # Cycle through 3 contrastive pass types
             pass_method = pass_methods[pass_num % 3]
-            issues = pass_method(shuffled, warpgrep_context=warpgrep_context, repo_path=repo_path)
+            issues = pass_method(shuffled, warpgrep_context=warpgrep_context, repo_path=repo_path, plan=plan)
 
             for issue in issues:
                 issue.source_pass = f"pass{pass_num + 1}"
@@ -160,35 +210,46 @@ class Reviewer:
             all_pass_issues.append(issues)
             print(f"  Pass {pass_num + 1}/{num_passes}: {len(issues)} issues", file=sys.stderr)
 
-        # Additional quick-wins pass for low-severity real issues
-        quick_issues = self._quick_wins_review(file_diffs, warpgrep_context=warpgrep_context, repo_path=repo_path)
+        # Phase 4: Quick-wins pass for low-severity real issues
+        quick_issues = self._quick_wins_review(file_diffs, warpgrep_context=warpgrep_context, repo_path=repo_path, plan=plan)
         if quick_issues:
             for issue in quick_issues:
                 issue.source_pass = "quick_wins"
             all_pass_issues.append(quick_issues)
             print(f"  Quick-wins pass: {len(quick_issues)} issues", file=sys.stderr)
 
-        # LLM-based aggregation: replaces majority voting + judge in one step
+        # Phase 5: LLM-based aggregation with structured output
         aggregated = self._llm_aggregate(all_pass_issues, file_diffs, repo_path=repo_path)
 
         return aggregated
 
-    def _gather_strategic_context(self, file_diffs: list[FileDiff], repo_path: str) -> str:
-        """Pre-gather codebase context via Opus-planned WarpGrep searches.
+    def _plan_and_execute_searches(self, plan: ReviewPlan | None, file_diffs: list[FileDiff], repo_path: str) -> str:
+        """Phase 2: Plan targeted searches informed by the review plan, then execute via WarpGrep.
 
-        Uses structured outputs to get exactly 4 targeted search queries from
-        Opus, then executes them in parallel via WarpGrep.
+        Uses the ReviewPlan's risk areas and findings to produce better-targeted
+        search queries via structured output, then executes 3-6 in parallel.
         """
         import sys
         from concurrent.futures import ThreadPoolExecutor, as_completed
         from pr_review_agent.warpgrep.client import search_codebase_text
 
-        # Step 1: Build compact diff for the query planner (cap at 30K chars)
         compact_diff = self._build_diff_text(file_diffs, max_chars=30000)
 
-        # Step 2: Ask Opus to plan the searches
-        planner_prompt = f"""You are about to review this PR diff for bugs. Before reviewing, you can search the codebase for context that will help you find real bugs.
+        plan_context = ""
+        if plan:
+            plan_context = f"""
+## Review Plan (from prior investigation)
+**Summary**: {plan.summary}
 
+**Risk Areas**:
+{chr(10).join(f"- {r}" for r in plan.risk_areas)}
+
+**Investigation Findings**:
+{chr(10).join(f"- {f}" for f in plan.investigation_findings)}
+"""
+
+        planner_prompt = f"""You are about to review this PR diff for bugs. Before reviewing, you can search the codebase for context that will help you find real bugs.
+{plan_context}
 ## PR Diff
 {compact_diff}
 
@@ -202,7 +263,7 @@ Think about what could go wrong with these specific changes:
 - If string constants, metric tags, or enum values changed, are they consistent across producer and consumer?
 - If a class field has a potentially problematic default value, how is it instantiated?
 
-Generate exactly 4 search queries. Each should be a SPECIFIC question about this codebase targeting a SPECIFIC potential bug you see in the diff.
+Generate 3-6 search queries. Each should be a SPECIFIC question about this codebase targeting a SPECIFIC potential bug you see in the diff.
 
 Do NOT generate generic queries like "find test files" or "find related code" or "find dependencies". Every query must target a concrete suspicion."""
 
@@ -221,11 +282,10 @@ Do NOT generate generic queries like "find test files" or "find related code" or
                 },
             )
 
-            # With thinking enabled, content has thinking blocks then text block
             text_block = next(b for b in planner_response.content if b.type == "text")
             parsed = json.loads(text_block.text)
             result = PlannedSearches(**parsed)
-            queries = [(s.query, s.reason) for s in result.searches[:4]]
+            queries = [(s.query, s.reason) for s in result.searches[:6]]
         except Exception as e:
             print(f"  Query planner failed: {e}", file=sys.stderr)
             return ""
@@ -237,7 +297,6 @@ Do NOT generate generic queries like "find test files" or "find related code" or
         for i, (query, reason) in enumerate(queries):
             print(f"    [{i+1}] {query[:80]}{'...' if len(query) > 80 else ''}", file=sys.stderr)
 
-        # Step 3: Execute queries via WarpGrep in parallel
         def _run_search(idx_query_reason):
             i, query, reason = idx_query_reason
             try:
@@ -250,7 +309,7 @@ Do NOT generate generic queries like "find test files" or "find related code" or
 
         search_args = [(i, q, r) for i, (q, r) in enumerate(queries)]
 
-        with ThreadPoolExecutor(max_workers=4) as executor:
+        with ThreadPoolExecutor(max_workers=6) as executor:
             futures = {executor.submit(_run_search, arg): arg for arg in search_args}
             results = []
             for future in as_completed(futures):
@@ -258,7 +317,6 @@ Do NOT generate generic queries like "find test files" or "find related code" or
                 if r:
                     results.append(r)
 
-        # Sort by original index
         results.sort(key=lambda x: x[0])
 
         context_parts = []
@@ -285,7 +343,80 @@ Do NOT generate generic queries like "find test files" or "find related code" or
 
         return "\n".join(diff_sections)
 
-    def _pass1_review(self, file_diffs: list[FileDiff], warpgrep_context: str = "", repo_path: str | None = None) -> list[ReviewIssue]:
+    def _create_review_plan(self, file_diffs: list[FileDiff], repo_path: str) -> ReviewPlan | None:
+        """Phase 1: Investigate the PR using tools and produce a structured ReviewPlan.
+
+        Two-step process:
+        1. Agentic loop with tools: Opus investigates the PR, reads callers, checks contracts
+        2. Structured output call: Distill findings into a ReviewPlan (summary, risk_areas, findings)
+        """
+        import sys
+
+        compact_diff = self._build_diff_text(file_diffs, max_chars=30000)
+
+        investigation_prompt = f"""You are about to review this PR for bugs. First, INVESTIGATE the changes to understand what the PR does and identify risk areas.
+
+## PR Diff
+{compact_diff}
+
+## Your Task
+Use the available tools to understand this PR deeply:
+
+1. **Understand the change**: What does this PR actually do? Read surrounding code to understand context.
+2. **Check contracts**: If interfaces, types, or abstract classes changed, read their implementations.
+3. **Check callers**: For changed functions, grep for callers and check if they break with the new behavior.
+4. **Check removed code**: If safety checks or guards were removed, understand what they protected.
+5. **Check cross-file consistency**: Are string constants, metric tags, enum values consistent?
+
+Focus your investigation on understanding what could go WRONG with these specific changes.
+After investigating, summarize your findings clearly."""
+
+        # Step 1: Agentic investigation (freeform + tools)
+        tools, warpgrep_tool_def = self._build_tools(repo_path)
+        if not tools:
+            return None
+
+        messages = [{"role": "user", "content": investigation_prompt}]
+        try:
+            investigation_text = self._agentic_loop(
+                messages, tools, repo_path, warpgrep_tool_def,
+                thinking_budget=10000, max_tool_rounds=15,
+            )
+        except Exception as e:
+            print(f"  Plan investigation failed: {e}", file=sys.stderr)
+            return None
+
+        # Step 2: Structure the findings via structured output (no tools)
+        structuring_prompt = f"""Based on your investigation of this PR, produce a structured review plan.
+
+## Your Investigation Findings
+{investigation_text[:15000]}
+
+## PR Diff (for reference)
+{compact_diff[:10000]}
+
+Produce a review plan with:
+- summary: 1-2 sentence summary of what this PR does
+- risk_areas: 3-5 specific risk areas you identified (concrete, not generic)
+- investigation_findings: Key findings from your tool investigation (what you learned about callers, contracts, etc.)"""
+
+        try:
+            schema = _strict_schema(ReviewPlan.model_json_schema())
+            result_text = self._call_opus(
+                structuring_prompt,
+                repo_path=None,  # No tools for structuring
+                output_schema=schema,
+            )
+            parsed = json.loads(result_text)
+            plan = ReviewPlan(**parsed)
+            print(f"  Review plan: {plan.summary[:80]}", file=sys.stderr)
+            print(f"  Risk areas: {len(plan.risk_areas)}, Findings: {len(plan.investigation_findings)}", file=sys.stderr)
+            return plan
+        except Exception as e:
+            print(f"  Plan structuring failed: {e}", file=sys.stderr)
+            return None
+
+    def _pass1_review(self, file_diffs: list[FileDiff], warpgrep_context: str = "", repo_path: str | None = None, plan: ReviewPlan | None = None) -> list[ReviewIssue]:
         """Pass 1: Comprehensive bug-finding review with pre-gathered context."""
         combined_diff = self._build_diff_text(file_diffs)
 
@@ -296,6 +427,15 @@ Do NOT generate generic queries like "find test files" or "find related code" or
             for lang in languages
             if get_language_hint(lang)
         )
+
+        plan_section = ""
+        if plan:
+            plan_section = f"""
+## Review Plan (from prior investigation)
+**Summary**: {plan.summary}
+**Risk Areas**: {', '.join(plan.risk_areas)}
+**Key Findings**: {'; '.join(plan.investigation_findings[:5])}
+"""
 
         context_section = ""
         if warpgrep_context:
@@ -320,32 +460,39 @@ IMPORTANT: Tools are for INVESTIGATION, not dismissal. If you investigate and fi
 """
 
         prompt = f"""Review this pull request for bugs and correctness issues.
-
+{plan_section}
 ## Changed Files ({len(file_diffs)} files)
 {combined_diff}
 
 {f"## Language-Specific Notes{chr(10)}{lang_hints}" if lang_hints else ""}
 {context_section}{tools_section}
 ## What to Look For
-{self._review_instructions if self._review_instructions else self._default_review_instructions()}
+{self._review_instructions if self._review_instructions else self._default_review_instructions()}"""
 
-Return a JSON array:
-{{"file_path": "...", "line_number": N, "category": "logic_error|incorrect_value|api_misuse|race_condition|null_reference|type_error|security|localization|test_correctness|portability", "severity": "critical|high|medium|low", "confidence": 0.5-1.0, "comment": "Describe the bug: what code is wrong, what it should be, and the consequence."}}"""
-
-        response_text = self._call_opus(prompt, repo_path=repo_path)
-        issues = self._parse_issues(response_text, source_pass="pass1")
+        schema = _strict_schema(ReviewResult.model_json_schema())
+        response_text = self._call_opus(prompt, repo_path=repo_path, output_schema=schema)
+        issues = self._parse_structured_issues(response_text, source_pass="pass1")
 
         # Retry once if we got 0 issues from a non-trivial diff
         total_added = sum(fd.total_added for fd in file_diffs)
         if not issues and total_added > 20:
-            response_text = self._call_opus(prompt, repo_path=repo_path)
-            issues = self._parse_issues(response_text, source_pass="pass1_retry")
+            response_text = self._call_opus(prompt, repo_path=repo_path, output_schema=schema)
+            issues = self._parse_structured_issues(response_text, source_pass="pass1_retry")
 
         return issues
 
-    def _pass2_review(self, file_diffs: list[FileDiff], warpgrep_context: str = "", repo_path: str | None = None) -> list[ReviewIssue]:
+    def _pass2_review(self, file_diffs: list[FileDiff], warpgrep_context: str = "", repo_path: str | None = None, plan: ReviewPlan | None = None) -> list[ReviewIssue]:
         """Pass 2: Different focus to catch bugs missed by first pass."""
         combined_diff = self._build_diff_text(file_diffs)
+
+        plan_section = ""
+        if plan:
+            plan_section = f"""
+## Review Plan (from prior investigation)
+**Summary**: {plan.summary}
+**Risk Areas**: {', '.join(plan.risk_areas)}
+**Key Findings**: {'; '.join(plan.investigation_findings[:5])}
+"""
 
         context_section = ""
         if warpgrep_context:
@@ -370,7 +517,7 @@ Report clear diff-visible bugs immediately. Use tools to find ADDITIONAL bugs th
 """
 
         prompt = f"""Review this PR diff with fresh eyes. Look for bugs that a FIRST reviewer commonly misses.
-
+{plan_section}
 ## Changed Files
 {combined_diff}
 
@@ -418,17 +565,24 @@ CRITICAL RULES:
 - Do NOT report the same bug multiple times across different files. Report it ONCE.
 - Quality over quantity: 3 real bugs > 8 questionable ones.
 
-Each comment must be SELF-CONTAINED: name the specific code element, state what's wrong, and explain the runtime consequence.
-Return [] if nothing found.
+Each comment must be SELF-CONTAINED: name the specific code element, state what's wrong, and explain the runtime consequence."""
 
-{{"file_path": "...", "line_number": N, "category": "logic_error|incorrect_value|api_misuse|race_condition|null_reference|type_error|security|localization|test_correctness|portability", "severity": "critical|high|medium|low", "confidence": 0.5-1.0, "comment": "Describe the specific bug."}}"""
+        schema = _strict_schema(ReviewResult.model_json_schema())
+        response_text = self._call_opus(prompt, repo_path=repo_path, output_schema=schema)
+        return self._parse_structured_issues(response_text, source_pass="pass2")
 
-        response_text = self._call_opus(prompt, repo_path=repo_path)
-        return self._parse_issues(response_text, source_pass="pass2")
-
-    def _pass3_review(self, file_diffs: list[FileDiff], warpgrep_context: str = "", repo_path: str | None = None) -> list[ReviewIssue]:
+    def _pass3_review(self, file_diffs: list[FileDiff], warpgrep_context: str = "", repo_path: str | None = None, plan: ReviewPlan | None = None) -> list[ReviewIssue]:
         """Pass 3: Deep investigation pass - uses tools aggressively to find and confirm bugs."""
         combined_diff = self._build_diff_text(file_diffs)
+
+        plan_section = ""
+        if plan:
+            plan_section = f"""
+## Review Plan (from prior investigation)
+**Summary**: {plan.summary}
+**Risk Areas**: {', '.join(plan.risk_areas)}
+**Key Findings**: {'; '.join(plan.investigation_findings[:5])}
+"""
 
         context_section = ""
         if warpgrep_context:
@@ -454,7 +608,7 @@ The MORE you investigate, the MORE bugs you will find. Each tool call is an oppo
 """
 
         prompt = f"""You are a thorough code investigator. Read the diff, then USE TOOLS to investigate every suspicious change.
-
+{plan_section}
 ## Changed Files
 {combined_diff}
 
@@ -479,21 +633,27 @@ RULES:
 - Use tools to INVESTIGATE, not to dismiss. Finding context that confirms a bug is valuable.
 - Each finding should include evidence from your tool investigation when possible.
 - Do NOT report speculative issues without evidence.
-- Quality over quantity: report only bugs you're confident about.
+- Quality over quantity: report only bugs you're confident about."""
 
-Return a JSON array. Return [] if no bugs found.
-{{"file_path": "...", "line_number": N, "category": "logic_error|incorrect_value|api_misuse|race_condition|null_reference|type_error|security|localization|test_correctness|portability", "severity": "critical|high|medium|low", "confidence": 0.5-1.0, "comment": "Describe the specific bug with evidence from your investigation."}}"""
+        schema = _strict_schema(ReviewResult.model_json_schema())
+        response_text = self._call_opus(prompt, repo_path=repo_path, output_schema=schema)
+        return self._parse_structured_issues(response_text, source_pass="pass3")
 
-        response_text = self._call_opus(prompt, repo_path=repo_path)
-        return self._parse_issues(response_text, source_pass="pass3")
-
-    def _quick_wins_review(self, file_diffs: list[FileDiff], warpgrep_context: str = "", repo_path: str | None = None) -> list[ReviewIssue]:
+    def _quick_wins_review(self, file_diffs: list[FileDiff], warpgrep_context: str = "", repo_path: str | None = None, plan: ReviewPlan | None = None) -> list[ReviewIssue]:
         """Quick-wins pass targeting commonly-missed low-severity but real issues.
 
         Focuses on: typos, naming bugs, doc mismatches, wrong constants,
         portability issues, and broken test names.
         """
         combined_diff = self._build_diff_text(file_diffs)
+
+        plan_section = ""
+        if plan:
+            plan_section = f"""
+## Review Plan (from prior investigation)
+**Summary**: {plan.summary}
+**Risk Areas**: {', '.join(plan.risk_areas)}
+"""
 
         context_section = ""
         if warpgrep_context:
@@ -503,7 +663,7 @@ Return a JSON array. Return [] if no bugs found.
 """
 
         prompt = f"""You are a meticulous code reviewer focused on finding SMALL BUT REAL bugs that other reviewers miss.
-
+{plan_section}
 ## Changed Files
 {combined_diff}
 
@@ -540,13 +700,11 @@ Return a JSON array. Return [] if no bugs found.
 - Do NOT report issues about undefined variables (they likely exist outside the diff)
 - Do NOT report defensive programming suggestions
 - Focus on REAL bugs with concrete runtime consequences
-- These may be low severity but they ARE real defects
+- These may be low severity but they ARE real defects"""
 
-Return a JSON array. Return [] if nothing found.
-{{"file_path": "...", "line_number": N, "category": "incorrect_value|test_correctness|localization|portability|logic_error", "severity": "low|medium", "confidence": 0.5-1.0, "comment": "Describe the specific bug."}}"""
-
-        response_text = self._call_opus(prompt, repo_path=repo_path)
-        return self._parse_issues(response_text, source_pass="quick_wins")
+        schema = _strict_schema(ReviewResult.model_json_schema())
+        response_text = self._call_opus(prompt, repo_path=repo_path, output_schema=schema)
+        return self._parse_structured_issues(response_text, source_pass="quick_wins")
 
     def _llm_aggregate(
         self,
@@ -645,12 +803,8 @@ Set confidence based on cross-pass consensus AND bug severity:
 - Found by 1 pass but clearly provable from diff: confidence = 0.60-0.75
 - Found by 1 pass and requires inference: confidence = 0.45-0.55
 
-### Output Format
-Return a JSON array of the FINAL validated issues. Each issue should use the BEST description from any pass (most specific, most evidence-rich).
-
-```json
-[{{"file_path": "...", "line_number": N, "category": "logic_error|incorrect_value|api_misuse|race_condition|null_reference|type_error|security|localization|test_correctness|portability", "severity": "critical|high|medium|low", "confidence": 0.0-1.0, "comment": "Clear, specific description of the bug with evidence.", "pass_count": N}}]
-```
+### Output
+Return the FINAL validated issues. Each issue should use the BEST description from any pass (most specific, most evidence-rich).
 
 Rules:
 - Quality over quantity: 5 real bugs > 12 questionable ones
@@ -664,8 +818,9 @@ Rules:
         print(f"  Aggregating {total_issues} issues from {len(all_pass_issues)} passes...", file=sys.stderr)
 
         # Aggregator does NOT get tools — it works purely from the diff + issues
-        response_text = self._call_opus(prompt, repo_path=None)
-        aggregated = self._parse_issues(response_text, source_pass="aggregated")
+        schema = _strict_schema(AggregatedResult.model_json_schema())
+        response_text = self._call_opus(prompt, repo_path=None, output_schema=schema)
+        aggregated = self._parse_structured_issues(response_text, source_pass="aggregated")
 
         print(f"  Aggregation: {total_issues} raw -> {len(aggregated)} curated", file=sys.stderr)
 
@@ -900,17 +1055,17 @@ Rules:
 
 ## Output
 
-Return a JSON array containing ONLY the validated true bugs. Remove clear false positives but KEEP issues that describe real, provable bugs.
-Keep the exact same format as the input.
+Return ONLY the validated true bugs. Remove clear false positives but KEEP issues that describe real, provable bugs.
 
 When in doubt about whether an issue is real, KEEP it - false negatives are worse than false positives."""
 
         # Judge does NOT get tools - tools cause over-verification where
         # the judge reads surrounding code and talks itself out of real bugs.
-        response_text = self._call_opus(judge_prompt, repo_path=None)
+        schema = _strict_schema(ReviewResult.model_json_schema())
+        response_text = self._call_opus(judge_prompt, repo_path=None, output_schema=schema)
 
         # Parse validated issues
-        validated = self._parse_issues(response_text, source_pass="validated")
+        validated = self._parse_structured_issues(response_text, source_pass="validated")
 
         # Match validated issues back to originals to preserve vote metadata
         result = []
@@ -1213,7 +1368,7 @@ If two issues describe the SAME bug at the SAME location (or same conceptual bug
                 "is_error": True,
             }
 
-    def _call_opus(self, prompt: str, thinking_budget: int = 10000, repo_path: str | None = None, timeout: int = 300) -> str:
+    def _call_opus(self, prompt: str, thinking_budget: int = 10000, repo_path: str | None = None, timeout: int = 300, output_schema: dict | None = None) -> str:
         """Call Claude with extended thinking, optionally with code review tools.
 
         If repo_path is provided, Claude gets tools for code review:
@@ -1221,6 +1376,8 @@ If two issues describe the SAME bug at the SAME location (or same conceptual bug
         - grep_pattern: Search for patterns via ripgrep
         - list_directory: Browse repo structure
         - warpgrep_codebase_search: Semantic code search via Morph API
+
+        If output_schema is provided, uses structured output (JSON schema) for the response.
         """
         import sys
 
@@ -1232,18 +1389,29 @@ If two issues describe the SAME bug at the SAME location (or same conceptual bug
             try:
                 # If we have tools, use a non-streaming agentic loop
                 if tools:
-                    return self._agentic_loop(messages, tools, repo_path, warpgrep_tool_def, thinking_budget)
+                    return self._agentic_loop(messages, tools, repo_path, warpgrep_tool_def, thinking_budget, output_schema=output_schema)
 
-                # Use streaming with get_final_message for reliability
-                with self.client.messages.stream(
+                # Build API kwargs
+                api_kwargs = dict(
                     model=self.config.model,
                     max_tokens=self.config.max_tokens,
                     thinking={"type": "adaptive"},
                     temperature=1,
                     system=self.active_system_prompt,
                     messages=messages,
-                ) as stream:
-                    response = stream.get_final_message()
+                )
+                if output_schema:
+                    api_kwargs["output_config"] = {
+                        "format": {"type": "json_schema", "schema": output_schema}
+                    }
+
+                if output_schema:
+                    # Non-streaming for structured output
+                    response = self.client.messages.create(**api_kwargs)
+                else:
+                    # Use streaming with get_final_message for reliability
+                    with self.client.messages.stream(**api_kwargs) as stream:
+                        response = stream.get_final_message()
 
                 # Extract text from response
                 text_parts = []
@@ -1277,13 +1445,17 @@ If two issues describe the SAME bug at the SAME location (or same conceptual bug
         warpgrep_tool_def: dict | None,
         thinking_budget: int,
         max_tool_rounds: int = 25,
+        output_schema: dict | None = None,
     ) -> str:
         """Run Claude with code review tools in an agentic loop.
 
         Opus can call any tool (read_file, grep_pattern, list_directory,
         warpgrep_codebase_search) as many times as it needs. When it stops
         calling tools, we return the text if it contains JSON, otherwise
-        make one final call without tools to force JSON output.
+        make one final call without tools to force structured output.
+
+        If output_schema is provided, the final call (without tools) uses
+        structured output to guarantee valid JSON.
         """
         import sys
 
@@ -1312,6 +1484,9 @@ If two issues describe the SAME bug at the SAME location (or same conceptual bug
             # If no tool calls, Claude is done
             if not tool_use_blocks:
                 result = "\n".join(text_parts)
+                # If we have output_schema, always do the final structured call
+                if output_schema:
+                    break
                 if result.strip() and "[" in result:
                     summary = ", ".join(f"{n}={c}" for n, c in tool_counts.items())
                     print(f"  Review complete (tools: {summary or 'none'})", file=sys.stderr)
@@ -1328,10 +1503,11 @@ If two issues describe the SAME bug at the SAME location (or same conceptual bug
                 tool_results.append(result)
             messages.append({"role": "user", "content": tool_results})
 
-        # Final call WITHOUT tools to force JSON output
+        # Final call WITHOUT tools to force structured/JSON output
         summary = ", ".join(f"{n}={c}" for n, c in tool_counts.items())
         print(f"  Final review call (tools used: {summary or 'none'})", file=sys.stderr)
-        final_response = self.client.messages.create(
+
+        final_kwargs = dict(
             model=self.config.model,
             max_tokens=self.config.max_tokens,
             thinking={"type": "adaptive"},
@@ -1339,6 +1515,12 @@ If two issues describe the SAME bug at the SAME location (or same conceptual bug
             system=self.active_system_prompt,
             messages=messages,
         )
+        if output_schema:
+            final_kwargs["output_config"] = {
+                "format": {"type": "json_schema", "schema": output_schema}
+            }
+
+        final_response = self.client.messages.create(**final_kwargs)
 
         text_parts = []
         for block in final_response.content:
@@ -1347,49 +1529,3 @@ If two issues describe the SAME bug at the SAME location (or same conceptual bug
 
         return "\n".join(text_parts) if text_parts else "[]"
 
-    def _parse_issues(self, response_text: str, source_pass: str) -> list[ReviewIssue]:
-        """Parse JSON issues from LLM response."""
-        text = response_text.strip()
-
-        # Handle markdown code blocks
-        if "```" in text:
-            parts = text.split("```")
-            for part in parts:
-                cleaned = part.strip()
-                if cleaned.startswith("json"):
-                    cleaned = cleaned[4:].strip()
-                if cleaned.startswith("["):
-                    text = cleaned
-                    break
-
-        # Find the JSON array
-        start = text.find("[")
-        end = text.rfind("]")
-        if start == -1 or end == -1:
-            return []
-
-        try:
-            items = json.loads(text[start:end + 1])
-        except json.JSONDecodeError:
-            return []
-
-        issues = []
-        for item in items:
-            if not isinstance(item, dict):
-                continue
-            try:
-                issue = ReviewIssue(
-                    file_path=item.get("file_path", ""),
-                    line_number=int(item.get("line_number", 0)),
-                    category=item.get("category", "unknown"),
-                    severity=item.get("severity", "medium"),
-                    confidence=float(item.get("confidence", 0.5)),
-                    comment=item.get("comment", ""),
-                    source_pass=source_pass,
-                    calibration_note=item.get("calibration_note", ""),
-                )
-                issues.append(issue)
-            except (ValueError, TypeError):
-                continue
-
-        return issues
