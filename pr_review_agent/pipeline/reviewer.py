@@ -227,11 +227,11 @@ Do NOT generate generic queries like "find test files" or "find related code" or
             result = PlannedSearches(**parsed)
             queries = [(s.query, s.reason) for s in result.searches[:4]]
         except Exception as e:
-            print(f"  Query planner failed: {e}, falling back to basic search", file=sys.stderr)
-            queries = self._fallback_queries(file_diffs)
+            print(f"  Query planner failed: {e}", file=sys.stderr)
+            return ""
 
         if not queries:
-            queries = self._fallback_queries(file_diffs)
+            return ""
 
         print(f"  Query planner: {len(queries)} searches planned", file=sys.stderr)
         for i, (query, reason) in enumerate(queries):
@@ -266,29 +266,6 @@ Do NOT generate generic queries like "find test files" or "find related code" or
             context_parts.append(f"### {reason}\n{text}")
 
         return "\n\n".join(context_parts)
-
-    def _fallback_queries(self, file_diffs: list[FileDiff]) -> list[tuple[str, str]]:
-        """Minimal fallback queries if the planner fails."""
-        import re
-        changed_functions = []
-        for fd in file_diffs[:10]:
-            for line in fd.raw_diff.split("\n")[:200]:
-                if line.startswith("+") and not line.startswith("+++"):
-                    m = re.search(r'(?:def|func|function|public|private|protected)\s+(\w+)', line)
-                    if m and m.group(1) not in ("__init__", "main", "test"):
-                        changed_functions.append(m.group(1))
-        changed_functions = list(dict.fromkeys(changed_functions))[:6]
-        if changed_functions:
-            func_list = ", ".join(changed_functions)
-            return [(
-                f"Find all callers and usages of: {func_list}",
-                "Callers of changed functions",
-            )]
-        files_list = ", ".join(fd.file_path for fd in file_diffs[:5])
-        return [(
-            f"Find code that depends on these files: {files_list}",
-            "Dependencies of changed files",
-        )]
 
     def _build_diff_text(self, file_diffs: list[FileDiff], max_chars: int = 80000) -> str:
         """Build combined diff text from file diffs."""
