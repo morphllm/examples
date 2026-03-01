@@ -101,7 +101,7 @@ class Reviewer:
 
         # Resolve num_passes: argument > organism override > default
         if num_passes is None:
-            num_passes = self._num_passes if self._num_passes is not None else 6
+            num_passes = self._num_passes if self._num_passes is not None else 3
 
         # Phase 0: Gather codebase context via WarpGrep (1-2 strategic searches)
         warpgrep_context = ""
