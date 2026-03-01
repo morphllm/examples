@@ -181,7 +181,7 @@ Do NOT generate generic queries like "find test files" or "find related code" or
             planner_response = self.client.messages.create(
                 model=self.config.model,
                 max_tokens=8000,
-                temperature=1,
+                temperature=0.1,
                 thinking={"type": "enabled", "budget_tokens": 4000},
                 messages=[{"role": "user", "content": planner_prompt}],
                 output_config={
@@ -1233,7 +1233,7 @@ If two issues describe the SAME bug at the SAME location (or same conceptual bug
                     model=self.config.model,
                     max_tokens=self.config.max_tokens,
                     thinking={"type": "adaptive"},
-                    temperature=1,
+                    temperature=0.1,
                     system=self.active_system_prompt,
                     messages=messages,
                 ) as stream:
@@ -1288,7 +1288,7 @@ If two issues describe the SAME bug at the SAME location (or same conceptual bug
                 model=self.config.model,
                 max_tokens=self.config.max_tokens,
                 thinking={"type": "adaptive"},
-                temperature=1,
+                temperature=0.1,
                 system=self.active_system_prompt,
                 tools=tools,
                 messages=messages,
@@ -1329,7 +1329,7 @@ If two issues describe the SAME bug at the SAME location (or same conceptual bug
             model=self.config.model,
             max_tokens=self.config.max_tokens,
             thinking={"type": "adaptive"},
-            temperature=1,
+            temperature=0.1,
             system=self.active_system_prompt,
             messages=messages,
         )
