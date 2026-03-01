@@ -20,6 +20,32 @@ from pr_review_agent.warpgrep.client import (
 )
 
 
+def _strict_schema(schema: dict) -> dict:
+    """Add additionalProperties: false to all object types in a JSON schema.
+
+    Required by the Anthropic structured output API.
+    """
+    schema = schema.copy()
+    if schema.get("type") == "object":
+        schema["additionalProperties"] = False
+    for key in ("$defs", "definitions"):
+        if key in schema:
+            schema[key] = {
+                name: _strict_schema(defn) for name, defn in schema[key].items()
+            }
+    if "properties" in schema:
+        schema["properties"] = {
+            name: _strict_schema(prop) for name, prop in schema["properties"].items()
+        }
+    if "items" in schema and isinstance(schema["items"], dict):
+        schema["items"] = _strict_schema(schema["items"])
+    # Resolve $ref — Anthropic doesn't support $ref, inline the definition
+    if "$ref" in schema:
+        ref_path = schema["$ref"]  # e.g. "#/$defs/SearchQuery"
+        # Don't resolve here; the caller's top-level schema handles it
+    return schema
+
+
 class SearchQuery(BaseModel):
     query: str = Field(description="A specific codebase search query targeting a concrete bug suspicion")
     reason: str = Field(description="Why this search matters — what bug could it reveal")
@@ -181,13 +207,13 @@ Do NOT generate generic queries like "find test files" or "find related code" or
             planner_response = self.client.messages.create(
                 model=self.config.model,
                 max_tokens=8000,
-                temperature=0.1,
-                thinking={"type": "enabled", "budget_tokens": 4000},
+                temperature=1,
+                thinking={"type": "adaptive"},
                 messages=[{"role": "user", "content": planner_prompt}],
                 output_config={
                     "format": {
                         "type": "json_schema",
-                        "schema": PlannedSearches.model_json_schema(),
+                        "schema": _strict_schema(PlannedSearches.model_json_schema()),
                     }
                 },
             )
@@ -1233,7 +1259,7 @@ If two issues describe the SAME bug at the SAME location (or same conceptual bug
                     model=self.config.model,
                     max_tokens=self.config.max_tokens,
                     thinking={"type": "adaptive"},
-                    temperature=0.1,
+                    temperature=1,
                     system=self.active_system_prompt,
                     messages=messages,
                 ) as stream:
@@ -1288,7 +1314,7 @@ If two issues describe the SAME bug at the SAME location (or same conceptual bug
                 model=self.config.model,
                 max_tokens=self.config.max_tokens,
                 thinking={"type": "adaptive"},
-                temperature=0.1,
+                temperature=1,
                 system=self.active_system_prompt,
                 tools=tools,
                 messages=messages,
@@ -1329,7 +1355,7 @@ If two issues describe the SAME bug at the SAME location (or same conceptual bug
             model=self.config.model,
             max_tokens=self.config.max_tokens,
             thinking={"type": "adaptive"},
-            temperature=0.1,
+            temperature=1,
             system=self.active_system_prompt,
             messages=messages,
         )
