@@ -74,6 +74,7 @@ async def process_review(payload: dict, app_config: AppConfig):
                 diff,
                 repo_path=str(clone_path),
                 config=review_config,
+                organism_path=app_config.organism_path or None,
                 max_issues=app_config.max_issues_per_pr,
             )
 

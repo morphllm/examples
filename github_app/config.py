@@ -22,6 +22,7 @@ class AppConfig:
     clone_base_dir: str = "/tmp/pr-review-clones"
     max_concurrent_reviews: int = 3
     max_issues_per_pr: int = 8
+    organism_path: str = ""  # Path to evolved organism JSON for tuned prompts
     log_level: str = "INFO"
 
     def __post_init__(self):
@@ -57,6 +58,7 @@ class AppConfig:
         self.max_issues_per_pr = int(
             os.environ.get("MAX_ISSUES_PER_PR", self.max_issues_per_pr)
         )
+        self.organism_path = self.organism_path or os.environ.get("ORGANISM_PATH", "")
         self.log_level = os.environ.get("LOG_LEVEL", self.log_level)
 
         # Validate required fields
