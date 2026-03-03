@@ -1,0 +1,14 @@
+{
+  "name": "warpgrep-basic-search",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "npx tsx search.ts"
+  },
+  "dependencies": {
+    "@morphllm/morphsdk": "latest"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0"
+  }
+}

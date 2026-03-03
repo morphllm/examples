@@ -1,0 +1,14 @@
+{
+  "name": "warpgrep-streaming",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "npx tsx stream.ts"
+  },
+  "dependencies": {
+    "@morphllm/morphsdk": "latest"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0"
+  }
+}
