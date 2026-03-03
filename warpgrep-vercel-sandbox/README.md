@@ -16,51 +16,29 @@ sub·a·gent  /ˈsʌbˌeɪdʒənt/  noun
 ## How it works
 
 ```
-                         ┌─────────────────────────────────┐
-                         │         Parent Agent             │
-                         │         (Opus 4.6)               │
-                         │                                  │
-                         │  "Find where middleware is        │
-                         │   registered in this repo"        │
-                         │                                  │
-                         └──────────┬───────────────────────┘
-                                    │
-                                    │  tool_use: warp_grep
-                                    │  { query: "..." }
-                                    │
-                         ┌──────────▼───────────────────────┐
-                         │         Subagent                  │
-                         │         (WarpGrep)                │
-                         │                                   │
-                         │  Own context window. Runs a       │
-                         │  multi-turn search loop:          │
-                         │                                   │
-                         │  Turn 1: list_directory src/      │
-                         │  Turn 2: grep "middleware" *.ts   │
-                         │  Turn 3: read src/hono-base.ts    │
-                         │  Turn 4: finish → 2 files         │
-                         │                                   │
-                         │  Tokens processed: ~12,000        │
-                         │  Tokens returned:  ~200           │
-                         │                                   │
-                         └──────────┬───────────────────────┘
-                                    │
-                                    │  tool_result: { contexts: [...] }
-                                    │
-                         ┌──────────▼───────────────────────┐
-                         │         Parent Agent              │
-                         │         (Opus 4.6)                │
-                         │                                   │
-                         │  Receives only the relevant code  │
-                         │  blocks. Context window stays     │
-                         │  clean. Continues its task.       │
-                         └───────────────────────────────────┘
+  Opus 4.6
+  |
+  |
+  '-------> WarpGrep (morph-warp-grep-v2)
+            |
+            |
+            '-------> rg "middleware" src/**/*.ts        ──>  Vercel Sandbox (VM)
+            |
+            '-------> sed -n '156,168p' hono-base.ts    ──>  Vercel Sandbox
+            |
+            '-------> finish: 2 files, ~200 tokens
+  |
+  |
+  '<-- tool_result: src/hono-base.ts:156-168, src/compose.ts
+  |
+  |
+  (continues task with clean context window)
 ```
 
-The parent agent never sees the 47 files WarpGrep scanned, the dead-end
-grep results, or the directory listings. It gets back just the code that
-matters. That's the point of a subagent: it burns tokens so the parent
-doesn't have to.
+The parent never sees the 47 files WarpGrep scanned, the dead-end grep
+results, or the directory listings. It gets back just the code that matters.
+
+That's the point of a subagent: it burns tokens so the parent doesn't have to.
 
 ## In this example
 
@@ -72,18 +50,6 @@ The parent agent's `tool_use` triggers:
 3. **WarpGrep agentic loop** — multiple turns of grep/read/listDir
    executed inside the sandbox via `sandbox.runCommand()`
 4. **Result extraction** — only the relevant file snippets come back
-
-```
-  Opus 4.6 (parent)
-    │
-    ├──→ WarpGrep (subagent, morph-warp-grep-v2)
-    │      │
-    │      ├── rg "middleware" src/ ──→  Vercel Sandbox (VM)
-    │      ├── sed -n '156,168p' src/hono-base.ts ──→  Vercel Sandbox
-    │      └── finish: 2 files
-    │
-    ◄── tool_result: src/hono-base.ts:156-168, src/compose.ts
-```
 
 ## Setup
 
