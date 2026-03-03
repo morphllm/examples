@@ -1,17 +1,155 @@
 {
   "https://github.com/keycloak/keycloak/pull/37429": {
+    "opus_warpgrep": [
+      {
+        "text": "The totpStep1 key contains Italian text 'Installa una delle seguenti applicazioni sul tuo cellulare:' in the Lithuanian (lt) locale file. All surrounding keys are in Lithuanian. This is a wrong-language copy-paste error \u2014 Lithuanian users will see Italian text instead of Lithuanian for the TOTP setup step 1 message.",
+        "path": "themes/src/main/resources-community/theme/base/account/messages/messages_lt.properties",
+        "line": 101,
+        "source": "extracted"
+      },
+      {
+        "text": "The totpStep1 key uses Traditional Chinese characters '\u5728\u60a8\u7684\u624b\u6a5f\u4e0a\u5b89\u88dd\u4ee5\u4e0b\u61c9\u7528\u7a0b\u5f0f\u4e4b\u4e00\uff1a' (\u624b\u6a5f, \u5b89\u88dd, \u61c9\u7528\u7a0b\u5f0f) in the Simplified Chinese (zh_CN/zh_Hans) locale file. Surrounding keys use Simplified Chinese (e.g., line before: mobile=\u624b\u673a). The correct Simplified Chinese should use \u624b\u673a, \u5b89\u88c5, \u5e94\u7528\u7a0b\u5e8f. This is a wrong-variant substitution \u2014 Simplified Chinese users will see Traditional Chinese text.",
+        "path": "themes/src/main/resources-community/theme/base/account/messages/messages_zh_CN.properties",
+        "line": 112,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/keycloak/keycloak/pull/37634": {
+    "opus_warpgrep": [
+      {
+        "text": "Copy-paste bug: `Objects.requireNonNull(grantType, \"Null rawTokenId not allowed\")` validates `grantType` a second time instead of validating `rawTokenId`. The parameter `rawTokenId` is never null-checked, so a null `rawTokenId` can be stored in the field and will cause a NullPointerException downstream when `getRawTokenId()` is used in `encodeTokenId()` (which concatenates it via `':' + tokenContext.getRawTokenId()`). The fix is to change `grantType` to `rawTokenId` on this line.",
+        "path": "services/src/main/java/org/keycloak/protocol/oidc/encode/AccessTokenContext.java",
+        "line": 114,
+        "source": "extracted"
+      },
+      {
+        "text": "Two bugs on this line in `isAccessTokenId` matcher: (1) Inverted condition: `if (items[0].substring(3, 5).equals(expectedGrantShortcut)) return false` returns false when the grant shortcut MATCHES, but it should return false when it does NOT match. The condition should use `!equals`. (2) Wrong substring indices: `substring(3, 5)` extracts characters at indices 3-4, but the grant type shortcut is at indices 4-5 in the 6-char prefix (format is `[sessionType:0-1][tokenType:2-3][grantType:4-5]:rawId`, confirmed in `DefaultTokenContextEncoderProvider.getTokenContextFromTokenId` which uses `substring(4, 6)`). Should be `if (!items[0].substring(4, 6).equals(expectedGrantShortcut)) return false`. Together these bugs make the matcher completely ignore the grant type check and accept any 6-char prefix.",
+        "path": "testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/AssertEvents.java",
+        "line": 553,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/keycloak/keycloak/pull/38446": {
+    "opus_warpgrep": [
+      {
+        "text": "In `getCredentials()`, the `RecoveryAuthnCodesCredentialModel` created via `createFromValues()` does NOT have its ID set (`createFromValues` never calls `setId`). However, the stored `myUser.recoveryCodes` does have an ID (set via `KeycloakModelUtils.generateId()` in `updateCredential` at line 196). This ID is not propagated to the returned model. In contrast, OTP credentials at line 249 return `myUser.getOtp()` directly, which preserves the ID. When this null-ID credential is returned through `getFederatedCredentialsStream()` and used in `RecoveryAuthnCodesFormAuthenticator.isRecoveryAuthnCodeInputValid()`, `createFromCredentialModel` copies the null ID. If `allCodesUsed()` ever returned true, `removeStoredCredentialById(null)` would be called, causing NPE or incorrect behavior. Fix: add `model.setId(myUser.recoveryCodes.getId())` after `createFromValues()`.",
+        "path": "testsuite/integration-arquillian/servers/auth-server/services/testsuite-providers/src/main/java/org/keycloak/testsuite/federation/BackwardsCompatibilityUserStorage.java",
+        "line": 238,
+        "source": "extracted"
+      },
+      {
+        "text": "The `isValid()` for recovery codes uses `generatedKeys.stream().anyMatch(key -> key.equals(input.getChallengeResponse()))`, which accepts ANY stored recovery code as valid. The production `RecoveryAuthnCodesCredentialProvider.isValid()` only validates the NEXT unused code in sequence (via `getNextRecoveryAuthnCode()` + `verifyRecoveryCodeInput` with hash comparison). This means the test storage accepts out-of-order codes and allows code reuse (since codes are never consumed from storage), which doesn't match production behavior and could mask bugs in sequential code validation for federated users.",
+        "path": "testsuite/integration-arquillian/servers/auth-server/services/testsuite-providers/src/main/java/org/keycloak/testsuite/federation/BackwardsCompatibilityUserStorage.java",
+        "line": 341,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/keycloak/keycloak/pull/36882": {
     "opus_warpgrep": []
+  },
+  "https://github.com/keycloak/keycloak/pull/36880": {
+    "opus_warpgrep": [
+      {
+        "text": "NullPointerException in `canMapRoles(ClientModel client)` when `client` is `null`. This method delegates directly to `hasPermission(client, AdminPermissionsSchema.MAP_ROLES)`, and the private `hasPermission(ClientModel, String)` method accesses `client.getId()` without a null check. The same issue affects `canMapCompositeRoles(null)` and `canMapClientScopeRoles(null)`. The existing caller `AvailableRoleMappingResource.canPerformOnAllClients()` explicitly calls `auth.clients().canMapRoles(null)`, `canMapCompositeRoles(null)`, and `canMapClientScopeRoles(null)`. This will crash at runtime with an NPE for any user without the `MANAGE_CLIENTS` admin role when V2 fine-grained permissions are enabled. The `hasPermission` method needs a null check on `client` and should fall back to evaluating against the all-clients resource type (similar to how the no-arg `hasPermission(String scope)` method works).",
+        "path": "services/src/main/java/org/keycloak/services/resources/admin/permissions/ClientPermissionsV2.java",
+        "line": 95,
+        "source": "extracted"
+      },
+      {
+        "text": "Javadoc copy-paste error: the Javadoc for `requireView()` (a `void` method) says \"Returns {@code true} if {@link #canView()} returns {@code true}.\" It should say \"Throws ForbiddenException if {@link #canView()} returns {@code false}.\" \u2014 matching the pattern used for other `require*` methods like `requireManage()` and `requireList()`. The same copy-paste error exists for `requireViewClientScopes()` at line 104.",
+        "path": "services/src/main/java/org/keycloak/services/resources/admin/permissions/ClientPermissionEvaluator.java",
+        "line": 99,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/keycloak/keycloak/pull/37038": {
+    "opus_warpgrep": [
+      {
+        "text": "GroupPermissionsV2.canManage() (no-arg) checks `hasPermission(null, AdminPermissionsSchema.VIEW, AdminPermissionsSchema.MANAGE)` \u2014 identical to canView(). Including the VIEW scope means a user who only has VIEW permission on groups will pass the manage check, which is a privilege escalation. The fgap version of the same method (services/src/main/java/org/keycloak/services/resources/admin/fgap/GroupPermissionsV2.java:64) correctly only checks `AdminPermissionsSchema.MANAGE`. This is a copy-paste error from canView(). Consequence: view-only users can create, update, and delete groups via `requireManage()` guards in GroupsResource.addTopLevelGroup(), GroupResource.updateGroup(), deleteGroup(), and addChild().",
+        "path": "services/src/main/java/org/keycloak/services/resources/admin/permissions/GroupPermissionsV2.java",
+        "line": 71,
+        "source": "extracted"
+      },
+      {
+        "text": "In getGroupIdsWithViewPermission(), `groupResource.getId()` is used in both `hasPermission(groupResource.getId(), ...)` and `granted.add(groupResource.getId())`. However, `getId()` returns the authorization resource's auto-generated internal ID, NOT the group model's ID. The resource name (set during creation via `resourceStore.create(resourceServer, name, ...)` where name = group model ID) is what contains the actual group ID. The parent class GroupPermissions correctly uses `resource.getName().substring(RESOURCE_NAME_PREFIX.length())`. Both occurrences should use `groupResource.getName()`. Consequence: `hasPermission` will always fall through to the type-level resource check (since `resourceStore.findByName(server, autoGeneratedId)` won't match), and the returned set will contain wrong IDs that won't match any group models during user search filtering.",
+        "path": "services/src/main/java/org/keycloak/services/resources/admin/permissions/GroupPermissionsV2.java",
+        "line": 131,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/keycloak/keycloak/pull/33832": {
+    "opus_warpgrep": [
+      {
+        "text": "Dead code: `ASN1Encoder.create().write(rBigInteger)` and `ASN1Encoder.create().write(sBigInteger)` on lines 115-116 create ASN1Encoder instances, encode the BigInteger values, and the returned encoder objects are immediately discarded. The actual DER encoding is correctly done on lines 118-122 via `writeDerSeq`. These two lines perform wasted computation and appear to be leftover from an incomplete refactor.",
+        "path": "authz/client/src/main/java/org/keycloak/authorization/client/util/crypto/AuthzClientCryptoProvider.java",
+        "line": 115,
+        "source": "extracted"
+      },
+      {
+        "text": "The new `order()` method is added to the `CryptoProvider` interface without a `default` implementation. Since `CryptoProvider` is a public interface, any third-party implementations that don't add the `order()` method will fail at runtime with `AbstractMethodError` when `detectProvider()` calls `Comparator.comparingInt(CryptoProvider::order)` during ServiceLoader discovery. Adding `default int order() { return 0; }` would maintain backward compatibility.",
+        "path": "common/src/main/java/org/keycloak/common/crypto/CryptoProvider.java",
+        "line": 43,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/keycloak/keycloak/pull/40940": {
+    "opus_warpgrep": [
+      {
+        "text": "getSubGroupsCount() now returns null when modelSupplier.get() returns null, violating the GroupModel interface contract which explicitly states '@return The number of groups beneath this group. Never returns {@code null}.' (GroupModel.java line 310). All callers (GroupUtils.populateSubGroupCount, OrganizationGroupResource, OrganizationGroupsResource, GroupResource.getSubGroups) pass the result to GroupRepresentation.setSubGroupCount(Long) which accepts boxed Long so they won't immediately NPE, but any caller that auto-unboxes to primitive `long` (e.g., `long count = group.getSubGroupsCount()`) will throw NullPointerException. The fix should return 0L instead of null to maintain the interface contract.",
+        "path": "model/infinispan/src/main/java/org/keycloak/models/cache/infinispan/GroupAdapter.java",
+        "line": 277,
+        "source": "extracted"
+      },
+      {
+        "text": "The reader Thread started at line 143 is never join()ed before the assertion at line 161. After deletedAll.set(true), the reader thread may still be mid-HTTP-request (it entered the try block before the loop condition was re-checked). If that in-flight request fails, the exception is added to caughtExceptions AFTER the main thread's assertThat has already passed. This means the test can give a false pass \u2014 the race condition it's designed to detect could still throw server-side errors that are silently missed. The Thread reference should be stored and join()ed between deletedAll.set(true) and the assertion.",
+        "path": "tests/base/src/test/java/org/keycloak/tests/admin/group/GroupTest.java",
+        "line": 161,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/ai-code-review-evaluation/keycloak-greptile/pull/1": {
+    "opus_warpgrep": [
+      {
+        "text": "The call `isConditionalPasskeysEnabled()` with zero arguments will fail to compile. The only definition of this method is `isConditionalPasskeysEnabled(UserModel user)` in the parent class UsernamePasswordForm, which requires one argument. No zero-argument overload exists anywhere in the class hierarchy (UsernameForm \u2192 UsernamePasswordForm \u2192 AbstractUsernameFormAuthenticator \u2192 AbstractFormAuthenticator). Grepping the entire codebase confirms only one definition with `UserModel` parameter. This should be `isConditionalPasskeysEnabled(context.getUser())`.",
+        "path": "services/src/main/java/org/keycloak/authentication/authenticators/browser/UsernameForm.java",
+        "line": 47,
+        "source": "extracted"
+      },
+      {
+        "text": "The new `isConditionalPasskeysEnabled` method requires `user != null`, but the old code in `challenge(context, error, field)` that it replaces had the opposite condition: `context.getUser() == null && webauthnAuth != null && webauthnAuth.isPasskeysEnabled()`. The old code set up passkeys when the user was NOT yet identified (initial login error page). The new code with `user != null` only sets up passkeys when the user IS identified (re-authentication), completely inverting the behavior. This breaks passkeys display on initial login error pages. The condition should be `(user == null || user.credentialManager().isConfiguredFor(webauthnAuth.getCredentialType()))` instead of `user != null`.",
+        "path": "services/src/main/java/org/keycloak/authentication/authenticators/browser/UsernamePasswordForm.java",
+        "line": 160,
+        "source": "extracted"
+      }
+    ]
   },
   "https://github.com/getsentry/sentry/pull/93824": {
-    "opus_warpgrep": []
-  },
-  "https://github.com/grafana/grafana/pull/97529": {
-    "opus_warpgrep": []
-  },
-  "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/9": {
-    "opus_warpgrep": []
-  },
-  "https://github.com/calcom/cal.com/pull/22532": {
-    "opus_warpgrep": []
+    "opus_warpgrep": [
+      {
+        "text": "Inconsistent metric tag key: `tags={\"shards\": shard_tag}` (plural) on the `spans.buffer.flusher.wait_produce` timer, while the adjacent metrics on lines 309 and 319 use `tags={\"shard\": shard_tag}` (singular). This tag name mismatch means dashboard queries filtering by `shard` won't include the `wait_produce` timer data (which uses `shards`), and vice versa. Should be `\"shard\"` to match the other metrics in the same function.",
+        "path": "src/sentry/spans/consumers/process/flusher.py",
+        "line": 323,
+        "source": "extracted"
+      },
+      {
+        "text": "The added `time.sleep(0.1)` on this line is a no-op because `monkeypatch.setattr(\"time.sleep\", lambda _: None)` earlier in the test replaces `time.sleep` with a lambda that does nothing. The comment says 'Give flusher threads time to process after drift change' but the sleep has no effect. The test then immediately calls `step.join()` which sets `stopped.value = True`, potentially stopping the flusher thread before it has a chance to process the drift change and flush segments. This makes the test racy \u2014 it may pass or fail depending on thread scheduling.",
+        "path": "tests/sentry/spans/consumers/process/test_consumer.py",
+        "line": 63,
+        "source": "extracted"
+      },
+      {
+        "text": "The `isinstance(process, multiprocessing.Process)` check was added to guard `process.kill()`, but processes are created via `self.mp_context.Process` (spawn context), which returns `multiprocessing.context.SpawnProcess`. `SpawnProcess` inherits from `multiprocessing.process.BaseProcess`, NOT from `multiprocessing.context.Process` (which is what `multiprocessing.Process` refers to). They are sibling classes. This means the isinstance check is False for SpawnProcess instances, so `process.kill()` is never called \u2014 a regression from the old code which called `.kill()` unconditionally. Unhealthy processes won't be killed before being restarted, potentially causing duplicate processes running on the same shards. The type annotation `dict[int, multiprocessing.context.SpawnProcess | threading.Thread]` confirms SpawnProcess is the expected type. Consider using `not isinstance(process, threading.Thread)` or `isinstance(process, multiprocessing.process.BaseProcess)` instead.",
+        "path": "src/sentry/spans/consumers/process/flusher.py",
+        "line": 378,
+        "source": "extracted"
+      }
+    ]
   }
 }

@@ -1,8 +1,8 @@
 {
-  "prs_reviewed": 5,
-  "raw_issues": 0,
-  "filtered_issues": 0,
-  "elapsed_seconds": 9.5,
+  "prs_reviewed": 10,
+  "raw_issues": 24,
+  "filtered_issues": 19,
+  "elapsed_seconds": 7783.3,
   "errors": 0,
-  "avg_per_pr": 0.0
+  "avg_per_pr": 1.9
 }

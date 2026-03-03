@@ -164,19 +164,13 @@ class Reviewer:
         repo_path: str | None = None,
         num_passes: int | None = None,
     ) -> list[ReviewIssue]:
-        """Run plan-guided multi-pass review with structured output.
+        """Run plan-guided single-pass agentic review with structured output.
 
         Phase 1: Create review plan (agentic investigation + structured output).
         Phase 2: Plan-informed WarpGrep searches for codebase context.
-        Phase 3: Multi-pass review (3 contrastive prompts, shuffled ordering).
-        Phase 4: Quick-wins pass for low-severity real issues.
-        Phase 5: LLM-based aggregation with structured output.
+        Phase 3: Single comprehensive agentic review pass with tools.
         """
         import sys
-
-        # Resolve num_passes: argument > organism override > default
-        if num_passes is None:
-            num_passes = self._num_passes if self._num_passes is not None else 3
 
         # Phase 1: Create review plan (agentic investigation)
         plan = None
@@ -191,37 +185,11 @@ class Reviewer:
                 ctx_len = len(warpgrep_context)
                 print(f"  WarpGrep context: {ctx_len} chars", file=sys.stderr)
 
-        # Phase 3: Multi-pass review with plan context
-        pass_methods = [self._pass1_review, self._pass2_review, self._pass3_review]
-        all_pass_issues: list[list[ReviewIssue]] = []
-        for pass_num in range(num_passes):
-            # Shuffle file order for each pass (different ordering = different attention)
-            shuffled = list(file_diffs)
-            if pass_num > 0:  # Keep first pass in original order
-                random.shuffle(shuffled)
+        # Phase 3: Single comprehensive review pass
+        issues = self._single_pass_review(file_diffs, warpgrep_context=warpgrep_context, repo_path=repo_path, plan=plan)
+        print(f"  Review complete: {len(issues)} issues", file=sys.stderr)
 
-            # Cycle through 3 contrastive pass types
-            pass_method = pass_methods[pass_num % 3]
-            issues = pass_method(shuffled, warpgrep_context=warpgrep_context, repo_path=repo_path, plan=plan)
-
-            for issue in issues:
-                issue.source_pass = f"pass{pass_num + 1}"
-
-            all_pass_issues.append(issues)
-            print(f"  Pass {pass_num + 1}/{num_passes}: {len(issues)} issues", file=sys.stderr)
-
-        # Phase 4: Quick-wins pass for low-severity real issues
-        quick_issues = self._quick_wins_review(file_diffs, warpgrep_context=warpgrep_context, repo_path=repo_path, plan=plan)
-        if quick_issues:
-            for issue in quick_issues:
-                issue.source_pass = "quick_wins"
-            all_pass_issues.append(quick_issues)
-            print(f"  Quick-wins pass: {len(quick_issues)} issues", file=sys.stderr)
-
-        # Phase 5: LLM-based aggregation with structured output
-        aggregated = self._llm_aggregate(all_pass_issues, file_diffs, repo_path=repo_path)
-
-        return aggregated
+        return issues
 
     def _plan_and_execute_searches(self, plan: ReviewPlan | None, file_diffs: list[FileDiff], repo_path: str) -> str:
         """Phase 2: Plan targeted searches informed by the review plan, then execute via WarpGrep.
@@ -416,8 +384,15 @@ Produce a review plan with:
             print(f"  Plan structuring failed: {e}", file=sys.stderr)
             return None
 
-    def _pass1_review(self, file_diffs: list[FileDiff], warpgrep_context: str = "", repo_path: str | None = None, plan: ReviewPlan | None = None) -> list[ReviewIssue]:
-        """Pass 1: Comprehensive bug-finding review with pre-gathered context."""
+    def _single_pass_review(self, file_diffs: list[FileDiff], warpgrep_context: str = "", repo_path: str | None = None, plan: ReviewPlan | None = None) -> list[ReviewIssue]:
+        """Single comprehensive agentic review pass.
+
+        Merges the best elements from all previous passes:
+        - Pass 1: comprehensive review + language hints + review instructions
+        - Pass 2: commonly-missed bug patterns checklist
+        - Pass 3: deep tool investigation strategy
+        - Quick-wins: typos, naming, locale, dead code patterns
+        """
         combined_diff = self._build_diff_text(file_diffs)
 
         # Gather language hints
@@ -450,16 +425,21 @@ The following code exists in the repository outside the diff. Use this to verify
         if repo_path:
             tools_section = """
 ## Available Tools
-You have tools to read files and search the codebase. USE THEM AGGRESSIVELY to investigate every suspicious pattern:
-- Use grep_pattern to find all callers of changed functions - check if they break with the new behavior.
-- Use read_file to read the FULL context around changed code - understand what the code does before and after.
-- Use warpgrep_codebase_search for broader investigations - find related code, contracts, and patterns.
-- Investigate EVERY suspicious pattern you see. Deep investigation finds bugs that surface-level review misses.
+You have tools: read_file, grep_pattern, list_directory, warpgrep_codebase_search.
 
-IMPORTANT: Tools are for INVESTIGATION, not dismissal. If you investigate and find confirming evidence of a bug, report it with the evidence. If the diff shows a clear bug (wrong locale, typo, inverted logic), report it immediately without needing tool verification.
+INVESTIGATION STRATEGY (follow this order):
+1. For EVERY changed function: grep for all callers, then read each caller to check if it breaks with the new behavior.
+2. For EVERY removed line (- lines): read surrounding context to understand what it was protecting.
+3. Use warpgrep_codebase_search to find how changed interfaces/types are used across the codebase.
+4. Read test files to check if tests still match the changed behavior.
+5. Grep for string constants, enum values, metric tags to check cross-file consistency.
+
+IMPORTANT: Tools are for INVESTIGATION, not dismissal. If you investigate and find confirming evidence of a bug, report it WITH the evidence. If the diff shows a clear bug (wrong locale, typo, inverted logic), report it immediately without needing tool verification.
+
+The MORE you investigate, the MORE bugs you will find. Each tool call is an opportunity to discover a real issue.
 """
 
-        prompt = f"""Review this pull request for bugs and correctness issues.
+        prompt = f"""You are an expert code reviewer performing a thorough, tool-assisted review of this pull request.
 {plan_section}
 ## Changed Files ({len(file_diffs)} files)
 {combined_diff}
@@ -467,244 +447,57 @@ IMPORTANT: Tools are for INVESTIGATION, not dismissal. If you investigate and fi
 {f"## Language-Specific Notes{chr(10)}{lang_hints}" if lang_hints else ""}
 {context_section}{tools_section}
 ## What to Look For
-{self._review_instructions if self._review_instructions else self._default_review_instructions()}"""
 
-        schema = _strict_schema(ReviewResult.model_json_schema())
-        response_text = self._call_opus(prompt, repo_path=repo_path, output_schema=schema)
-        issues = self._parse_structured_issues(response_text, source_pass="pass1")
+{self._review_instructions if self._review_instructions else self._default_review_instructions()}
 
-        # Retry once if we got 0 issues from a non-trivial diff
-        total_added = sum(fd.total_added for fd in file_diffs)
-        if not issues and total_added > 20:
-            response_text = self._call_opus(prompt, repo_path=repo_path, output_schema=schema)
-            issues = self._parse_structured_issues(response_text, source_pass="pass1_retry")
-
-        return issues
-
-    def _pass2_review(self, file_diffs: list[FileDiff], warpgrep_context: str = "", repo_path: str | None = None, plan: ReviewPlan | None = None) -> list[ReviewIssue]:
-        """Pass 2: Different focus to catch bugs missed by first pass."""
-        combined_diff = self._build_diff_text(file_diffs)
-
-        plan_section = ""
-        if plan:
-            plan_section = f"""
-## Review Plan (from prior investigation)
-**Summary**: {plan.summary}
-**Risk Areas**: {', '.join(plan.risk_areas)}
-**Key Findings**: {'; '.join(plan.investigation_findings[:5])}
-"""
-
-        context_section = ""
-        if warpgrep_context:
-            context_section = f"""
-## Codebase Context (from repository search)
-Use this context to verify claims about function signatures, callers, contracts, and definitions before reporting issues.
-
-{warpgrep_context}
-"""
-
-        tools_section = ""
-        if repo_path:
-            tools_section = """
-## Available Tools
-You have tools: read_file, grep_pattern, list_directory, warpgrep_codebase_search. USE THEM AGGRESSIVELY:
-- Use grep_pattern to find ALL callers/consumers of changed functions - each caller is a potential breakage point.
-- Use read_file to read surrounding code, especially what happens BEFORE and AFTER the changed section.
-- Use warpgrep_codebase_search for semantic queries like "how is X used across the codebase".
-- Investigate every suspicious pattern. The more you investigate, the more real bugs you find.
-
-Report clear diff-visible bugs immediately. Use tools to find ADDITIONAL bugs that require cross-file context.
-"""
-
-        prompt = f"""Review this PR diff with fresh eyes. Look for bugs that a FIRST reviewer commonly misses.
-{plan_section}
-## Changed Files
-{combined_diff}
-
-{context_section}{tools_section}
 ## Commonly Missed Bug Patterns
 
-Check each of these SPECIFICALLY against the diff:
+Also check each of these SPECIFICALLY against the diff:
 
-1. **Behavioral regressions from removals**: Did the PR remove safety checks, filters, permission checks, or error handling that was protecting against something? Look for removed .filter(), removed if-guards, removed permission checks.
+1. **Behavioral regressions from removals**: Did the PR remove safety checks, filters, permission checks, or error handling? Look for removed .filter(), removed if-guards, removed permission checks.
 
-2. **Cross-file inconsistency**: Are metric tags, string constants, or key names consistent across all files? (e.g., 'shard' vs 'shards'). Do function signatures match their call sites?
+2. **Cross-file inconsistency**: Are metric tags, string constants, key names consistent across all files? (e.g., 'shard' vs 'shards'). Do function signatures match their call sites?
 
-3. **Concurrency — cross-reference after lock changes**: If a lock/mutex scope is reduced or removed, find ALL readers/writers of the previously-protected resource. ANY reader that accesses the resource without holding the lock is now a race condition. Don't just report the lock change; report every unsynchronized access point.
+3. **Concurrency after lock changes**: If a lock/mutex scope is reduced or removed, find ALL readers/writers of the previously-protected resource. ANY unsynchronized access is a race condition.
 
-4. **Loop early termination skipping cleanup**: For any loop with break/return, verify that cleanup/finalization still executes for ALL items. If a loop breaks early, do remaining items still get properly handled (joined, closed, terminated)?
+4. **Loop early termination skipping cleanup**: For loops with break/return, verify cleanup/finalization still executes for ALL items.
 
-5. **Parallel iteration mismatch**: When two collections are iterated in parallel (zip, dual iterators, nested find()), verify they handle size mismatches. If collection A has more items than B, the iteration may go out of bounds.
+5. **Return value changes**: Adding a new expression as the last line of a method changes its return value. In Ruby around_action, in Python __exit__, in callback frameworks, this can silently break control flow.
 
-6. **Return value changes**: Adding a new expression as the last line of a method changes its return value. In Ruby around_action, in Python __exit__, in any callback framework, this can silently break the control flow.
+6. **Framework contract violations**: Mutable defaults in Python, === reference comparison in TypeScript, Go Exec() format.
 
-7. **Framework contract violations**: In Ruby, does before_validation work on nil? In Python, is a class field mutable default? In TypeScript, does === compare objects by reference? In Go, does Exec() expect (query, args...) format?
+7. **Test validity**: Does a monkeypatch make the test a no-op? Does the test HTTP method match the route? Do assertions match test comments?
 
-8. **Test validity**: Does a monkeypatch make the thing being tested a no-op? Does the test HTTP method match the route? Does the test name match what it tests? Do test assertions match test comments?
+8. **Thread-safety of lazy initialization**: ||=, ??=, or if-nil patterns without synchronization.
 
-9. **Thread-safety of lazy initialization**: Instance variables initialized lazily (||=, ??=, or if-nil patterns) without synchronization are unsafe under concurrent access. Multiple threads may both see the uninitialized state and race.
+9. **Method/function name typos**: Misspelled names that prevent test discovery, break interface matching, or won't be called.
 
-10. **Symbol vs String confusion** (Ruby): :symbol != "string". Hash keys and include? checks can silently fail when mixing types.
+10. **Locale/translation bugs**: Text in wrong language for the locale file, wrong character set.
 
-11. **Security surface changes**: Any weakening of auth, frame options, origin validation, URL validation, or input sanitization?
+11. **Dead code**: Values computed but never used or returned.
 
-12. **Scope/naming errors**: Is a variable referenced from the wrong scope? Is a property name misspelled? Does a method name have a typo that prevents it from being called?
+12. **Docstring contradicts code**: Comment says one thing but code does another.
 
-Also check for:
-- Method/function name typos that prevent discovery or matching
-- Property name typos (misspelled identifiers)
-- Dead code where results are computed then discarded
-- Docstring that contradicts implementation
-- Wrong log level (Error for debug info)
-- Hardcoded values ignoring configuration
-
-CRITICAL RULES:
-- Do NOT claim variables/functions are "undefined" or "not imported" unless you can PROVE it from the diff. The diff only shows changed lines - definitions may exist in the file outside the diff context.
-- Do NOT suggest defensive null checks ("X could be null") without a CONCRETE path where null arrives.
-- Do NOT report speculative edge cases without evidence they occur.
-- Do NOT report the same bug multiple times across different files. Report it ONCE.
+## CRITICAL: Avoid False Positives
+- Do NOT claim variables/functions are "undefined" or "not imported" unless you can PROVE it from the diff. The diff only shows changed lines.
+- Do NOT suggest defensive null checks without a CONCRETE null path.
+- Do NOT report speculative edge cases without evidence.
+- Do NOT report the same bug across different files. Report it ONCE for the most important file.
 - Quality over quantity: 3 real bugs > 8 questionable ones.
 
 Each comment must be SELF-CONTAINED: name the specific code element, state what's wrong, and explain the runtime consequence."""
 
         schema = _strict_schema(ReviewResult.model_json_schema())
         response_text = self._call_opus(prompt, repo_path=repo_path, output_schema=schema)
-        return self._parse_structured_issues(response_text, source_pass="pass2")
+        issues = self._parse_structured_issues(response_text, source_pass="single_pass")
 
-    def _pass3_review(self, file_diffs: list[FileDiff], warpgrep_context: str = "", repo_path: str | None = None, plan: ReviewPlan | None = None) -> list[ReviewIssue]:
-        """Pass 3: Deep investigation pass - uses tools aggressively to find and confirm bugs."""
-        combined_diff = self._build_diff_text(file_diffs)
+        # Retry once if we got 0 issues from a non-trivial diff
+        total_added = sum(fd.total_added for fd in file_diffs)
+        if not issues and total_added > 20:
+            response_text = self._call_opus(prompt, repo_path=repo_path, output_schema=schema)
+            issues = self._parse_structured_issues(response_text, source_pass="single_pass_retry")
 
-        plan_section = ""
-        if plan:
-            plan_section = f"""
-## Review Plan (from prior investigation)
-**Summary**: {plan.summary}
-**Risk Areas**: {', '.join(plan.risk_areas)}
-**Key Findings**: {'; '.join(plan.investigation_findings[:5])}
-"""
-
-        context_section = ""
-        if warpgrep_context:
-            context_section = f"""
-## Codebase Context
-{warpgrep_context}
-"""
-
-        tools_section = ""
-        if repo_path:
-            tools_section = """
-## Available Tools
-You have tools: read_file, grep_pattern, list_directory, warpgrep_codebase_search.
-THIS PASS REQUIRES DEEP TOOL-ASSISTED INVESTIGATION. Your goal is to find bugs that become apparent only after reading surrounding code.
-
-Strategy:
-1. For EVERY changed function: grep for all callers, then read each caller to check if it breaks
-2. For EVERY removed line: read the surrounding context to understand what it was protecting
-3. Use warpgrep_codebase_search to find how changed interfaces/types are used across the codebase
-4. Read test files to check if tests still match the changed behavior
-
-The MORE you investigate, the MORE bugs you will find. Each tool call is an opportunity to discover a real issue.
-"""
-
-        prompt = f"""You are a thorough code investigator. Read the diff, then USE TOOLS to investigate every suspicious change.
-{plan_section}
-## Changed Files
-{combined_diff}
-
-{context_section}{tools_section}
-## What to Investigate
-
-For each suspicious pattern in the diff, use tools to confirm or deny it:
-
-1. **Caller breakage**: Grep for all callers of changed functions. Read each caller. Do any pass wrong arguments now? Do any depend on the old return value?
-
-2. **Removed safety**: For removed lines (- lines), read the full file context. Was the removed code a guard, a check, a permission gate? What happens without it?
-
-3. **Contract violations**: Read the interface/abstract class. Does the changed implementation still satisfy the contract? Wrong return type? Missing case?
-
-4. **Cross-file consistency**: Grep for string constants, enum values, metric tags. Are they consistent across producer and consumer?
-
-5. **Behavioral regression**: Read downstream consumers. Does the behavioral change break their assumptions?
-
-6. **All diff-visible bugs too**: If you see a clear bug in the diff (wrong locale, typo, inverted logic, wrong variable), report it. Use tools to STRENGTHEN the finding with evidence, not to dismiss it.
-
-RULES:
-- Use tools to INVESTIGATE, not to dismiss. Finding context that confirms a bug is valuable.
-- Each finding should include evidence from your tool investigation when possible.
-- Do NOT report speculative issues without evidence.
-- Quality over quantity: report only bugs you're confident about."""
-
-        schema = _strict_schema(ReviewResult.model_json_schema())
-        response_text = self._call_opus(prompt, repo_path=repo_path, output_schema=schema)
-        return self._parse_structured_issues(response_text, source_pass="pass3")
-
-    def _quick_wins_review(self, file_diffs: list[FileDiff], warpgrep_context: str = "", repo_path: str | None = None, plan: ReviewPlan | None = None) -> list[ReviewIssue]:
-        """Quick-wins pass targeting commonly-missed low-severity but real issues.
-
-        Focuses on: typos, naming bugs, doc mismatches, wrong constants,
-        portability issues, and broken test names.
-        """
-        combined_diff = self._build_diff_text(file_diffs)
-
-        plan_section = ""
-        if plan:
-            plan_section = f"""
-## Review Plan (from prior investigation)
-**Summary**: {plan.summary}
-**Risk Areas**: {', '.join(plan.risk_areas)}
-"""
-
-        context_section = ""
-        if warpgrep_context:
-            context_section = f"""
-## Codebase Context
-{warpgrep_context}
-"""
-
-        prompt = f"""You are a meticulous code reviewer focused on finding SMALL BUT REAL bugs that other reviewers miss.
-{plan_section}
-## Changed Files
-{combined_diff}
-
-{context_section}
-
-## What to Find (ONLY these specific patterns)
-
-1. **Method/function name typos**: Misspelled method names that prevent test discovery (e.g., test_inalid instead of test_invalid), break interface matching, or won't be called (e.g., santizeAnchors instead of sanitizeAnchors)
-
-2. **Property/variable name typos**: Misspelled identifiers like 'stopNotificiationsText' instead of 'stopNotificationsText'
-
-3. **Wrong string constants**: Inconsistent metric tags ('shard' vs 'shards'), wrong cleanup aliases, wrong locale strings
-
-4. **Locale/translation bugs**: Text in wrong language for the locale file (Italian in Lithuanian file), Traditional Chinese characters in Simplified Chinese file
-
-5. **Docstring contradicts code**: Comment says "returns list" but method returns dict; test comment says "allow access" but map stores false
-
-6. **Dead code**: Encoder/builder created and written to but output never used or returned
-
-7. **Wrong log level**: Using Error level for debug/informational messages
-
-8. **Portability issues**: BSD-only sed syntax (-i '' fails on Linux), -ms-align-items (never existed, should be -ms-flex-align)
-
-9. **CSS value bugs**: Wrong lightness percentage in color conversion, mixing float:left with flexbox
-
-10. **Test name/assertion mismatch**: Test named 'test_empty_array' but tests empty dict; HTTP method in test doesn't match route
-
-11. **Hardcoded values ignoring config**: Magic numbers that should use configurable settings
-
-12. **Redundant code after guard**: Optional chaining (?.) after a null check already guarantees non-null
-
-## Rules
-- Each issue must be PROVABLE from the diff shown
-- Do NOT report issues about undefined variables (they likely exist outside the diff)
-- Do NOT report defensive programming suggestions
-- Focus on REAL bugs with concrete runtime consequences
-- These may be low severity but they ARE real defects"""
-
-        schema = _strict_schema(ReviewResult.model_json_schema())
-        response_text = self._call_opus(prompt, repo_path=repo_path, output_schema=schema)
-        return self._parse_structured_issues(response_text, source_pass="quick_wins")
+        return issues
 
     def _llm_aggregate(
         self,
