@@ -18,7 +18,6 @@ import time
 from pathlib import Path
 
 from pr_review_agent.config import Config
-from pr_review_agent.pipeline.confidence_filter import ConfidenceFilter
 from pr_review_agent.pipeline.diff_parser import filter_reviewable_files, parse_diff
 from pr_review_agent.pipeline.output_formatter import (
     format_candidates,
@@ -106,7 +105,6 @@ def run_benchmark(config: Config, args: argparse.Namespace) -> None:
 
     # Components
     reviewer = Reviewer(config)
-    confidence_filter = ConfidenceFilter(config)
 
     # Apply organism overrides if specified
     max_issues_per_pr = 6  # default cap
@@ -114,7 +112,6 @@ def run_benchmark(config: Config, args: argparse.Namespace) -> None:
         from pr_review_agent.evolver.run import load_organism_json
         organism = load_organism_json(Path(args.organism))
         reviewer.configure_from_organism(organism)
-        confidence_filter = ConfidenceFilter(config, base_threshold_override=organism.confidence_threshold)
         max_issues_per_pr = organism.max_issues_per_pr
         print(f"Organism: {args.organism}")
         print(f"  confidence_threshold={organism.confidence_threshold}, "
@@ -148,71 +145,86 @@ def run_benchmark(config: Config, args: argparse.Namespace) -> None:
     total_before = total_after = errors = 0
     t0 = time.time()
 
-    for i, pr_url in enumerate(pr_urls, 1):
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    parallel = min(10, len(pr_urls))  # up to 10 PRs at a time
+
+    def _review_one(idx_and_url):
+        i, pr_url = idx_and_url
         entry = benchmark_data[pr_url]
         repo = entry.get("source_repo", "?")
         pr_num = pr_url.split("/pull/")[-1] if "/pull/" in pr_url else "?"
         golden_n = len(entry.get("golden_comments", []))
-        print(f"[{i}/{len(pr_urls)}] {repo} PR#{pr_num} ({golden_n} golden)")
+        tag = f"[{i}/{len(pr_urls)}] {repo} PR#{pr_num}"
+        print(f"{tag} ({golden_n} golden)", flush=True)
+
+        # Each thread gets its own Reviewer (separate Anthropic client)
+        thread_reviewer = Reviewer(config)
+        if args.organism:
+            from pr_review_agent.evolver.run import load_organism_json
+            organism = load_organism_json(Path(args.organism))
+            thread_reviewer.configure_from_organism(organism)
 
         # Fetch diff
         diff = fetch_diff_via_gh(pr_url, entry)
         if not diff:
-            print("  SKIP: no diff")
-            errors += 1
-            continue
+            print(f"  {tag} SKIP: no diff", flush=True)
+            return ("error", pr_url, None, 0, 0)
 
         # Parse and filter
         file_diffs = filter_reviewable_files(parse_diff(diff))
         if not file_diffs:
-            print("  SKIP: no reviewable files")
-            continue
+            print(f"  {tag} SKIP: no reviewable files", flush=True)
+            return ("skip", pr_url, None, 0, 0)
 
         added = sum(f.total_added for f in file_diffs)
-        print(f"  {len(file_diffs)} files, {added} added lines")
+        print(f"  {tag} {len(file_diffs)} files, {added} added lines", flush=True)
 
-        # Resolve repo_path from source_repo
+        # Resolve repo_path
         source_repo = entry.get("source_repo", "")
         base_name = REPO_PATH_MAP.get(source_repo, source_repo.split("-")[0])
         repo_path = str(config.clone_dir / base_name)
         if not Path(repo_path).is_dir():
-            repo_path = None  # fallback if clone not available
+            repo_path = None
 
-        # Review (shuffled multi-pass + majority voting)
+        # Review
         try:
-            issues = reviewer.review_pr(file_diffs, repo_path=repo_path)
+            issues = thread_reviewer.review_pr(file_diffs, repo_path=repo_path)
         except Exception as e:
-            print(f"  ERROR: {e}")
-            errors += 1
-            continue
+            print(f"  {tag} ERROR: {e}", flush=True)
+            return ("error", pr_url, None, 0, 0)
 
-        total_before += len(issues)
+        raw_count = len(issues)
 
-        # Judge pass: validate issues against the diff to remove FPs
-        try:
-            issues = reviewer.judge_issues(issues, file_diffs, repo_path=repo_path)
-        except Exception as e:
-            print(f"  Judge error (skipping): {e}")
+        # Cap by confidence
+        if len(issues) > max_issues_per_pr:
+            issues.sort(key=lambda x: x.confidence, reverse=True)
+            issues = issues[:max_issues_per_pr]
 
-        # Confidence filter
-        filtered = confidence_filter.filter(issues)
-
-        # Cap comments per PR (organism controls this, default 6)
-        if len(filtered) > max_issues_per_pr:
-            filtered.sort(key=lambda x: x.confidence, reverse=True)
-            filtered = filtered[:max_issues_per_pr]
-
-        total_after += len(filtered)
-        print(f"  {len(issues)} raw -> {len(filtered)} filtered")
-
-        # Save details
+        print(f"  {tag} {raw_count} raw -> {len(issues)} kept", flush=True)
         write_review_details(pr_url, issues, config.output_dir / "details")
+        candidates = format_candidates(pr_url, issues, tool_name=TOOL_NAME)
 
-        # Format candidates
-        all_candidates[pr_url] = format_candidates(pr_url, filtered, tool_name=TOOL_NAME)
+        for issue in issues:
+            print(f"    {tag} [{issue.confidence:.2f}] {issue.category}: {issue.comment[:90]}", flush=True)
 
-        for issue in filtered:
-            print(f"    [{issue.confidence:.2f}] {issue.category}: {issue.comment[:90]}")
+        return ("ok", pr_url, candidates, raw_count, len(issues))
+
+    print(f"Running {len(pr_urls)} PRs with parallelism={parallel}\n", flush=True)
+
+    with ThreadPoolExecutor(max_workers=parallel) as executor:
+        futures = {
+            executor.submit(_review_one, (i, url)): url
+            for i, url in enumerate(pr_urls, 1)
+        }
+        for future in as_completed(futures):
+            status, pr_url, candidates, raw, filt = future.result()
+            if status == "error":
+                errors += 1
+            elif status == "ok":
+                total_before += raw
+                total_after += filt
+                all_candidates[pr_url] = candidates
 
     elapsed = time.time() - t0
 

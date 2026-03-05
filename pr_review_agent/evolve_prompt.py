@@ -51,7 +51,6 @@ from pr_review_agent.main import (
     load_benchmark_data,
     select_calibration_prs,
 )
-from pr_review_agent.pipeline.confidence_filter import ConfidenceFilter
 from pr_review_agent.pipeline.diff_parser import filter_reviewable_files, parse_diff
 from pr_review_agent.pipeline.reviewer import Reviewer
 
@@ -161,8 +160,7 @@ class PRReviewEvaluator(Evaluator[PRReviewOrganism, PRReviewEvaluationResult, PR
     def _run_and_score(self, organism: PRReviewOrganism) -> PRReviewEvaluationResult:
         """Run reviews on all benchmark PRs and compute metrics."""
         config = self._config
-        reviewer = Reviewer(config, context_gatherer=None)
-        confidence_filter = ConfidenceFilter(config)
+        reviewer = Reviewer(config)
 
         total_tp = 0
         total_fp = 0
@@ -198,13 +196,12 @@ class PRReviewEvaluator(Evaluator[PRReviewOrganism, PRReviewEvaluationResult, PR
                 print(f"  ERROR reviewing {pr_url}: {e}", file=sys.stderr)
                 continue
 
-            # Filter
-            filtered = confidence_filter.filter(issues)
-            if len(filtered) > 8:
-                filtered.sort(key=lambda x: x.confidence, reverse=True)
-                filtered = filtered[:8]
+            # Cap by confidence
+            if len(issues) > 8:
+                issues.sort(key=lambda x: x.confidence, reverse=True)
+                issues = issues[:8]
 
-            candidates = [issue.comment for issue in filtered]
+            candidates = [issue.comment for issue in issues]
 
             # Match against golden comments
             pr_num = pr_url.split("/pull/")[-1] if "/pull/" in pr_url else "?"

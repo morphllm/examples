@@ -15,7 +15,6 @@ from darwinian_evolver.problem import EvaluationResult, Evaluator
 from pr_review_agent.config import Config
 from pr_review_agent.evolver.failure_case import CodeReviewFailureCase
 from pr_review_agent.evolver.organism import CodeReviewOrganism
-from pr_review_agent.pipeline.confidence_filter import ConfidenceFilter
 from pr_review_agent.pipeline.diff_parser import filter_reviewable_files, parse_diff
 from pr_review_agent.pipeline.reviewer import Reviewer
 
@@ -151,12 +150,6 @@ class CodeReviewEvaluator(
         reviewer = Reviewer(self._config)
         reviewer.configure_from_organism(organism)
 
-        # Create confidence filter with organism's threshold
-        confidence_filter = ConfidenceFilter(
-            self._config,
-            base_threshold_override=organism.confidence_threshold,
-        )
-
         total_tp = 0
         total_fp = 0
         total_fn = 0
@@ -203,23 +196,14 @@ class CodeReviewEvaluator(
                 total_fn += len(golden_comments)
                 continue
 
-            # Judge pass
-            try:
-                issues = reviewer.judge_issues(issues, file_diffs, repo_path=repo_path)
-            except Exception as e:
-                print(f"    Judge error: {e}", file=sys.stderr)
-
-            # Confidence filter
-            filtered = confidence_filter.filter(issues)
-
             # Cap issues
-            if len(filtered) > organism.max_issues_per_pr:
-                filtered.sort(key=lambda x: x.confidence, reverse=True)
-                filtered = filtered[:organism.max_issues_per_pr]
+            if len(issues) > organism.max_issues_per_pr:
+                issues.sort(key=lambda x: x.confidence, reverse=True)
+                issues = issues[:organism.max_issues_per_pr]
 
             # Evaluate against golden comments
-            candidates = [issue.comment for issue in filtered]
-            candidate_details = [(issue.comment, issue.category, issue.file_path) for issue in filtered]
+            candidates = [issue.comment for issue in issues]
+            candidate_details = [(issue.comment, issue.category, issue.file_path) for issue in issues]
 
             if not golden_comments:
                 total_fp += len(candidates)

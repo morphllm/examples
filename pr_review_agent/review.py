@@ -19,7 +19,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from pr_review_agent.config import Config
-from pr_review_agent.pipeline.confidence_filter import ConfidenceFilter
 from pr_review_agent.pipeline.diff_parser import filter_reviewable_files, parse_diff
 from pr_review_agent.pipeline.reviewer import Reviewer
 
@@ -69,7 +68,6 @@ def review_diff(
 
     # Set up reviewer
     reviewer = Reviewer(config)
-    confidence_filter = ConfidenceFilter(config)
 
     if organism_path:
         from pr_review_agent.evolver.organism import CodeReviewOrganism
@@ -78,20 +76,14 @@ def review_diff(
             data = json.load(f)
         organism = CodeReviewOrganism(**data)
         reviewer.configure_from_organism(organism)
-        confidence_filter = ConfidenceFilter(
-            config, base_threshold_override=organism.confidence_threshold
-        )
         max_issues = organism.max_issues_per_pr
 
-    # Run review pipeline (includes LLM aggregation — no separate judge needed)
+    # Run review pipeline
     issues = reviewer.review_pr(file_diffs, repo_path=repo_path)
 
-    # Filter
-    filtered = confidence_filter.filter(issues)
-
-    # Cap and sort
-    filtered.sort(key=lambda x: x.confidence, reverse=True)
-    filtered = filtered[:max_issues]
+    # Cap and sort by confidence
+    issues.sort(key=lambda x: x.confidence, reverse=True)
+    issues = issues[:max_issues]
 
     # Convert to public interface
     return [
@@ -103,5 +95,5 @@ def review_diff(
             category=issue.category,
             confidence=issue.confidence,
         )
-        for issue in filtered
+        for issue in issues
     ]
