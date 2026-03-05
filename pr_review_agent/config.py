@@ -71,6 +71,9 @@ class Config:
     # When True, skip benchmark path resolution and directory creation
     skip_dir_creation: bool = False
 
+    # Optional reviewer personality for persona injection
+    personality: str | None = None
+
     def __post_init__(self):
         # Set defaults from environment variables
         self.anthropic_api_key = self.anthropic_api_key or os.environ.get(

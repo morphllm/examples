@@ -42,6 +42,7 @@ def review_diff(
     organism_path: str | None = None,
     max_issues: int = 8,
     config: Config | None = None,
+    personality: str | None = None,
 ) -> list[ReviewComment]:
     """Review a unified diff and return comments.
 
@@ -51,12 +52,15 @@ def review_diff(
         organism_path: Path to evolved organism JSON (optional, uses defaults if None)
         max_issues: Maximum comments to return per review
         config: Config override (optional, creates default if None)
+        personality: Optional reviewer personality text for persona injection
 
     Returns:
         List of ReviewComment, sorted by confidence descending
     """
     if config is None:
         config = Config()
+    if personality:
+        config.personality = personality
 
     # Parse diff
     file_diffs = filter_reviewable_files(parse_diff(diff))
@@ -79,14 +83,8 @@ def review_diff(
         )
         max_issues = organism.max_issues_per_pr
 
-    # Run review pipeline
+    # Run review pipeline (includes LLM aggregation — no separate judge needed)
     issues = reviewer.review_pr(file_diffs, repo_path=repo_path)
-
-    # Judge pass
-    try:
-        issues = reviewer.judge_issues(issues, file_diffs, repo_path=repo_path)
-    except Exception:
-        pass  # judge is optional improvement, proceed without it
 
     # Filter
     filtered = confidence_filter.filter(issues)

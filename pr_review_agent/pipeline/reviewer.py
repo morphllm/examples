@@ -55,7 +55,7 @@ class SearchQuery(BaseModel):
 
 
 class PlannedSearches(BaseModel):
-    searches: list[SearchQuery] = Field(description="3-6 targeted searches")
+    searches: list[SearchQuery] = Field(description="6-8 targeted searches")
 
 
 class ReviewPlan(BaseModel):
@@ -132,7 +132,15 @@ class Reviewer:
 
     @property
     def active_system_prompt(self) -> str:
-        return self._system_prompt if self._system_prompt is not None else SYSTEM_PROMPT
+        base = self._system_prompt if self._system_prompt is not None else SYSTEM_PROMPT
+        if self.config.personality:
+            base += (
+                "\n\n## Reviewer Persona\n"
+                "You are reviewing as a specific developer's twin. "
+                "Apply their review style, priorities, and focus areas:\n\n"
+                f"{self.config.personality}"
+            )
+        return base
 
     @staticmethod
     def _parse_structured_issues(text: str, source_pass: str) -> list[ReviewIssue]:
@@ -231,8 +239,15 @@ Think about what could go wrong with these specific changes:
 - If string constants, metric tags, or enum values changed, are they consistent across producer and consumer?
 - If a class field has a potentially problematic default value, how is it instantiated?
 
-Generate 3-6 search queries. Each should be a SPECIFIC question about this codebase targeting a SPECIFIC potential bug you see in the diff.
+Generate 6-8 search queries covering ALL of these areas:
+1. Callers/consumers of changed functions
+2. Interface contracts or base classes that changed code implements
+3. Similar patterns elsewhere in the codebase
+4. Tests for the modified code
+5. Error handling and edge cases upstream
+6. Related files that depend on changed modules
 
+Each query should be a SPECIFIC question about this codebase targeting a SPECIFIC potential bug you see in the diff.
 Do NOT generate generic queries like "find test files" or "find related code" or "find dependencies". Every query must target a concrete suspicion."""
 
         try:
@@ -253,7 +268,7 @@ Do NOT generate generic queries like "find test files" or "find related code" or
             text_block = next(b for b in planner_response.content if b.type == "text")
             parsed = json.loads(text_block.text)
             result = PlannedSearches(**parsed)
-            queries = [(s.query, s.reason) for s in result.searches[:6]]
+            queries = [(s.query, s.reason) for s in result.searches[:8]]
         except Exception as e:
             print(f"  Query planner failed: {e}", file=sys.stderr)
             return ""
@@ -277,7 +292,7 @@ Do NOT generate generic queries like "find test files" or "find related code" or
 
         search_args = [(i, q, r) for i, (q, r) in enumerate(queries)]
 
-        with ThreadPoolExecutor(max_workers=6) as executor:
+        with ThreadPoolExecutor(max_workers=8) as executor:
             futures = {executor.submit(_run_search, arg): arg for arg in search_args}
             results = []
             for future in as_completed(futures):
@@ -328,15 +343,16 @@ Do NOT generate generic queries like "find test files" or "find related code" or
 {compact_diff}
 
 ## Your Task
-Use the available tools to understand this PR deeply:
+Use the available tools to understand this PR deeply. You MUST perform at least 6 warpgrep searches before forming any conclusions. Cover ALL of these areas:
 
-1. **Understand the change**: What does this PR actually do? Read surrounding code to understand context.
-2. **Check contracts**: If interfaces, types, or abstract classes changed, read their implementations.
-3. **Check callers**: For changed functions, grep for callers and check if they break with the new behavior.
-4. **Check removed code**: If safety checks or guards were removed, understand what they protected.
-5. **Check cross-file consistency**: Are string constants, metric tags, enum values consistent?
+1. **Callers/consumers**: For every changed function/method, search for ALL callers. Check if they break with the new behavior.
+2. **Contracts/interfaces**: If types, interfaces, or abstract classes changed, search for all implementations to check if they still satisfy the contract.
+3. **Similar patterns**: Search for similar code patterns elsewhere in the codebase that might need the same change (or that reveal the intended pattern).
+4. **Tests**: Search for tests covering the modified code. Check if tests still match the new behavior or if they're now stale/broken.
+5. **Error handling/edge cases**: Search for how errors from the modified code are caught or handled upstream. Check if new error paths are unhandled.
+6. **Related/affected files**: Search for other files that import, reference, or depend on the changed modules. Check for ripple effects.
 
-Focus your investigation on understanding what could go WRONG with these specific changes.
+Investigate BROADLY first, then drill into anything suspicious. The more context you gather, the more real bugs you'll find.
 After investigating, summarize your findings clearly."""
 
         # Step 1: Agentic investigation (freeform + tools)

@@ -1,0 +1,26 @@
+app = "a2a-review-service"
+primary_region = "sjc"
+
+[build]
+  dockerfile = "Dockerfile"
+  build-target = ""
+  [build.args]
+
+# Build context must be the parent examples/ dir to access sibling packages.
+# Deploy with: cd /path/to/examples && fly deploy --config review_service/fly.toml --dockerfile review_service/Dockerfile
+
+[env]
+  PORT = "8080"
+  PYTHONPATH = "/app"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  memory = "1gb"
+  cpu_kind = "shared"
+  cpus = 1
