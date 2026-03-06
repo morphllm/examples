@@ -14,6 +14,12 @@ Code search subagent examples. Each example is self-contained — pick the one t
 | [vercel-agent](./vercel-agent) | TypeScript | Vercel AI SDK — automatic tool loop |
 | [gemini-agent](./gemini-agent) | TypeScript | Gemini + WarpGrep in an agent loop |
 | [python-agent](./python-agent) | Python | Full protocol reference implementation (no SDK) |
+| [e2b-sandbox](./e2b-sandbox) | TypeScript | WarpGrep in an E2B cloud sandbox |
+| [modal-sandbox](./modal-sandbox) | TypeScript | WarpGrep in a Modal cloud sandbox |
+| [daytona-sandbox](./daytona-sandbox) | TypeScript | WarpGrep in a Daytona sandbox |
+| [vercel-sandbox](./vercel-sandbox) | TypeScript | WarpGrep in a Vercel Sandbox |
+| [cloudflare-sandbox](./cloudflare-sandbox) | TypeScript | WarpGrep in a Cloudflare Worker sandbox |
+| [docker-ssh](./docker-ssh) | TypeScript | WarpGrep over SSH to a Docker container |
 
 ## Prerequisites
 
