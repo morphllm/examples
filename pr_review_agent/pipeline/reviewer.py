@@ -184,15 +184,18 @@ class Reviewer:
 
 ## How to Review
 
-Read the diff carefully. Understand what every change does and WHY. Then use the tools to investigate.
+**Phase 1: Understand the change.** Read the diff. What does it modify? What assumptions does the old code make that the new code changes?
 
-You have tools to search and read the codebase. Use them to answer your own questions:
-- If a function's behavior changed, find its callers. Will they handle the new behavior correctly?
+**Phase 2: Investigate impact.** For every non-trivial change, use tools to answer:
+- Who calls this function/method? Search for callers. Will they handle the new behavior?
 - If a constant or key name changed, find where the old value was referenced. Was everything updated?
-- If error handling changed, trace the error path. Do callers still handle errors correctly?
-- If a data structure is being mutated, understand the mutation semantics. Are existing values preserved or clobbered?
+- If a loop has break/return/continue, what cleanup or remaining iterations get skipped?
+- If concurrency is involved (locks, goroutines, threads, async), search for ALL readers and writers of the shared state. Check that synchronization still covers them.
+- If the code uses a framework API (Prisma, Rails, Django, multiprocessing, etc.), search for how that API behaves with the specific arguments used. Edge cases like empty objects, nil values, or platform differences are where bugs hide.
 
 Don't follow a checklist. Let the diff guide your investigation. If something looks suspicious, dig into it. If a change is obviously safe, move on. Spend your time where the risk is.
+
+**Phase 3: Confirm before reporting.** Every issue you report must be backed by evidence you found via tools. If you suspect a bug but haven't confirmed it, search more. Don't report suspicions.
 
 The bugs you're looking for are things like:
 - Wrong method called (copy-paste error, similar names)
@@ -210,8 +213,10 @@ What you should NOT report:
 - "Consider using Y instead of X" when X works fine
 - Performance suggestions
 - Style preferences
+- The same bug reported multiple times. If the same issue (e.g. forEach+async) appears in multiple files, report it ONCE for the most important file.
+- Suspected bugs you haven't verified with tools. If you think a function doesn't exist, grep for it. If you think a type is wrong, read the definition. Report only confirmed issues.
 
-After investigating, write your review. For each bug, name the exact code, explain what's wrong, and describe the runtime consequence. If you find no bugs, that's fine — say so.
+After investigating, write your review. For each bug, name the exact code, explain what's wrong, and describe the runtime consequence. If you find no bugs, that's fine.
 
 Quality over quantity. 2 real bugs with evidence > 6 speculative ones."""
 

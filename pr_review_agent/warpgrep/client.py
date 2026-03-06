@@ -15,6 +15,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -27,6 +28,14 @@ MAX_TURNS = 4
 MAX_GREP_LINES = 500
 MAX_LIST_LINES = 500
 MAX_READ_LINES = 2000
+
+# Retry config for transient API errors (429, SSL, timeouts)
+MAX_RETRIES = 3
+RETRY_BASE_DELAY = 3.0  # seconds (3s, 6s, 12s backoff)
+
+# Global rate limiter: max 1 concurrent WarpGrep API call
+import threading
+_api_semaphore = threading.Semaphore(4)  # max 4 concurrent WarpGrep calls
 
 SYSTEM_PROMPT = r"""You are a code search agent. Your task is to find all relevant code for a given search_string.
 
@@ -127,23 +136,53 @@ class ToolCall:
 
 
 def _call_api(messages: list, api_key: str, api_url: str = API_URL) -> str:
-    """Call WarpGrep model via Morph API."""
-    resp = requests.post(
-        api_url,
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        },
-        json={
-            "model": MODEL,
-            "messages": messages,
-            "temperature": 0.0,
-            "max_tokens": 2048,
-        },
-        timeout=30,
-    )
-    resp.raise_for_status()
-    return resp.json()["choices"][0]["message"]["content"]
+    """Call WarpGrep model via Morph API with retry logic for transient errors."""
+    _api_semaphore.acquire()
+    try:
+        return _call_api_inner(messages, api_key, api_url)
+    finally:
+        _api_semaphore.release()
+
+
+def _call_api_inner(messages: list, api_key: str, api_url: str = API_URL) -> str:
+    """Inner API call with retry logic (called under semaphore)."""
+    last_exc = None
+    for attempt in range(MAX_RETRIES):
+        try:
+            resp = requests.post(
+                api_url,
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": MODEL,
+                    "messages": messages,
+                    "temperature": 0.0,
+                    "max_tokens": 2048,
+                },
+                timeout=45,
+            )
+            # Retry on 429 (rate limit) and 5xx (server errors)
+            if resp.status_code == 429 or resp.status_code >= 500:
+                delay = RETRY_BASE_DELAY * (2 ** attempt)
+                print(f"  WarpGrep API {resp.status_code}, retrying in {delay:.0f}s (attempt {attempt + 1}/{MAX_RETRIES})", file=sys.stderr)
+                time.sleep(delay)
+                last_exc = requests.HTTPError(f"{resp.status_code}", response=resp)
+                continue
+            resp.raise_for_status()
+            return resp.json()["choices"][0]["message"]["content"]
+        except (requests.exceptions.SSLError, requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            delay = RETRY_BASE_DELAY * (2 ** attempt)
+            print(f"  WarpGrep connection error, retrying in {delay:.0f}s (attempt {attempt + 1}/{MAX_RETRIES}): {type(e).__name__}", file=sys.stderr)
+            time.sleep(delay)
+            last_exc = e
+            continue
+
+    # All retries exhausted
+    if last_exc:
+        raise last_exc
+    raise RuntimeError("WarpGrep API call failed after all retries")
 
 
 def _parse_xml_elements(content: str) -> dict:
@@ -434,15 +473,19 @@ def search_codebase_text(
 WARPGREP_TOOL_NAME = "warpgrep_codebase_search"
 WARPGREP_TOOL_DESCRIPTION = (
     "Search the codebase using WarpGrep, a specialized code search subagent. "
-    "Give it a natural language query about what code you want to find, and it will "
-    "search the repository and return relevant code sections. "
-    "USE THIS LIBERALLY before reporting any issue. Search for: "
-    "1) Callers/usages of changed functions to verify breaking changes, "
-    "2) Type definitions and interfaces to confirm API misuse, "
-    "3) Concurrency patterns (locks, mutexes) to verify race conditions, "
-    "4) Test files for changed code, "
-    "5) Any symbol you're unsure about before claiming it's undefined. "
-    "There is no limit on how many searches you can make. More context = fewer false positives."
+    "Give it a natural language query and it searches the repository, returning relevant code. "
+    "Use WarpGrep for SEMANTIC questions that require understanding (not just pattern matching): "
+    "'How does Prisma @updatedAt behave with empty data?', "
+    "'What are all the readers/writers of this shared map?', "
+    "'How is thread safety handled in this module?', "
+    "'What happens when this function is called with nil?'. "
+    "Use grep_pattern instead for exact-match lookups (function names, variable refs, imports). "
+    "Investigate aggressively: "
+    "1) Callers of changed functions - do they handle the new behavior? "
+    "2) Concurrency - ALL readers and writers of shared state, not just the changed one "
+    "3) Framework API semantics - edge cases with the specific arguments used "
+    "4) Cross-file consistency - do related files match the change? "
+    "There is no limit on searches. Deeper investigation finds more real bugs."
 )
 
 
