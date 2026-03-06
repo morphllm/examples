@@ -1,8 +1,8 @@
 """Opus 4.6 end-to-end agentic code reviewer.
 
 Single agentic loop: the model reads the diff, investigates the codebase
-with tools, and produces a review. No intermediate structured plans,
-no separate query planning phases, no checklists.
+with tools, and reports bugs via the report_issue tool. No intermediate
+structured plans, no separate extraction step, no checklists.
 """
 
 from __future__ import annotations
@@ -12,7 +12,6 @@ import random
 from dataclasses import dataclass, field
 
 import anthropic
-from pydantic import BaseModel, Field
 
 from pr_review_agent.config import Config
 from pr_review_agent.pipeline.diff_parser import FileDiff
@@ -25,44 +24,53 @@ from pr_review_agent.warpgrep.client import (
 )
 
 
-def _strict_schema(schema: dict) -> dict:
-    """Add additionalProperties: false to all object types in a JSON schema.
+# ---------- report_issue tool definition ----------
 
-    Required by the Anthropic structured output API.
-    """
-    schema = schema.copy()
-    if schema.get("type") == "object":
-        schema["additionalProperties"] = False
-    for key in ("$defs", "definitions"):
-        if key in schema:
-            schema[key] = {
-                name: _strict_schema(defn) for name, defn in schema[key].items()
-            }
-    if "properties" in schema:
-        schema["properties"] = {
-            name: _strict_schema(prop) for name, prop in schema["properties"].items()
-        }
-    if "items" in schema and isinstance(schema["items"], dict):
-        schema["items"] = _strict_schema(schema["items"])
-    for key in ("minItems", "maxItems"):
-        schema.pop(key, None)
-    return schema
-
-
-# ---------- Pydantic models for structured output (final extraction only) ----------
-
-class ReviewIssueSchema(BaseModel):
-    file_path: str = Field(description="Path to the file containing the issue")
-    line_number: int = Field(description="Line number where the issue occurs")
-    category: str = Field(description="Bug category: logic_error|incorrect_value|api_misuse|race_condition|null_reference|type_error|security|localization|test_correctness|portability")
-    severity: str = Field(description="Issue severity: critical|high|medium|low")
-    confidence: float = Field(description="Confidence score from 0.0 to 1.0")
-    comment: str = Field(description="Description of the bug: what code is wrong, what it should be, and the consequence")
-
-
-class ReviewResult(BaseModel):
-    issues: list[ReviewIssueSchema] = Field(description="List of real bugs found")
-
+REPORT_ISSUE_TOOL = {
+    "name": "report_issue",
+    "description": (
+        "Report a bug you found. Call once per bug as you find it during "
+        "investigation. Some bugs are obvious from the diff (typos, copy-paste, "
+        "wrong locale); others need tool-based investigation to confirm. "
+        "Report both kinds. Do not report the same bug twice."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "file_path": {
+                "type": "string",
+                "description": "File path from the diff header",
+            },
+            "line_number": {
+                "type": "integer",
+                "description": "Line number in the new code",
+            },
+            "category": {
+                "type": "string",
+                "enum": [
+                    "logic_error", "incorrect_value", "api_misuse",
+                    "race_condition", "null_reference", "type_error",
+                    "security", "localization", "test_correctness", "portability",
+                ],
+                "description": "Bug category",
+            },
+            "severity": {
+                "type": "string",
+                "enum": ["critical", "high", "medium", "low"],
+                "description": "Issue severity",
+            },
+            "confidence": {
+                "type": "number",
+                "description": "0.0 to 1.0 — how certain this is a real bug",
+            },
+            "comment": {
+                "type": "string",
+                "description": "What code is wrong, what it should be, and the runtime consequence",
+            },
+        },
+        "required": ["file_path", "line_number", "category", "severity", "confidence", "comment"],
+    },
+}
 
 
 @dataclass
@@ -124,27 +132,6 @@ class Reviewer:
             )
         return base
 
-    @staticmethod
-    def _parse_structured_issues(text: str, source_pass: str) -> list[ReviewIssue]:
-        """Parse structured JSON output into ReviewIssue list."""
-        try:
-            parsed = json.loads(text)
-            result = ReviewResult(**parsed)
-            return [
-                ReviewIssue(
-                    file_path=i.file_path,
-                    line_number=i.line_number,
-                    category=i.category,
-                    severity=i.severity,
-                    confidence=i.confidence,
-                    comment=i.comment,
-                    source_pass=source_pass,
-                )
-                for i in result.issues
-            ]
-        except Exception:
-            return []
-
     # ---------- Main entry point ----------
 
     def review_pr(
@@ -158,10 +145,7 @@ class Reviewer:
         One agentic loop where the model:
         1. Reads and understands the diff
         2. Investigates the codebase with tools (warpgrep, grep, read_file)
-        3. Forms its own understanding of what could be wrong
-        4. Produces a final review
-
-        Then one structured output call to extract issues as JSON.
+        3. Reports confirmed bugs via the report_issue tool
         """
         import sys
 
@@ -195,7 +179,7 @@ class Reviewer:
 
 Don't follow a checklist. Let the diff guide your investigation. If something looks suspicious, dig into it. If a change is obviously safe, move on. Spend your time where the risk is.
 
-**Phase 3: Confirm before reporting.** Every issue you report must be backed by evidence you found via tools. If you suspect a bug but haven't confirmed it, search more. Don't report suspicions.
+**Phase 3: Report what you find.** Some bugs are obvious from the diff itself (typos, copy-paste errors, wrong locale text, inverted logic). Report those immediately. For bugs that depend on how other code uses the changed code, confirm with tools first.
 
 The bugs you're looking for are things like:
 - Wrong method called (copy-paste error, similar names)
@@ -214,72 +198,32 @@ What you should NOT report:
 - Performance suggestions
 - Style preferences
 - The same bug reported multiple times. If the same issue (e.g. forEach+async) appears in multiple files, report it ONCE for the most important file.
-- Suspected bugs you haven't verified with tools. If you think a function doesn't exist, grep for it. If you think a type is wrong, read the definition. Report only confirmed issues.
+- Suspected bugs you could easily verify but didn't. If you think a function doesn't exist, grep for it. If you think a type is wrong, read the definition.
 
-After investigating, write your review. For each bug, name the exact code, explain what's wrong, and describe the runtime consequence. If you find no bugs, that's fine.
+When you find a bug, call the `report_issue` tool with the details. Report each bug as you find it during investigation. When done investigating all changes, stop — no need to write a summary.
 
-Quality over quantity. 2 real bugs with evidence > 6 speculative ones."""
+If you find no bugs, that's fine. Quality over quantity."""
 
-        tools, warpgrep_tool_def = self._build_tools(repo_path)
+        # Build tools: report_issue is always available, investigation tools when repo_path exists
+        tools = [REPORT_ISSUE_TOOL]
+        warpgrep_tool_def = None
+        if repo_path:
+            investigation_tools, warpgrep_tool_def = self._build_tools(repo_path)
+            if investigation_tools:
+                tools = investigation_tools + [REPORT_ISSUE_TOOL]
 
-        if tools:
-            # Agentic loop: model investigates with tools, then produces review
-            messages = [{"role": "user", "content": prompt}]
-            try:
-                review_text = self._agentic_loop(
-                    messages, tools, repo_path, warpgrep_tool_def,
-                    thinking_budget=10000, max_tool_rounds=25,
-                )
-            except Exception as e:
-                print(f"  Review failed: {e}", file=sys.stderr)
-                return []
-        else:
-            # No tools available, direct call
-            review_text = self._call_opus(prompt)
+        messages = [{"role": "user", "content": prompt}]
+        try:
+            issues = self._agentic_loop(
+                messages, tools, repo_path, warpgrep_tool_def,
+                thinking_budget=10000, max_tool_rounds=50,
+            )
+        except Exception as e:
+            print(f"  Review failed: {e}", file=sys.stderr)
+            return []
 
-        # Extract structured issues from the freeform review
-        issues = self._extract_issues(review_text, combined_diff)
         print(f"  Review complete: {len(issues)} issues", file=sys.stderr)
         return issues
-
-    def _extract_issues(self, review_text: str, diff_text: str) -> list[ReviewIssue]:
-        """Extract structured issues from freeform review text via structured output.
-
-        This is the ONLY place we force structure — after the model has done all
-        its thinking and investigation in natural language.
-        """
-        extraction_prompt = f"""Extract the bugs from this code review into structured JSON.
-
-## The Review
-{review_text[:20000]}
-
-For each bug the reviewer identified, extract:
-- file_path: the file where the bug is
-- line_number: the line number (best guess if not exact)
-- category: one of logic_error, incorrect_value, api_misuse, race_condition, null_reference, type_error, security, localization, test_correctness, portability
-- severity: critical, high, medium, or low
-- confidence: 0.0-1.0 based on how certain the reviewer was
-- comment: the full bug description (what's wrong, what it should be, what breaks)
-
-If the review found no bugs, return an empty issues list.
-Only extract issues the reviewer explicitly identified as bugs. Do not invent new ones."""
-
-        schema = _strict_schema(ReviewResult.model_json_schema())
-        try:
-            result_text = self.client.messages.create(
-                model=self.config.model,
-                max_tokens=8000,
-                thinking={"type": "adaptive"},
-                temperature=1,
-                messages=[{"role": "user", "content": extraction_prompt}],
-                output_config={
-                    "format": {"type": "json_schema", "schema": schema}
-                },
-            )
-            text_block = next(b for b in result_text.content if b.type == "text")
-            return self._parse_structured_issues(text_block.text, source_pass="review")
-        except Exception:
-            return []
 
     # ---------- Diff formatting ----------
 
@@ -304,11 +248,26 @@ Only extract issues the reviewer explicitly identified as bugs. Do not invent ne
     # ---------- Tools ----------
 
     def _build_tools(self, repo_path: str | None) -> tuple[list[dict] | None, dict | None]:
-        """Build the tool list for agentic code review."""
+        """Build the investigation tool list for agentic code review.
+
+        WarpGrep is listed first as the primary investigation tool.
+        """
         if not repo_path:
             return None, None
 
-        tools = [
+        tools = []
+
+        # WarpGrep first — primary investigation tool
+        warpgrep_tool_def = None
+        if self.config.morph_api_key and self.config.warpgrep_tool_enabled:
+            warpgrep_tool_def = create_warpgrep_tool(repo_path, self.config.morph_api_key)
+            tools.append({
+                "name": warpgrep_tool_def["name"],
+                "description": warpgrep_tool_def["description"],
+                "input_schema": warpgrep_tool_def["input_schema"],
+            })
+
+        tools.extend([
             {
                 "name": "read_file",
                 "description": (
@@ -335,10 +294,12 @@ Only extract issues the reviewer explicitly identified as bugs. Do not invent ne
             {
                 "name": "grep_pattern",
                 "description": (
-                    "Search for a regex pattern across the repository using ripgrep. "
+                    "Search for an exact regex pattern across the repository using ripgrep. "
                     "Returns matching lines with file paths and line numbers. "
-                    "Use this to find callers, check cross-file consistency, "
-                    "find related code. Fast local operation — use it freely."
+                    "Use for exact-match lookups: specific function names, variable references, "
+                    "import statements, string literals. For understanding code semantics, "
+                    "finding related patterns, or investigating how APIs work, use "
+                    "warpgrep_codebase_search instead."
                 ),
                 "input_schema": {
                     "type": "object",
@@ -380,20 +341,11 @@ Only extract issues the reviewer explicitly identified as bugs. Do not invent ne
                     "required": ["path"],
                 },
             },
-        ]
-
-        warpgrep_tool_def = None
-        if self.config.morph_api_key and self.config.warpgrep_tool_enabled:
-            warpgrep_tool_def = create_warpgrep_tool(repo_path, self.config.morph_api_key)
-            tools.append({
-                "name": warpgrep_tool_def["name"],
-                "description": warpgrep_tool_def["description"],
-                "input_schema": warpgrep_tool_def["input_schema"],
-            })
+        ])
 
         return tools, warpgrep_tool_def
 
-    def _execute_tool(self, tool_block, repo_path: str, warpgrep_tool_def: dict | None) -> dict:
+    def _execute_tool(self, tool_block, repo_path: str | None, warpgrep_tool_def: dict | None) -> dict:
         """Execute a single tool call and return the tool_result."""
         import sys
         from pr_review_agent.warpgrep.client import (
@@ -402,6 +354,22 @@ Only extract issues the reviewer explicitly identified as bugs. Do not invent ne
 
         name = tool_block.name
         inp = tool_block.input
+
+        if name == "report_issue":
+            # Handled by _agentic_loop directly; return confirmation
+            return {
+                "type": "tool_result",
+                "tool_use_id": tool_block.id,
+                "content": f"Issue recorded: {inp.get('category', '?')} in {inp.get('file_path', '?')}:{inp.get('line_number', '?')}",
+            }
+
+        if not repo_path:
+            return {
+                "type": "tool_result",
+                "tool_use_id": tool_block.id,
+                "content": "No repository path available for investigation tools.",
+                "is_error": True,
+            }
 
         if name == "read_file":
             result_text = _execute_read(repo_path, inp.get("path", ""), inp.get("lines"))
@@ -454,81 +422,26 @@ Only extract issues the reviewer explicitly identified as bugs. Do not invent ne
                 "is_error": True,
             }
 
-    # ---------- LLM calls ----------
-
-    def _call_opus(self, prompt: str, thinking_budget: int = 10000, repo_path: str | None = None, timeout: int = 300, output_schema: dict | None = None) -> str:
-        """Call Claude with extended thinking, optionally with tools or structured output."""
-        import sys
-
-        tools, warpgrep_tool_def = self._build_tools(repo_path)
-
-        for attempt in range(2):
-            messages = [{"role": "user", "content": prompt}]
-
-            try:
-                if tools:
-                    return self._agentic_loop(messages, tools, repo_path, warpgrep_tool_def, thinking_budget, output_schema=output_schema)
-
-                api_kwargs = dict(
-                    model=self.config.model,
-                    max_tokens=self.config.max_tokens,
-                    thinking={"type": "adaptive"},
-                    temperature=1,
-                    system=self.active_system_prompt,
-                    messages=messages,
-                )
-                if output_schema:
-                    api_kwargs["output_config"] = {
-                        "format": {"type": "json_schema", "schema": output_schema}
-                    }
-
-                if output_schema:
-                    response = self.client.messages.create(**api_kwargs)
-                else:
-                    with self.client.messages.stream(**api_kwargs) as stream:
-                        response = stream.get_final_message()
-
-                text_parts = []
-                for block in response.content:
-                    if block.type == "text":
-                        text_parts.append(block.text)
-
-                result = "\n".join(text_parts)
-                if result.strip():
-                    return result
-
-                if attempt == 0:
-                    print(f"  WARNING: Empty response (stop={response.stop_reason}), retrying...", file=sys.stderr)
-                    continue
-                return "[]"
-
-            except Exception as e:
-                if attempt == 0:
-                    print(f"  API error: {e}, retrying...", file=sys.stderr)
-                    continue
-                print(f"  API error on retry: {e}", file=sys.stderr)
-                return "[]"
-
-        return "[]"
+    # ---------- Agentic loop ----------
 
     def _agentic_loop(
         self,
         messages: list[dict],
         tools: list[dict],
-        repo_path: str,
+        repo_path: str | None,
         warpgrep_tool_def: dict | None,
         thinking_budget: int,
-        max_tool_rounds: int = 25,
-        output_schema: dict | None = None,
-    ) -> str:
+        max_tool_rounds: int = 50,
+    ) -> list[ReviewIssue]:
         """Run Claude with tools in an agentic loop.
 
-        The model calls tools as many times as it needs. When it stops
-        calling tools, we return its text response.
+        The model investigates with tools and calls report_issue for each bug.
+        Returns the collected list of ReviewIssue objects.
         """
         import sys
 
         tool_counts: dict[str, int] = {}
+        collected_issues: list[ReviewIssue] = []
 
         for round_num in range(max_tool_rounds):
             response = self.client.messages.create(
@@ -541,48 +454,43 @@ Only extract issues the reviewer explicitly identified as bugs. Do not invent ne
                 messages=messages,
             )
 
-            text_parts = []
             tool_use_blocks = []
             for block in response.content:
-                if block.type == "text":
-                    text_parts.append(block.text)
-                elif block.type == "tool_use":
+                if block.type == "tool_use":
                     tool_use_blocks.append(block)
 
             if not tool_use_blocks:
-                result = "\n".join(text_parts)
                 summary = ", ".join(f"{n}={c}" for n, c in tool_counts.items())
                 print(f"  Review complete (tools: {summary or 'none'})", file=sys.stderr)
-                return result
+                return collected_issues
 
-            # Execute all tool calls
+            # Execute all tool calls, collecting report_issue results
             messages.append({"role": "assistant", "content": response.content})
             tool_results = []
             for tool_block in tool_use_blocks:
                 tool_counts[tool_block.name] = tool_counts.get(tool_block.name, 0) + 1
+
+                # Collect issues from report_issue calls
+                if tool_block.name == "report_issue":
+                    inp = tool_block.input
+                    collected_issues.append(ReviewIssue(
+                        file_path=inp.get("file_path", ""),
+                        line_number=inp.get("line_number", 0),
+                        category=inp.get("category", "logic_error"),
+                        severity=inp.get("severity", "medium"),
+                        confidence=inp.get("confidence", 0.5),
+                        comment=inp.get("comment", ""),
+                        source_pass="review",
+                    ))
+
                 result = self._execute_tool(tool_block, repo_path, warpgrep_tool_def)
                 tool_results.append(result)
             messages.append({"role": "user", "content": tool_results})
 
-        # Hit max rounds — get final text
+        # Hit max rounds — return what we have
         summary = ", ".join(f"{n}={c}" for n, c in tool_counts.items())
         print(f"  Max tool rounds reached (tools: {summary})", file=sys.stderr)
-
-        final_response = self.client.messages.create(
-            model=self.config.model,
-            max_tokens=self.config.max_tokens,
-            thinking={"type": "adaptive"},
-            temperature=1,
-            system=self.active_system_prompt,
-            messages=messages,
-        )
-
-        text_parts = []
-        for block in final_response.content:
-            if block.type == "text":
-                text_parts.append(block.text)
-
-        return "\n".join(text_parts) if text_parts else ""
+        return collected_issues
 
     # ---------- Judge (passthrough, kept for evolver compatibility) ----------
 

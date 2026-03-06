@@ -472,20 +472,14 @@ def search_codebase_text(
 
 WARPGREP_TOOL_NAME = "warpgrep_codebase_search"
 WARPGREP_TOOL_DESCRIPTION = (
-    "Search the codebase using WarpGrep, a specialized code search subagent. "
-    "Give it a natural language query and it searches the repository, returning relevant code. "
-    "Use WarpGrep for SEMANTIC questions that require understanding (not just pattern matching): "
-    "'How does Prisma @updatedAt behave with empty data?', "
-    "'What are all the readers/writers of this shared map?', "
-    "'How is thread safety handled in this module?', "
-    "'What happens when this function is called with nil?'. "
-    "Use grep_pattern instead for exact-match lookups (function names, variable refs, imports). "
-    "Investigate aggressively: "
-    "1) Callers of changed functions - do they handle the new behavior? "
-    "2) Concurrency - ALL readers and writers of shared state, not just the changed one "
-    "3) Framework API semantics - edge cases with the specific arguments used "
-    "4) Cross-file consistency - do related files match the change? "
-    "There is no limit on searches. Deeper investigation finds more real bugs."
+    "Your primary investigation tool. Search the codebase using WarpGrep, a code search "
+    "subagent that understands code semantics. Use it to answer questions during investigation: "
+    "'Who calls this function and how do they handle the return value?', "
+    "'How is this shared state accessed across threads?', "
+    "'What does this framework API do with empty/nil arguments?', "
+    "'Are there other places this pattern is used?'. "
+    "For exact string matches (specific variable names, imports), use grep_pattern. "
+    "For everything else, use WarpGrep. Investigate aggressively — deeper search finds more real bugs."
 )
 
 
