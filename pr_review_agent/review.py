@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable
 
 from pr_review_agent.config import Config
 from pr_review_agent.pipeline.diff_parser import filter_reviewable_files, parse_diff
@@ -43,6 +44,7 @@ def review_diff(
     config: Config | None = None,
     personality: str | None = None,
     metrics_out: dict | None = None,
+    on_event: Callable[[str, dict], None] | None = None,
 ) -> list[ReviewComment]:
     """Review a unified diff and return comments.
 
@@ -68,7 +70,7 @@ def review_diff(
         return []
 
     # Set up reviewer
-    reviewer = Reviewer(config)
+    reviewer = Reviewer(config, on_event=on_event)
 
     if organism_path:
         from pr_review_agent.evolver.organism import CodeReviewOrganism
@@ -89,6 +91,9 @@ def review_diff(
         metrics_out["api_calls_review"] = m.api_calls_review
         metrics_out["api_calls_extract"] = m.api_calls_extract
         metrics_out["tool_rounds"] = m.tool_rounds
+        metrics_out["total_input_tokens"] = m.total_input_tokens
+        metrics_out["total_output_tokens"] = m.total_output_tokens
+        metrics_out["diff_files"] = len(file_diffs)
 
     # Cap and sort by confidence
     issues.sort(key=lambda x: x.confidence, reverse=True)

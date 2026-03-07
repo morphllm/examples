@@ -106,7 +106,7 @@ REVIEW_API_SECRET = os.environ.get("REVIEW_API_SECRET", "") or os.environ.get("G
 async def _run_review_from_api(req: ReviewRequest):
     """Run the review pipeline from an API request (not a webhook)."""
     import time
-    from github_app.telemetry import send_review_event
+    from github_app.telemetry import make_event_emitter
 
     config = _get_config()
     client = GitHubClient(req.github_token)
@@ -114,15 +114,19 @@ async def _run_review_from_api(req: ReviewRequest):
     full_name = f"{req.owner}/{req.repo}"
     t_start = time.monotonic()
     metrics = {}
+    base_ctx = {
+        "service": "morph-ghapp", "source": "api",
+        "repo": full_name, "pr_number": req.pr_number,
+        "head_sha": req.head_sha, "agent_run_id": req.agent_run_id,
+        "personality": req.personality or "",
+    }
+    on_event = make_event_emitter(base_ctx)
 
     try:
         diff = await client.fetch_pr_diff(req.owner, req.repo, req.pr_number)
         if not diff.strip():
             logger.info("Empty diff for %s PR #%d, skipping", full_name, req.pr_number)
-            send_review_event({
-                "service": "morph-ghapp", "source": "api",
-                "repo": full_name, "pr_number": req.pr_number,
-                "head_sha": req.head_sha, "agent_run_id": req.agent_run_id,
+            on_event("review.completed", {
                 "status": "empty_diff",
                 "duration_total_s": round(time.monotonic() - t_start, 1),
             })
@@ -130,11 +134,20 @@ async def _run_review_from_api(req: ReviewRequest):
                 await _callback(req.callback_url, req.agent_run_id, "completed")
             return
 
+        on_event("review.started", {
+            "diff_size_chars": len(diff),
+        })
+
         t_clone = time.monotonic()
         clone_path = await client.clone_repo(
             req.owner, req.repo, req.pr_number, req.head_sha, config.clone_base_dir
         )
         duration_clone = round(time.monotonic() - t_clone, 1)
+        on_event("review.clone", {
+            "duration_s": duration_clone,
+            "clone_path": str(clone_path),
+            "success": True,
+        })
 
         from pr_review_agent.config import Config as ReviewConfig
         from pr_review_agent.review import review_diff
@@ -156,6 +169,7 @@ async def _run_review_from_api(req: ReviewRequest):
             max_issues=config.max_issues_per_pr,
             personality=req.personality if req.personality else None,
             metrics_out=metrics,
+            on_event=on_event,
         )
         duration_review = round(time.monotonic() - t_review, 1)
 
@@ -176,17 +190,18 @@ async def _run_review_from_api(req: ReviewRequest):
                 comments, diff, review_body,
             )
         duration_post = round(time.monotonic() - t_post, 1)
+        on_event("review.post", {
+            "comments_posted": len(comments) if comments else 0,
+            "duration_s": duration_post,
+            "success": True,
+        })
 
         logger.info(
             "API review completed for %s PR #%d: %d comments",
             full_name, req.pr_number, len(comments) if comments else 0,
         )
 
-        send_review_event({
-            "service": "morph-ghapp", "source": "api",
-            "repo": full_name, "pr_number": req.pr_number,
-            "head_sha": req.head_sha, "agent_run_id": req.agent_run_id,
-            "personality": req.personality or "",
+        on_event("review.completed", {
             "duration_total_s": round(time.monotonic() - t_start, 1),
             "duration_clone_s": duration_clone,
             "duration_review_s": duration_review,
@@ -199,6 +214,8 @@ async def _run_review_from_api(req: ReviewRequest):
             "api_calls": metrics.get("api_calls", 0),
             "api_calls_review": metrics.get("api_calls_review", 0),
             "api_calls_extract": metrics.get("api_calls_extract", 0),
+            "total_input_tokens": metrics.get("total_input_tokens", 0),
+            "total_output_tokens": metrics.get("total_output_tokens", 0),
             **{f"tool_{k}": v for k, v in metrics.get("tool_counts", {}).items()},
         })
 
@@ -207,12 +224,11 @@ async def _run_review_from_api(req: ReviewRequest):
 
     except Exception as exc:
         logger.exception("API review failed for %s PR #%d", full_name, req.pr_number)
-        send_review_event({
-            "service": "morph-ghapp", "source": "api",
-            "repo": full_name, "pr_number": req.pr_number,
-            "head_sha": req.head_sha, "agent_run_id": req.agent_run_id,
+        on_event("review.failed", {
             "duration_total_s": round(time.monotonic() - t_start, 1),
-            "status": "failure", "error": str(exc),
+            "status": "failure",
+            "error": str(exc),
+            "error_type": type(exc).__name__,
         })
         if req.callback_url:
             await _callback(req.callback_url, req.agent_run_id, "failed")

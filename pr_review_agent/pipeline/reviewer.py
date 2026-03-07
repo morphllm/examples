@@ -9,7 +9,9 @@ from __future__ import annotations
 
 import json
 import random
+import time
 from dataclasses import dataclass, field
+from typing import Callable
 
 import anthropic
 from pydantic import BaseModel, Field
@@ -24,6 +26,9 @@ from pr_review_agent.warpgrep.client import (
     WARPGREP_TOOL_NAME,
 )
 
+# Telemetry callback type: (event_name, event_data) -> None
+TelemetryCallback = Callable[[str, dict], None]
+
 
 @dataclass
 class ReviewMetrics:
@@ -33,6 +38,8 @@ class ReviewMetrics:
     api_calls_review: int = 0
     api_calls_extract: int = 0
     tool_rounds: int = 0
+    total_input_tokens: int = 0
+    total_output_tokens: int = 0
 
 
 def _strict_schema(schema: dict) -> dict:
@@ -100,8 +107,9 @@ class ReviewIssue:
 class Reviewer:
     """End-to-end agentic code reviewer using Opus."""
 
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, on_event: TelemetryCallback | None = None):
         self.config = config
+        self._on_event = on_event
         import httpx
         self.client = anthropic.Anthropic(
             api_key=config.anthropic_api_key,
@@ -111,6 +119,14 @@ class Reviewer:
         self._system_prompt: str | None = None
         self._review_instructions: str | None = None
         self._num_passes: int | None = None
+
+    def _emit(self, event_name: str, data: dict) -> None:
+        if self._on_event is None:
+            return
+        try:
+            self._on_event(event_name, data)
+        except Exception:
+            pass
 
     def configure_from_organism(self, organism) -> None:
         """Override prompts with evolved values from a CodeReviewOrganism."""
@@ -268,6 +284,7 @@ Only extract issues the reviewer explicitly identified as bugs. Do not invent ne
 
         schema = _strict_schema(ReviewResult.model_json_schema())
         try:
+            t_extract = time.monotonic()
             result_text = self.client.messages.create(
                 model=self.config.model,
                 max_tokens=8000,
@@ -278,11 +295,23 @@ Only extract issues the reviewer explicitly identified as bugs. Do not invent ne
                     "format": {"type": "json_schema", "schema": schema}
                 },
             )
+            extract_duration = round(time.monotonic() - t_extract, 2)
             if hasattr(self, '_metrics'):
                 self._metrics.api_calls += 1
                 self._metrics.api_calls_extract += 1
+                self._metrics.total_input_tokens += result_text.usage.input_tokens
+                self._metrics.total_output_tokens += result_text.usage.output_tokens
             text_block = next(b for b in result_text.content if b.type == "text")
-            return self._parse_structured_issues(text_block.text, source_pass="review")
+            issues = self._parse_structured_issues(text_block.text, source_pass="review")
+            self._emit("review.extraction", {
+                "review_text_length": len(review_text),
+                "issues_extracted": len(issues),
+                "duration_s": extract_duration,
+                "success": True,
+                "input_tokens": result_text.usage.input_tokens,
+                "output_tokens": result_text.usage.output_tokens,
+            })
+            return issues
         except Exception:
             return []
 
@@ -469,13 +498,13 @@ Only extract issues the reviewer explicitly identified as bugs. Do not invent ne
 
     # ---------- API call with retry ----------
 
-    def _call_api_with_retry(self, tools, messages, max_retries=5):
+    def _call_api_with_retry(self, tools, messages, max_retries=5, call_type: str = "review"):
         """Call Claude API with exponential backoff on rate limit errors."""
-        import time as _time
         import sys
 
         for attempt in range(max_retries):
             try:
+                t_api_start = time.monotonic()
                 response = self.client.messages.create(
                     model=self.config.model,
                     max_tokens=self.config.max_tokens,
@@ -485,15 +514,27 @@ Only extract issues the reviewer explicitly identified as bugs. Do not invent ne
                     tools=tools,
                     messages=messages,
                 )
+                api_duration = round(time.monotonic() - t_api_start, 2)
                 if hasattr(self, '_metrics'):
                     self._metrics.api_calls += 1
+                    self._metrics.total_input_tokens += response.usage.input_tokens
+                    self._metrics.total_output_tokens += response.usage.output_tokens
+                self._emit("review.api_call", {
+                    "call_type": call_type,
+                    "model": str(self.config.model),
+                    "input_tokens": response.usage.input_tokens,
+                    "output_tokens": response.usage.output_tokens,
+                    "cache_read_tokens": getattr(response.usage, 'cache_read_input_tokens', 0) or 0,
+                    "stop_reason": response.stop_reason,
+                    "duration_s": api_duration,
+                })
                 return response
             except anthropic.RateLimitError:
                 if attempt == max_retries - 1:
                     raise
                 wait = 2 ** attempt * 10  # 10s, 20s, 40s, 80s, 160s
                 print(f"  Rate limited, retrying in {wait}s (attempt {attempt + 1}/{max_retries})", file=sys.stderr)
-                _time.sleep(wait)
+                time.sleep(wait)
 
     # ---------- LLM calls ----------
 
@@ -569,6 +610,16 @@ Only extract issues the reviewer explicitly identified as bugs. Do not invent ne
                 elif block.type == "tool_use":
                     tool_use_blocks.append(block)
 
+            self._emit("review.agentic_round", {
+                "round_num": round_num,
+                "tool_calls_this_round": len(tool_use_blocks),
+                "tools_used": [tb.name for tb in tool_use_blocks],
+                "stop_reason": response.stop_reason,
+                "input_tokens": response.usage.input_tokens,
+                "output_tokens": response.usage.output_tokens,
+                "cumulative_tool_counts": dict(self._metrics.tool_counts),
+            })
+
             if not tool_use_blocks:
                 result = "\n".join(text_parts)
                 summary = ", ".join(f"{n}={c}" for n, c in tool_counts.items())
@@ -580,7 +631,41 @@ Only extract issues the reviewer explicitly identified as bugs. Do not invent ne
             tool_results = []
             for tool_block in tool_use_blocks:
                 tool_counts[tool_block.name] = tool_counts.get(tool_block.name, 0) + 1
+
+                t_tool = time.monotonic()
                 result = self._execute_tool(tool_block, repo_path, warpgrep_tool_def)
+                tool_duration = round(time.monotonic() - t_tool, 2)
+
+                result_text = result.get("content", "") if isinstance(result, dict) else str(result)
+
+                tool_input_preview = ""
+                if tool_block.input:
+                    tool_input_preview = str(tool_block.input)[:300]
+
+                is_warpgrep = tool_block.name == "warpgrep_codebase_search"
+                event_data = {
+                    "tool_name": tool_block.name,
+                    "tool_input_preview": tool_input_preview,
+                    "success": "Error:" not in result_text[:100],
+                    "duration_s": tool_duration,
+                    "result_size_chars": len(result_text),
+                    "result_preview": result_text[:300],
+                    "round_num": round_num,
+                }
+                if is_warpgrep:
+                    event_data["warpgrep_query"] = tool_block.input.get("search_string", "") if isinstance(tool_block.input, dict) else ""
+                    event_data["warpgrep_result_count"] = result_text.count("--- ")
+                self._emit("review.tool_call", event_data)
+
+                if is_warpgrep and (not result_text.strip() or "Error:" in result_text[:100]):
+                    self._emit("review.warpgrep_failed", {
+                        "warpgrep_query": event_data.get("warpgrep_query", ""),
+                        "error": result_text[:500],
+                        "round_num": round_num,
+                        "duration_s": tool_duration,
+                        "level": "warning",
+                    })
+
                 tool_results.append(result)
             messages.append({"role": "user", "content": tool_results})
 
