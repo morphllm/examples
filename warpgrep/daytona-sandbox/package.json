@@ -1,0 +1,16 @@
+{
+  "name": "warpgrep-daytona-sandbox",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "npx tsx agent.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@daytonaio/sdk": "latest",
+    "@morphllm/morphsdk": "latest"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0"
+  }
+}

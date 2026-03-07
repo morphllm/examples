@@ -1,0 +1,15 @@
+{
+  "name": "warpgrep-cloudflare-sandbox",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "npx tsx agent.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@morphllm/morphsdk": "latest"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0"
+  }
+}
