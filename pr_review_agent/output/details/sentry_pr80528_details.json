@@ -4,12 +4,12 @@
   "issues": [
     {
       "file_path": "src/sentry/monitors/logic/incident_occurrence.py",
-      "line_number": 165,
-      "category": "incorrect_value",
+      "line_number": 171,
+      "category": "logic_error",
       "severity": "medium",
-      "confidence": 0.9,
-      "comment": "Return value uses 'monitor_environment.monitor.config' but should use the local 'config' variable that was potentially modified with schedule_type display value, causing the modified config to be ignored.",
-      "source_pass": "pass2"
+      "confidence": 0.95,
+      "comment": "The function copies the monitor's config dict and replaces the raw `schedule_type` integer with the human-readable display string, but the return dict uses `monitor_environment.monitor.config` (the unmodified original) instead of the local `config` variable. This means: 1) The `config.copy()` and `schedule_type` substitution are dead code \u2014 their result is discarded. 2) The monitor environment context sent in issue occurrence event data will contain the raw integer `schedule_type` instead of the human-readable display value. Fix: Change `\"config\": monitor_environment.monitor.config` \u2192 `\"config\": config`.",
+      "source_pass": "review"
     }
   ]
 }

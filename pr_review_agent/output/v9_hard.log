@@ -1,0 +1,18 @@
+============================================================
+PR Review Agent - Benchmark Pipeline
+============================================================
+Loaded 50 PRs
+WarpGrep: ENABLED
+Hard set: 7 PRs (hardest by candidate/golden ratio)
+Reviewing 7 PRs (parallel=1)
+
+[1/7] keycloak PR#37429 (4 golden)
+  [keycloak#37429] 48 files, 343 added lines
+/Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/pipeline/reviewer.py:175: UserWarning: Using Claude with claude-opus-4-6 and 'thinking.type=enabled' is deprecated. Use 'thinking.type=adaptive' instead which results in better model performance in our testing: https://platform.claude.com/docs/en/build-with-claude/adaptive-thinking
+  planner_response = self.client.messages.create(
+  Query planner: 4 searches planned
+    [1] messages_lt.properties totpStep1 Lithuanian translation
+    [2] messages_zh_CN simplified Chinese traditional Chinese totpStep1
+    [3] santizeAnchors replaceFirst anchor pattern value english
+    [4] verifySafeHtml englishFile path replaceAll resources-community resources _en.pro...
+  WarpGrep context: 16823 chars

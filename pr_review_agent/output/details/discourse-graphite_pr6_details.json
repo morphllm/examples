@@ -1,33 +1,15 @@
 {
   "pr_url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/6",
-  "total_issues": 3,
+  "total_issues": 1,
   "issues": [
     {
       "file_path": "app/serializers/user_serializer.rb",
-      "line_number": 135,
-      "category": "null_reference",
-      "severity": "high",
-      "confidence": 0.8,
-      "comment": "Method `website` calls `object.user_profile.website` but `object.user_profile` could be nil, causing NoMethodError that would break serialization.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "app/serializers/user_serializer.rb",
-      "line_number": 154,
-      "category": "null_reference",
-      "severity": "high",
-      "confidence": 0.8,
-      "comment": "Method `include_website_name` calls `website.present?` which calls the `website` method that could fail with NoMethodError if `object.user_profile` is nil, breaking the include condition check.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "app/serializers/user_serializer.rb",
-      "line_number": 137,
+      "line_number": 1,
       "category": "api_misuse",
       "severity": "medium",
-      "confidence": 0.6,
-      "comment": "Expression `URI(website.to_s).host rescue nil` catches all exceptions with broad rescue, potentially masking NoMethodError from `website` method when `user_profile` is nil rather than just URI parsing errors.",
-      "source_pass": "batched_review"
+      "confidence": 0.75,
+      "comment": "The method `include_website_name` is missing the `?` suffix required by ActiveModel::Serializer (0.8.x) for conditional include predicates. Without the trailing `?`, the framework never calls this method, making it dead code. It happens to work by coincidence because the parent class `UserCardSerializer` already defines `include_website_name?` (with `?`) via its `untrusted_attributes` macro. The developer's intent (`website.present?`) differs from what actually runs (`website_name.present?` with a trust-level check). If someone later removes `website_name` from `untrusted_attributes` in the parent, this method would silently stop working as a conditional include. Also, if someone adds `?` to \"fix\" the name, it would override the parent's trust-level check, creating a security regression (TL0 users' website would be exposed to anonymous visitors).",
+      "source_pass": "review"
     }
   ]
 }

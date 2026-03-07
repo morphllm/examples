@@ -1,96 +1,24 @@
 {
   "pr_url": "https://github.com/grafana/grafana/pull/80329",
-  "total_issues": 10,
+  "total_issues": 2,
   "issues": [
     {
-      "file_path": "pkg/services/annotations/annotationsimpl/cleanup_test.go",
-      "line_number": 271,
-      "category": "type_error",
+      "file_path": "pkg/services/annotations/annotationsimpl/xorm_store.go",
+      "line_number": 1,
+      "category": "incorrect_value",
       "severity": "high",
-      "confidence": 1.0,
-      "comment": "annotationTag type is undefined but used in slice creation, causing compilation failure.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "pkg/services/annotations/annotationsimpl/cleanup_test.go",
-      "line_number": 277,
-      "category": "api_misuse",
-      "severity": "medium",
-      "confidence": 0.8,
-      "comment": "min() function requires Go 1.21+ but project may be using older Go version, causing compilation failure if Go version is < 1.21.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "pkg/services/annotations/annotationsimpl/cleanup_test.go",
-      "line_number": 240,
-      "category": "logic_error",
-      "severity": "medium",
-      "confidence": 0.7,
-      "comment": "Manual ID assignment ID: int64(i + 1) may conflict with database auto-increment behavior, potentially causing primary key constraint violations or unexpected behavior.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "pkg/services/annotations/annotationsimpl/xorm_store.go",
-      "line_number": 533,
-      "category": "incorrect_value",
-      "severity": "low",
-      "confidence": 1.0,
-      "comment": "r.log.Error() logs normal cleanup operations at Error level but should use Debug or Info level since this is not an error condition.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "pkg/services/annotations/annotationsimpl/xorm_store.go",
-      "line_number": 536,
-      "category": "incorrect_value",
-      "severity": "low",
-      "confidence": 1.0,
-      "comment": "r.log.Error() logs successful cleanup at Error level but should use Debug or Info level since this is not an error condition.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "pkg/services/annotations/annotationsimpl/xorm_store.go",
-      "line_number": 555,
-      "category": "incorrect_value",
-      "severity": "low",
-      "confidence": 1.0,
-      "comment": "r.log.Error() logs normal tag cleanup operations at Error level but should use Debug or Info level since this is not an error condition.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "pkg/services/annotations/annotationsimpl/xorm_store.go",
-      "line_number": 558,
-      "category": "incorrect_value",
-      "severity": "low",
-      "confidence": 1.0,
-      "comment": "r.log.Error() logs successful tag cleanup at Error level but should use Debug or Info level since this is not an error condition.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "pkg/services/annotations/annotationsimpl/xorm_store.go",
-      "line_number": 576,
-      "category": "incorrect_value",
-      "severity": "low",
-      "confidence": 1.0,
-      "comment": "r.log.Error() logs normal tag orphan operations at Error level but should use Debug or Info level since this is not an error condition.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "pkg/services/annotations/annotationsimpl/xorm_store.go",
-      "line_number": 579,
-      "category": "incorrect_value",
-      "severity": "low",
-      "confidence": 1.0,
-      "comment": "r.log.Error() logs successful tag orphan cleanup at Error level but should use Debug or Info level since this is not an error condition.",
-      "source_pass": "batched_review"
+      "confidence": 0.95,
+      "comment": "r.log.Error() is used for routine informational logging in annotation cleanup operations. This is wrong for multiple reasons: (1) Error level will trigger monitoring alerts and create log noise on every cleanup cycle. (2) The 'err' field is logged after a nil check, so err is always nil \u2014 misleading in an error-level log. (3) Full ID slices (up to AnnotationCleanupJobBatchSize entries, e.g. 32,767 IDs) are logged every batch iteration, creating enormous log entries. These should be at Debug level or removed entirely.",
+      "source_pass": "review"
     },
     {
       "file_path": "pkg/services/cleanup/cleanup.go",
       "line_number": 77,
       "category": "incorrect_value",
-      "severity": "medium",
-      "confidence": 0.8,
-      "comment": "Cleanup interval changed from 10 minutes to 1 minute increases cleanup frequency by 10x, potentially causing significant performance impact in production if not intentional.",
-      "source_pass": "batched_review"
+      "severity": "high",
+      "confidence": 0.75,
+      "comment": "Cleanup ticker reduced from 10 minutes to 1 minute, but the hardcoded 9-minute timeout in clean() at line 123 was designed as a pair with the 10-minute interval (ensuring cleanup finishes before the next tick). With a 1-minute ticker, if any cleanup cycle takes >1 minute, the next cycle fires immediately after. The 9-minute timeout still applies, so cleanup could run back-to-back for up to 9 minutes, generating 10x the expected database load. This appears to be a debugging leftover that should be reverted to 10 minutes.",
+      "source_pass": "review"
     }
   ]
 }

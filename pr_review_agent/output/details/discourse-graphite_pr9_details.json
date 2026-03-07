@@ -4,12 +4,12 @@
   "issues": [
     {
       "file_path": "config/initializers/i18n.rb",
-      "line_number": 21,
-      "category": "api_misuse",
-      "severity": "high",
-      "confidence": 0.85,
-      "comment": "I18n.ensure_loaded! method does not exist on the I18n module. The ensure_loaded! method defined in translate_accelerator.rb is an instance method on a backend class, not a class method on I18n, causing NoMethodError at runtime.",
-      "source_pass": "batched_review"
+      "line_number": 14,
+      "category": "type_error",
+      "severity": "medium",
+      "confidence": 0.7,
+      "comment": "FallbackLocaleList#[] does not convert `locale` to a symbol. When called with a string locale like \"fr\" (from SiteSetting.default_locale), the returned fallback list is [\"fr\", :fr, :en] because `.uniq` does not deduplicate \"fr\" (string) and :fr (symbol). This causes a wasted lookup + exception throw/catch on every translation call with a string locale, since the Simple backend stores translations under symbol keys (:fr) but first tries the string key \"fr\" which returns nil. The fix is to add `locale = locale.to_sym` as the first line of the method, which the evolved version of this code does but this PR omits. While the translation is ultimately found via the symbol fallback, this represents an unnecessary performance penalty on a hot path.",
+      "source_pass": "review"
     }
   ]
 }

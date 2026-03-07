@@ -1,51 +1,33 @@
 {
   "pr_url": "https://github.com/getsentry/sentry/pull/95633",
-  "total_issues": 5,
+  "total_issues": 3,
   "issues": [
     {
       "file_path": "src/sentry/remote_subscriptions/consumers/queue_consumer.py",
-      "line_number": 131,
-      "category": "api_misuse",
-      "severity": "high",
+      "line_number": 89,
+      "category": "logic_error",
+      "severity": "critical",
       "confidence": 0.95,
-      "comment": "queue.ShutDown exception does not exist in Python's standard queue module. The import 'import queue' references the standard library, but queue.ShutDown is not a valid exception, causing AttributeError at runtime.",
-      "source_pass": "batched_review"
+      "comment": "After `mark_committed` removes all offsets \u2264 the committed value, `min_offset` shifts past any gap in the offset sequence. On the next commit-loop iteration, `start = max(last_committed + 1, min_offset)` jumps over the gap, allowing offsets beyond the gap to be committed\u2014losing the unprocessed message forever. For example, with offsets {100, 102, 103} submitted (101 never seen), all completed: first commit correctly commits 100, then mark_committed(100) removes \u2264100 leaving {102, 103}, then second get_committable_offsets computes min_offset=102, start=max(101,102)=102, and commits 103\u2014skipping offset 101 entirely. The fix should be: when last_committed has been set for this partition, use start = last_committed + 1 unconditionally (not max with min_offset). The min_offset fallback is only correct for the initial case (last_committed == -1).",
+      "source_pass": "review"
     },
     {
-      "file_path": "src/sentry/remote_subscriptions/consumers/queue_consumer.py",
-      "line_number": 141,
-      "category": "api_misuse",
+      "file_path": "tests/sentry/remote_subscriptions/consumers/test_queue_consumer.py",
+      "line_number": 330,
+      "category": "race_condition",
       "severity": "high",
-      "confidence": 0.95,
-      "comment": "queue.ShutDown exception does not exist in Python's standard queue module. This will cause AttributeError when the exception is raised.",
-      "source_pass": "batched_review"
+      "confidence": 0.92,
+      "comment": "The commit loop runs on a background thread every ~1 second. After the first commit of offset 100, if the commit loop fires a second time before the assertion, it will commit 103 due to the offset gap logic bug. The test only passes if the assertion runs within the 1-second window before the next commit-loop iteration. The uptime integration test (test_thread_queue_parallel_offset_gaps) has the same issue where `assert actual_offset == 101` expects 100+1, but could be 104 if commit loop fires again. Both gap tests are flaky as a direct consequence of Bug 1 combined with background commit thread timing.",
+      "source_pass": "review"
     },
     {
-      "file_path": "src/sentry/remote_subscriptions/consumers/queue_consumer.py",
-      "line_number": 235,
-      "category": "api_misuse",
-      "severity": "high",
-      "confidence": 0.95,
-      "comment": "queue.Queue.shutdown() method does not exist in Python's standard queue module. The code imports the standard library 'queue' module, but Queue objects have no shutdown() method, causing AttributeError at runtime.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "src/sentry/remote_subscriptions/consumers/queue_consumer.py",
-      "line_number": 131,
-      "category": "api_misuse",
-      "severity": "high",
-      "confidence": 1.0,
-      "comment": "`queue.ShutDown` exception does not exist in Python's standard library queue module, causing AttributeError at runtime. The standard library only has `queue.Empty` and `queue.Full` exceptions.",
-      "source_pass": "pass2"
-    },
-    {
-      "file_path": "src/sentry/remote_subscriptions/consumers/queue_consumer.py",
-      "line_number": 230,
-      "category": "api_misuse",
-      "severity": "high",
-      "confidence": 0.95,
-      "comment": "`Queue.shutdown()` method does not exist in Python's standard library queue module, causing AttributeError at runtime. The standard Queue class has no shutdown method.",
-      "source_pass": "pass2"
+      "file_path": "tests/sentry/uptime/consumers/test_results_consumer.py",
+      "line_number": 1876,
+      "category": "test_correctness",
+      "severity": "medium",
+      "confidence": 0.88,
+      "comment": "The test claims to verify 'errors in processing don't block offset commits for other messages.' However, the worker's `finally` block always calls `complete_offset`\u2014even for the failed message. So both offsets (100 for the failed message, 101 for the successful one) are marked completed. The commit loop will commit them both. The assertion `len(committed_offsets) == 0 or test_partition not in committed_offsets` only passes because the 1-second commit-loop delay hasn't elapsed yet\u2014it's timing-dependent, not behavior-dependent. The test is testing commit-loop timing, not error handling semantics.",
+      "source_pass": "review"
     }
   ]
 }

@@ -1,51 +1,24 @@
 {
   "pr_url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/5",
-  "total_issues": 5,
+  "total_issues": 2,
   "issues": [
     {
       "file_path": "app/assets/stylesheets/common/foundation/mixins.scss",
-      "line_number": 119,
+      "line_number": 125,
       "category": "incorrect_value",
-      "severity": "medium",
+      "severity": "low",
       "confidence": 0.9,
-      "comment": "The `-ms-flex-align` property does not accept the same values as `align-items`. For baseline alignment, it should use `baseline`, but for flex-start/flex-end it should use `start`/`end` instead of `flex-start`/`flex-end`, causing incorrect alignment in older IE versions.",
-      "source_pass": "batched_review"
+      "comment": "The property `-ms-align-items` was never a valid vendor-prefixed CSS property in any version of Internet Explorer or Edge. The correct IE10 property for `align-items` is `-ms-flex-align` (which is already included on the line above). This line is dead code that all browsers will silently ignore. It suggests the author was guessing at the prefix pattern rather than using the actual IE10 flexbox implementation (`-ms-flex-align`).",
+      "source_pass": "review"
     },
     {
       "file_path": "app/assets/stylesheets/common/foundation/mixins.scss",
-      "line_number": 126,
-      "category": "incorrect_value",
-      "severity": "medium",
-      "confidence": 0.85,
-      "comment": "The `-webkit-box-ordinal-group` and `-moz-box-ordinal-group` properties expect 1-based values (starting from 1) while the standard `order` property is 0-based. When `$val` is 0, these legacy properties should receive 1, causing incorrect ordering in older browsers.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "app/assets/stylesheets/common/base/header.scss",
-      "line_number": 39,
+      "line_number": 130,
       "category": "logic_error",
-      "severity": "low",
-      "confidence": 0.7,
-      "comment": "The `@include order(3)` on `.panel` specifies order 3, but only 2 flex items are visible in this diff (contents and panel), potentially causing unexpected layout behavior if there isn't a third flex item.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "app/assets/stylesheets/common/base/topic.scss",
-      "line_number": 30,
-      "category": "logic_error",
-      "severity": "medium",
-      "confidence": 0.8,
-      "comment": "The `@include order(2)` on `.extra-info-wrapper` assumes it's inside a flex container, but the parent element's conversion to flexbox is not shown in this diff, potentially causing the order property to have no effect.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "app/assets/stylesheets/common/base/topic-post.scss",
-      "line_number": 280,
-      "category": "incorrect_value",
       "severity": "medium",
       "confidence": 0.75,
-      "comment": "The padding change from `0.5em 0 0.5em 4em` to `0 1.5%` significantly reduces the left spacing from a fixed 4em to a small percentage, potentially breaking the layout by making text overlap with adjacent elements.",
-      "source_pass": "batched_review"
+      "comment": "The old flexbox spec (`-webkit-box-ordinal-group` and `-moz-box-ordinal-group`) uses 1-based ordinal groups (default = 1), while the standard `order` property is 0-based (default = 0). The mixin passes the same raw value to both, creating an off-by-one mapping. The correct old-spec values should be `$val + 1` to match the standard `order` semantics. For example, `@include order(0)` would produce `-webkit-box-ordinal-group: 0` (invalid, values must be \u2265 1) and `@include order(1)` would be indistinguishable from the default ordinal group on old WebKit.",
+      "source_pass": "review"
     }
   ]
 }

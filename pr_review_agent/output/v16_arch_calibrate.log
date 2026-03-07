@@ -1,0 +1,72 @@
+============================================================
+PR Review Agent - Benchmark Pipeline
+============================================================
+Loaded 50 PRs
+WarpGrep: ENABLED
+Calibration: 5 PRs (1 per repo)
+Reviewing 5 PRs
+
+Running 5 PRs with parallelism=5
+
+[1/5] keycloak PR#37429 (4 golden)
+[2/5] sentry PR#93824 (5 golden)
+[3/5] grafana PR#97529 (2 golden)
+[4/5] discourse-graphite PR#9 (2 golden)
+[5/5] cal.com PR#22532 (2 golden)
+  [3/5] grafana PR#97529 5 files, 25 added lines
+  [4/5] discourse-graphite PR#9 6 files, 31 added lines
+  [1/5] keycloak PR#37429 48 files, 343 added lines
+  [5/5] cal.com PR#22532 17 files, 379 added lines
+  [2/5] sentry PR#93824 6 files, 199 added lines
+    WarpGrep: FallbackLocaleList class definition and ensure_loaded! method
+    WarpGrep: SpansBuffer class definition with __init__ and assigned_shards
+    WarpGrep: Lithuanian login totpStep1 in English login messages
+    WarpGrep: fetchAvailabilityAndSetCache method definition in GoogleCalendarService
+    WarpGrep: credential.id in GoogleCalendarService constructor
+    WarpGrep: SpansBuffer slice_id usage, how slice_id is used for Redis connection
+    WarpGrep: Prisma updateMany with empty data object - what happens
+    WarpGrep: callers of NewResourceServer function
+    WarpGrep: callers of BuildIndex in bleve backend, who calls BuildIndex
+    WarpGrep: run_with_initialized_sentry function definition
+    WarpGrep: _import_and_run function definition showing how main_fn and args are combined
+    WarpGrep: kafka_slice_id in process-spans consumer configuration or click options
+    WarpGrep: set_locale method in application_controller.rb that sets I18n.locale
+    WarpGrep: with_resolved_locale method in application controller that sets I18n.locale
+    WarpGrep: tRPC date serialization superjson transformer configuration
+  Review complete (tools: read_file=13, warpgrep_codebase_search=1, grep_pattern=9, report_issue=3)
+  Review complete: 3 issues
+  [1/5] keycloak PR#37429 3 raw -> 3 kept
+    [1/5] keycloak PR#37429 [0.98] localization: The Lithuanian (lt) locale's `loginTotpStep1` was replaced with Italian text ("Installa un
+    [1/5] keycloak PR#37429 [0.98] localization: The Lithuanian (lt) account locale's `totpStep1` was replaced with Italian text ("Installa
+    [1/5] keycloak PR#37429 [0.95] localization: The zh_CN (Simplified Chinese) file's `totpStep1` was replaced with Traditional Chinese te
+    WarpGrep: searchSupport struct definition or searchServer handleEvent method
+    WarpGrep: SpansBuffer process_spans method - how shards are used for routing spans
+    WarpGrep: callers of set_locale method in application controller, before_action or before_
+    WarpGrep: SpansBuffer flush_segments method definition
+    WarpGrep: SpansBuffer record_stored_segments method definition
+    WarpGrep: SpansBuffer get_memory_info method
+    WarpGrep: DiscourseI18n class definition backend
+    WarpGrep: getSelectedCalendars function definition selecting fields from allSelectedCalend
+    WarpGrep: set_locale method definition that assigns I18n.locale, with SiteSetting.default_
+  Review complete (tools: read_file=9, warpgrep_codebase_search=9, grep_pattern=2, report_issue=2)
+  Review complete: 2 issues
+  [2/5] sentry PR#93824 2 raw -> 2 kept
+    [2/5] sentry PR#93824 [0.95] incorrect_value: The new `SpansBuffer(shards)` is created without passing `slice_id`. The original buffer p
+    [2/5] sentry PR#93824 [0.90] naming_error: Inconsistent metrics tag key: `tags={\"shards\": shard_tag}` (plural) is used for `spans.b
+  Max tool rounds reached (tools: read_file=22, grep_pattern=25, list_directory=3, warpgrep_codebase_search=5)
+  Review complete: 0 issues
+  [5/5] cal.com PR#22532 0 raw -> 0 kept
+    WarpGrep: who calls server.History method or server.Origin method on resource server
+  Review complete (tools: read_file=10, grep_pattern=12, warpgrep_codebase_search=6, list_directory=1)
+  Review complete: 0 issues
+  [4/5] discourse-graphite PR#9 0 raw -> 0 kept
+  Review complete (tools: read_file=15, warpgrep_codebase_search=4, grep_pattern=15)
+  Review complete: 0 issues
+  [3/5] grafana PR#97529 0 raw -> 0 kept
+Wrote candidates to /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+
+============================================================
+DONE: 5 reviewed, 5 raw -> 5 filtered
+Avg/PR: 1.0, Time: 494s
+Candidates: /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+Benchmark data updated: /Users/tejas/personal/applymodel/zmisc/examples/code-review-benchmark/offline/results/benchmark_data.json

@@ -4,12 +4,12 @@
   "issues": [
     {
       "file_path": "pkg/api/webassets/webassets.go",
-      "line_number": 47,
+      "line_number": 53,
       "category": "race_condition",
-      "severity": "medium",
-      "confidence": 0.8,
-      "comment": "GetWebAssets function implements incomplete double-checked locking pattern. After acquiring the write lock (line 47), the code should check if entryPointAssetsCache is still nil before proceeding with expensive computation, otherwise multiple goroutines could redundantly compute and overwrite the cache when initially nil.",
-      "source_pass": "batched_review"
+      "severity": "high",
+      "confidence": 0.95,
+      "comment": "Incomplete double-checked locking: After acquiring the write lock, the code does not re-check whether `entryPointAssetsCache` has already been populated by another goroutine. If two goroutines both read the cache as nil under the read lock, one acquires the write lock and populates the cache, then the second acquires the write lock and redundantly re-reads/re-parses the manifest without checking the cache first. If the second goroutine's redundant read fails (transient file error, context cancellation), `result` will be nil and it overwrites the previously successful cache value with nil at line 92, causing all subsequent requests to miss the cache. Fix: add a re-check after acquiring the write lock: if cfg.Env != setting.Dev && entryPointAssetsCache != nil { return entryPointAssetsCache, nil }",
+      "source_pass": "review"
     }
   ]
 }

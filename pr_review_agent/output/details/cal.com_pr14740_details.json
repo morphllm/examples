@@ -1,69 +1,33 @@
 {
   "pr_url": "https://github.com/calcom/cal.com/pull/14740",
-  "total_issues": 7,
+  "total_issues": 3,
   "issues": [
     {
-      "file_path": "apps/web/components/dialog/AddGuestsDialog.tsx",
+      "file_path": "packages/trpc/server/routers/viewer/bookings/addGuests.handler.ts",
       "line_number": 49,
       "category": "logic_error",
-      "severity": "medium",
-      "confidence": 0.9,
-      "comment": "Empty array check `multiEmailValue.length === 0` will never be true because multiEmailValue is initialized with `[\"\"]` (length 1), causing the function to always proceed even with only empty strings, which may cause validation errors later.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "packages/emails/email-manager.ts",
-      "line_number": 541,
-      "category": "logic_error",
       "severity": "high",
-      "confidence": 0.85,
-      "comment": "Email logic is inverted: `if (newGuests.includes(attendee.email))` sends AttendeeScheduledEmail to new guests but AttendeeAddGuestsEmail to existing attendees, when it should be the opposite - existing attendees should get add guests notification, new guests should get scheduled notification.",
-      "source_pass": "batched_review"
+      "confidence": 0.95,
+      "comment": "`&&` is used instead of `||` in the permission check, making `isTeamAdminOrOwner` true only for owners (since any owner passes `isTeamAdmin`, but only owners pass `isTeamOwner`). Team admins who are not owners will be incorrectly denied permission. The variable name `isTeamAdminOrOwner` clearly indicates `||` was intended. Should be: `(await isTeamAdmin(...)) || (await isTeamOwner(...))`.",
+      "source_pass": "review"
     },
     {
       "file_path": "packages/trpc/server/routers/viewer/bookings/addGuests.handler.ts",
-      "line_number": 47,
-      "category": "logic_error",
+      "line_number": 170,
+      "category": "incorrect_value",
       "severity": "high",
       "confidence": 0.9,
-      "comment": "Permission check uses `isTeamAdmin(user.id, booking.eventType?.teamId ?? 0) && isTeamOwner(user.id, booking.eventType?.teamId ?? 0)` requiring user to be BOTH admin AND owner, but should typically use OR (||) to allow either role, making the permission too restrictive.",
-      "source_pass": "batched_review"
+      "comment": "`guests` (raw user input) is passed to `sendAddGuestsEmails` instead of `uniqueGuests` (the filtered list). In the email manager, this parameter is used to distinguish new guests (who get `AttendeeScheduledEmail`) from existing attendees (who get `AttendeeAddGuestsEmail`). If a user submits an email that's already an attendee, that email is in `guests` but filtered out of `uniqueGuests`, causing the existing attendee to incorrectly receive a full booking confirmation email instead of a \"new guests added\" notification. Should be `await sendAddGuestsEmails(evt, uniqueGuests)`.",
+      "source_pass": "review"
     },
     {
       "file_path": "packages/trpc/server/routers/viewer/bookings/addGuests.handler.ts",
-      "line_number": 77,
-      "category": "logic_error",
+      "line_number": 82,
+      "category": "security",
       "severity": "medium",
-      "confidence": 0.7,
-      "comment": "Blacklisted email filtering calls `email.toLowerCase()` on blacklisted emails but compares against guest emails that may not be lowercased, potentially missing matches and allowing blacklisted guests to be added.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "packages/trpc/server/routers/viewer/bookings/addGuests.handler.ts",
-      "line_number": 164,
-      "category": "logic_error",
-      "severity": "medium",
-      "confidence": 0.8,
-      "comment": "Database update at line 92-106 succeeds before calendar update at line 164, but calendar update has no error handling - if calendar update fails, guests are added to database but not calendar, leaving inconsistent state.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "packages/ui/form/MultiEmail.tsx",
-      "line_number": 14,
-      "category": "logic_error",
-      "severity": "low",
-      "confidence": 0.8,
-      "comment": "Parameter reassignment `value = value || []` modifies the input parameter which can cause unexpected behavior and makes the function impure, should use a local variable instead.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "packages/ui/form/MultiEmail.tsx",
-      "line_number": 40,
-      "category": "missing_validation",
-      "severity": "low",
-      "confidence": 0.6,
-      "comment": "Array splice operation `updatedValue.splice(index, 1)` lacks bounds checking - if index is somehow invalid, it could cause unexpected array modification or errors.",
-      "source_pass": "batched_review"
+      "confidence": 0.92,
+      "comment": "The blacklisted emails are lowercased via `.toLowerCase()`, but the user-provided `guest` string is not lowercased before the `.includes()` check. A user can bypass the blacklist by using different casing, e.g., submitting `Blocked@Example.com` when `blocked@example.com` is blacklisted. Should be `!blacklistedGuestEmails.includes(guest.toLowerCase())`.",
+      "source_pass": "review"
     }
   ]
 }

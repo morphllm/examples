@@ -147,7 +147,7 @@ def run_benchmark(config: Config, args: argparse.Namespace) -> None:
 
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
-    parallel = min(10, len(pr_urls))  # up to 10 PRs at a time
+    parallel = min(5, len(pr_urls))  # up to 5 PRs at a time (avoids 2M tok/min rate limit)
 
     def _review_one(idx_and_url):
         i, pr_url = idx_and_url

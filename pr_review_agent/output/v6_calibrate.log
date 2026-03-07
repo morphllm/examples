@@ -1,0 +1,144 @@
+============================================================
+PR Review Agent - Benchmark Pipeline
+============================================================
+PR Review Agent - Benchmark Pipeline
+============================================================
+============================================================
+Loaded 50 PRs
+Loaded 50 PRs
+WarpGrep: ENABLED
+WarpGrep: ENABLED
+Calibration: 5 PRs (1 per repo)
+Reviewing 5 PRs
+
+[1/5] keycloak PR#37429 (4 golden)
+Calibration: 5 PRs (1 per repo)
+Reviewing 5 PRs
+
+[1/5] keycloak PR#37429 (4 golden)
+  48 files, 343 added lines
+  48 files, 343 added lines
+  WarpGrep API error (turn 1): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 1): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep context: 64396 chars
+  WarpGrep context: 64396 chars
+  Review complete (tools: read_file=6, grep_pattern=5)
+  Review complete (tools: read_file=6, grep_pattern=5)
+  Pass 1/6: 4 issues
+  Pass 1/6: 4 issues
+    WarpGrep: How admin-ui processes message properties placeholders, i18next configuration or
+    WarpGrep: How admin-ui processes message properties placeholders, i18next configuration or
+    WarpGrep: How error-invalid-multivalued-size is used or displayed in admin-ui or account-u
+    WarpGrep: How error-invalid-multivalued-size is used or displayed in admin-ui or account-u
+    WarpGrep: How are admin-ui properties messages served to the frontend - transformation of 
+    WarpGrep: How are admin-ui properties messages served to the frontend - transformation of 
+  Review complete (tools: read_file=7, grep_pattern=11, warpgrep_codebase_search=3)
+  Review complete (tools: read_file=7, grep_pattern=11, warpgrep_codebase_search=3)
+  Pass 2/6: 5 issues
+  Pass 2/6: 5 issues
+    WarpGrep: messages_zh_CN.properties in account messages directory with totpStep1
+    WarpGrep: messages_zh_CN.properties in account messages directory with totpStep1
+  Final review call (tools used: read_file=11, grep_pattern=16, warpgrep_codebase_search=1, list_directory=1)
+  Final review call (tools used: read_file=11, grep_pattern=16, warpgrep_codebase_search=1, list_directory=1)
+  Pass 3/6: 0 issues
+  Pass 3/6: 0 issues
+    WarpGrep: How does the admin-ui handle message interpolation for error messages, specifica
+    WarpGrep: How does the admin-ui handle message interpolation for error messages, specifica
+  Review complete (tools: read_file=6, grep_pattern=8, warpgrep_codebase_search=1)
+  Review complete (tools: read_file=6, grep_pattern=8, warpgrep_codebase_search=1)
+  Pass 4/6: 6 issues
+  Pass 4/6: 6 issues
+    WarpGrep: How are account-ui messages_en.properties consumed in the frontend JavaScript co
+    WarpGrep: How are account-ui messages_en.properties consumed in the frontend JavaScript co
+    WarpGrep: account messages_zh_CN.properties totpStep1
+    WarpGrep: account messages_zh_CN.properties totpStep1
+    WarpGrep: error-invalid-multivalued-size usage in JavaScript/TypeScript frontend code
+    WarpGrep: error-invalid-multivalued-size usage in JavaScript/TypeScript frontend code
+    WarpGrep: how Keycloak serves theme messages to frontend, account resources locale endpoin
+    WarpGrep: how Keycloak serves theme messages to frontend, account resources locale endpoin
+    WarpGrep: how admin-ui interpolates message parameters from properties files, i18n configu
+    WarpGrep: how admin-ui interpolates message parameters from properties files, i18n configu
+    WarpGrep: ServerInfoAdminResource resources locale messages theme endpoint that serves mes
+    WarpGrep: ServerInfoAdminResource resources locale messages theme endpoint that serves mes
+    WarpGrep: REST endpoint that serves admin or account theme message bundles as JSON to the 
+    WarpGrep: REST endpoint that serves admin or account theme message bundles as JSON to the 
+  Review complete (tools: grep_pattern=9, warpgrep_codebase_search=7, read_file=6)
+  Review complete (tools: grep_pattern=9, warpgrep_codebase_search=7, read_file=6)
+  Pass 5/6: 5 issues
+  Pass 5/6: 5 issues
+    WarpGrep: How admin-ui frontend handles message format placeholders with double curly brac
+    WarpGrep: How admin-ui frontend handles message format placeholders with double curly brac
+    WarpGrep: i18next interpolation prefix suffix curly braces format for admin-ui or account-
+    WarpGrep: i18next interpolation prefix suffix curly braces format for admin-ui or account-
+    WarpGrep: How Keycloak server converts message properties to serve frontend admin-ui, conv
+    WarpGrep: How Keycloak server converts message properties to serve frontend admin-ui, conv
+    WarpGrep: ValidationError class definition with message parameters and how they are used f
+    WarpGrep: ValidationError class definition with message parameters and how they are used f
+  Review complete (tools: read_file=15, grep_pattern=13, warpgrep_codebase_search=4)
+  Review complete (tools: read_file=15, grep_pattern=13, warpgrep_codebase_search=4)
+  Pass 6/6: 5 issues
+  Pass 6/6: 5 issues
+  Review complete (tools: read_file=6, grep_pattern=9, list_directory=1)
+  Review complete (tools: read_file=6, grep_pattern=9, list_directory=1)
+  Quick-wins pass: 5 issues
+  Quick-wins pass: 5 issues
+  Judge removed 1 FPs (5 -> 4)
+  Judge removed 1 FPs (5 -> 4)
+  4 raw -> 4 filtered
+  4 raw -> 4 filtered
+    [1.00] localization: Italian text in Lithuanian locale file. The new value 'Installa una delle seguenti applica
+    [1.00] localization: Italian text in Lithuanian locale file. The new value 'Installa una delle seguenti applica
+    [1.00] incorrect_value: The `error-invalid-multivalued-size` message was changed from `Attribute {{0}} must have a
+    [1.00] localization: Traditional Chinese characters (手機, 安裝, 應用程式) used in Simplified Chinese (zh_CN) locale fi
+    [1.00] logic_error: The `end` while loop condition `end < sanitized.length() && end < value.length()` is missi
+    [1.00] incorrect_value: The `error-invalid-multivalued-size` message was changed from `Attribute {{0}} must have a
+    [1.00] localization: Traditional Chinese characters (手機, 安裝, 應用程式) used in Simplified Chinese (zh_CN) locale fi
+    [1.00] logic_error: The `end` while loop condition `end < sanitized.length() && end < value.length()` is missi
+[2/5] sentry PR#93824 (5 golden)
+[2/5] sentry PR#93824 (5 golden)
+  6 files, 199 added lines
+  6 files, 199 added lines
+  WarpGrep context: 94945 chars
+  WarpGrep context: 94945 chars
+  Review complete (tools: read_file=15, grep_pattern=6)
+  Review complete (tools: read_file=15, grep_pattern=6)
+  Pass 1/6: 3 issues
+  Pass 1/6: 3 issues
+    WarpGrep: SpansBuffer constructor signature and slice_id parameter
+    WarpGrep: SpansBuffer constructor signature and slice_id parameter
+  Review complete (tools: read_file=12, grep_pattern=5, warpgrep_codebase_search=1)
+  Review complete (tools: read_file=12, grep_pattern=5, warpgrep_codebase_search=1)
+  Pass 2/6: 3 issues
+  Pass 2/6: 3 issues
+    WarpGrep: ProcessSpansStrategyFactory constructor calls and instantiation
+    WarpGrep: ProcessSpansStrategyFactory constructor calls and instantiation
+    WarpGrep: run_with_initialized_sentry function definition and how it wraps functions with 
+    WarpGrep: run_with_initialized_sentry function definition and how it wraps functions with 
+  Final review call (tools used: warpgrep_codebase_search=2, grep_pattern=16, read_file=14)
+  Final review call (tools used: warpgrep_codebase_search=2, grep_pattern=16, read_file=14)
+  Pass 3/6: 0 issues
+  Pass 3/6: 0 issues
+  Review complete (tools: read_file=8, grep_pattern=2)
+  Review complete (tools: read_file=8, grep_pattern=2)
+  Pass 4/6: 2 issues
+  Pass 4/6: 2 issues
+    WarpGrep: How ProcessSpansStrategyFactory is instantiated from consumer definition kwargs
+    WarpGrep: How ProcessSpansStrategyFactory is instantiated from consumer definition kwargs
+  Review complete (tools: grep_pattern=8, read_file=8, warpgrep_codebase_search=1)
+  Review complete (tools: grep_pattern=8, read_file=8, warpgrep_codebase_search=1)
+  Pass 5/6: 2 issues
+  Pass 5/6: 2 issues
+    WarpGrep: SpansBuffer constructor __init__ and assigned_shards parameter
+    WarpGrep: SpansBuffer constructor __init__ and assigned_shards parameter
+    WarpGrep: run_with_initialized_sentry function definition and how it handles positional ar
+    WarpGrep: run_with_initialized_sentry function definition and how it handles positional ar
+    WarpGrep: SpawnProcess class hierarchy and whether it's instanceof multiprocessing.Process    WarpGrep: SpawnProcess class hierarchy and whether it's instanceof multiprocessing.Process
+
+    WarpGrep: validate_consumer_definition function to check what parameters are validated for
+    WarpGrep: validate_consumer_definition function to check what parameters are validated for
+    WarpGrep: SpansBuffer get_memory_info and iter_cluster_memory_usage to check if calling fr
+    WarpGrep: SpansBuffer get_memory_info and iter_cluster_memory_usage to check if calling fr
+  Final review call (tools used: read_file=18, warpgrep_codebase_search=5, grep_pattern=12)
+  Final review call (tools used: read_file=18, warpgrep_codebase_search=5, grep_pattern=12)
+  Pass 6/6: 0 issues
+  Pass 6/6: 0 issues

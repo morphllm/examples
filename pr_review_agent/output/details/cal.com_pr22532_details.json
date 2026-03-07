@@ -1,24 +1,15 @@
 {
   "pr_url": "https://github.com/calcom/cal.com/pull/22532",
-  "total_issues": 2,
+  "total_issues": 1,
   "issues": [
     {
-      "file_path": "scripts/test-gcal-webhooks.sh",
-      "line_number": 67,
-      "category": "portability",
-      "severity": "medium",
-      "confidence": 0.95,
-      "comment": "sed command uses macOS-specific syntax `sed -i ''` but should use portable syntax. On Linux systems, this will fail because the empty string argument after -i is only valid on macOS.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "scripts/test-gcal-webhooks.sh",
-      "line_number": 67,
-      "category": "portability",
-      "severity": "medium",
-      "confidence": 0.95,
-      "comment": "`sed -i ''` uses macOS/BSD syntax but should be `sed -i` for Linux compatibility, causing the script to fail on Linux systems with 'sed: can't read : No such file or directory'.",
-      "source_pass": "pass2"
+      "file_path": "packages/app-store/googlecalendar/lib/CalendarService.ts",
+      "line_number": 0,
+      "category": "api_misuse",
+      "severity": "high",
+      "confidence": 0.92,
+      "comment": "The comment explicitly states the intent is to \"Update SelectedCalendar.updatedAt\", but this passes an empty `data: {}` object to `prisma.selectedCalendar.updateMany()`. Prisma's `updateMany` does not automatically trigger `@updatedAt` \u2014 only `update()` and `upsert()` do. With `updateMany`, you must explicitly set the timestamp in the `data` argument. Passing `data: {}` will generate a SQL query with an empty `SET` clause \u2014 either a no-op or invalid. The `updatedAt` field will never be updated. Fix: Pass the timestamp explicitly: `await SelectedCalendarRepository.updateManyByCredentialId(this.credential.id, { updatedAt: new Date() });`. Impact: The feature relies on `SelectedCalendar.updatedAt` being refreshed when availability cache is rebuilt. Since it's never actually updated, the \"Last updated\" timestamp shown in the `CredentialActionsDropdown` UI will be stale/incorrect.",
+      "source_pass": "review"
     }
   ]
 }

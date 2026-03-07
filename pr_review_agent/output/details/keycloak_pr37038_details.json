@@ -1,60 +1,33 @@
 {
   "pr_url": "https://github.com/keycloak/keycloak/pull/37038",
-  "total_issues": 6,
+  "total_issues": 3,
   "issues": [
     {
-      "file_path": "services/src/main/java/org/keycloak/services/resources/admin/permissions/UserPermissionsV2.java",
-      "line_number": 48,
-      "category": "logic_error",
-      "severity": "high",
-      "confidence": 0.85,
-      "comment": "Removed AdminRoles.ADMIN from hasOneAdminRole() check but kept AdminRoles.MANAGE_USERS and AdminRoles.VIEW_USERS, potentially denying access to users with ADMIN role who don't have the specific sub-roles, causing authorization failures.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "services/src/main/java/org/keycloak/services/resources/admin/UsersResource.java",
-      "line_number": 453,
+      "file_path": "services/src/main/java/org/keycloak/services/resources/admin/permissions/GroupPermissionsV2.java",
+      "line_number": 78,
       "category": "security",
       "severity": "critical",
       "confidence": 0.95,
-      "comment": "Removed `.filter(usersEvaluator::canView)` from the user search stream, causing the method to return users that the evaluator cannot view, bypassing access control checks.",
-      "source_pass": "pass2"
+      "comment": "canManage() incorrectly grants manage permission for VIEW scope. The no-arg canManage() checks for VIEW scope in addition to MANAGE via hasPermission(null, AdminPermissionsSchema.VIEW, AdminPermissionsSchema.MANAGE). This is a privilege escalation bug: a user with only VIEW permission on groups would pass the canManage() check, allowing them to create top-level groups via GroupsResource.addTopLevelGroup(). Compare with the group-specific canManage(GroupModel group) which correctly checks only MANAGE. Should be: hasPermission(null, AdminPermissionsSchema.MANAGE).",
+      "source_pass": "review"
     },
     {
-      "file_path": "services/src/main/java/org/keycloak/services/resources/admin/GroupResource.java",
-      "line_number": 179,
-      "category": "logic_error",
+      "file_path": "services/src/main/java/org/keycloak/services/resources/admin/permissions/GroupPermissionsV2.java",
+      "line_number": 132,
+      "category": "api_misuse",
       "severity": "high",
-      "confidence": 0.8,
-      "comment": "Changed filter logic from `canViewGlobal || auth.groups().canView(g)` to just `auth.groups()::canView`, removing the global view permission check and potentially making previously accessible groups inaccessible.",
-      "source_pass": "pass2"
+      "confidence": 0.93,
+      "comment": "getGroupIdsWithViewPermission() uses groupResource.getId() instead of groupResource.getName(). groupResource.getId() returns the Resource entity's auto-generated internal UUID, not the group's actual UUID. The group's UUID is stored as the Resource's name. This causes two problems: (1) hasPermission(groupResource.getId(), ...) looks for a resource whose name equals the resource's internal ID \u2014 this will always fail, falling through to the type-level default check. (2) granted.add(groupResource.getId()) adds the resource's internal ID (not the group ID) to the returned set, so it will match no real groups when used for filtering. Both occurrences of groupResource.getId() should be groupResource.getName().",
+      "source_pass": "review"
     },
     {
-      "file_path": "services/src/main/java/org/keycloak/services/resources/admin/GroupsResource.java",
-      "line_number": 113,
-      "category": "logic_error",
-      "severity": "high",
-      "confidence": 0.8,
-      "comment": "Changed filter logic from `canViewGlobal || groupsEvaluator.canView(g)` to just `groupsEvaluator::canView`, removing the global view permission check and potentially making previously accessible groups inaccessible.",
-      "source_pass": "pass2"
-    },
-    {
-      "file_path": "rest/admin-ui-ext/src/main/java/org/keycloak/admin/ui/rest/BruteForceUsersResource.java",
-      "line_number": 147,
+      "file_path": "server-spi-private/src/main/java/org/keycloak/authorization/AdminPermissionsSchema.java",
+      "line_number": 72,
       "category": "logic_error",
       "severity": "medium",
-      "confidence": 0.75,
-      "comment": "Removed condition `!auth.users().canView()` that previously guarded setting session attribute, now always sets UserModel.GROUPS attribute when groupIds is not empty, changing authorization behavior.",
-      "source_pass": "pass2"
-    },
-    {
-      "file_path": "services/src/main/java/org/keycloak/services/resources/admin/UsersResource.java",
-      "line_number": 448,
-      "category": "logic_error",
-      "severity": "medium",
-      "confidence": 0.75,
-      "comment": "Removed condition `!auth.users().canView()` that previously guarded setting session attribute, now always sets UserModel.GROUPS attribute when groupIds is not empty, changing authorization behavior.",
-      "source_pass": "pass2"
+      "confidence": 0.82,
+      "comment": "resolveGroup returns group.getId() instead of group.getName(), inconsistent with resolveUser/resolveClient which return human-readable identifiers (user.getUsername(), client.getClientId()). Since the lookup is getGroupById(realm, id), returning group.getId() is a no-op (same UUID passed in), making the method just a null-existence check. This names group resources with UUIDs instead of human-readable names, breaking the established pattern. Should be: return group == null ? null : group.getName();",
+      "source_pass": "review"
     }
   ]
 }

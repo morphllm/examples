@@ -1,42 +1,33 @@
 {
   "pr_url": "https://github.com/keycloak/keycloak/pull/32918",
-  "total_issues": 4,
+  "total_issues": 3,
   "issues": [
+    {
+      "file_path": "testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/organization/cache/OrganizationCacheTest.java",
+      "line_number": 378,
+      "category": "test_correctness",
+      "severity": "medium",
+      "confidence": 0.95,
+      "comment": "Test cleanup uses the literal alias \"alias\" instead of the actual alias of the created IDP (e.g., \"idp-alias-0\" through \"idp-alias-19\"). The cleanup code `getCleanup().addCleanup(testRealm().identityProviders().get(\"alias\")::remove)` should use the actual alias like `\"idp-alias-\" + i`. This means cleanup will attempt to remove a non-existent IDP named \"alias\", while the 20+ IDPs created during the test persist and pollute subsequent tests. Same bug exists at line 422 for \"idp-alias-20\". This is a copy-paste error from the pre-existing `testCacheIDPByOrg` test (line 302) which has the same bug.",
+      "source_pass": "review"
+    },
+    {
+      "file_path": "testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/organization/cache/OrganizationCacheTest.java",
+      "line_number": 422,
+      "category": "test_correctness",
+      "severity": "medium",
+      "confidence": 0.95,
+      "comment": "Test cleanup registers removal of IDP with literal alias \"alias\" instead of the actual alias \"idp-alias-20\". Should be `getCleanup().addCleanup(testRealm().identityProviders().get(\"idp-alias-20\")::remove)`. The created IDP will not be cleaned up, leaking into subsequent tests.",
+      "source_pass": "review"
+    },
     {
       "file_path": "server-spi/src/main/java/org/keycloak/models/IdentityProviderStorageProvider.java",
       "line_number": 254,
-      "category": "null_reference",
-      "severity": "high",
-      "confidence": 0.9,
-      "comment": "The expression `idp.getConfig().get(OrganizationModel.BROKER_PUBLIC)` calls get() on the result of getConfig() without checking if getConfig() returns null, causing a NullPointerException if the IDP has no configuration map.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "model/infinispan/src/main/java/org/keycloak/models/cache/infinispan/idp/InfinispanIdentityProviderStorageProvider.java",
-      "line_number": 240,
       "category": "logic_error",
       "severity": "medium",
-      "confidence": 0.8,
-      "comment": "The cached path returns IDPs from `session.identityProviders().getById(id)` directly, but the non-cached path applies `createOrganizationAwareIdentityProviderModel` mapping, causing inconsistent behavior where cached and non-cached results have different IDP wrapping.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/organization/cache/OrganizationCacheTest.java",
-      "line_number": 380,
-      "category": "incorrect_value",
-      "severity": "medium",
-      "confidence": 1.0,
-      "comment": "The cleanup code tries to remove IDP with alias \"alias\" but the created IDP has alias \"idp-alias-\" + i, causing test cleanup to fail and leaving test data behind.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/organization/cache/OrganizationCacheTest.java",
-      "line_number": 458,
-      "category": "incorrect_value",
-      "severity": "medium",
-      "confidence": 1.0,
-      "comment": "The cleanup code tries to remove IDP with alias \"alias\" but the created IDP has alias \"idp-alias-20\", causing test cleanup to fail and leaving test data behind.",
-      "source_pass": "batched_review"
+      "confidence": 0.6,
+      "comment": "The new predicate `.and(idp -> idp.getOrganizationId() == null || Boolean.parseBoolean(idp.getConfig().get(OrganizationModel.BROKER_PUBLIC)))` added to `getLoginPredicate()` is too restrictive. It causes `registerIDPLoginInvalidation()` to skip cache invalidation for org-linked IDPs that don't have BROKER_PUBLIC set. However, `getForLogin(ORG_ONLY, orgId)` returns all org-linked IDPs matching login search options without filtering by BROKER_PUBLIC, so those IDPs can be cached. When such an IDP is removed, the login cache won't be invalidated because the predicate returns false. This predicate/delegate mismatch is a design inconsistency that could cause subtle cache staleness, especially in `registerIDPLoginInvalidationOnUpdate` where there's no self-healing fallback.",
+      "source_pass": "review"
     }
   ]
 }

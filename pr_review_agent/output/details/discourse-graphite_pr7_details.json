@@ -1,60 +1,51 @@
 {
   "pr_url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/7",
-  "total_issues": 6,
+  "total_issues": 5,
   "issues": [
-    {
-      "file_path": "app/assets/stylesheets/desktop/topic-post.scss",
-      "line_number": 291,
-      "category": "incorrect_values",
-      "severity": "medium",
-      "confidence": 0.9,
-      "comment": "Primary lightness value changed from 30% to 70% during conversion, but should remain 30% to preserve original appearance. This will make text significantly lighter than intended.",
-      "source_pass": "batched_review"
-    },
     {
       "file_path": "app/assets/stylesheets/mobile/modal.scss",
       "line_number": 102,
-      "category": "incorrect_values",
-      "severity": "medium",
-      "confidence": 0.9,
-      "comment": "Primary lightness value changed from 70% to 30% during conversion, but should remain 70% to preserve original appearance. This will make text significantly darker than intended.",
-      "source_pass": "batched_review"
+      "category": "incorrect_value",
+      "severity": "high",
+      "confidence": 0.95,
+      "comment": "Light-mode color regression \u2014 `.custom-message-length`. The original lightness was 70% but the first argument (light mode) in `dark-light-choose` was changed to 30%. The arguments appear to be swapped. The desktop version of the same selector correctly preserves 70% for light mode. This will make `.custom-message-length` text drastically darker in light mode on mobile.",
+      "source_pass": "review"
     },
     {
-      "file_path": "app/assets/stylesheets/mobile/topic-post.scss",
-      "line_number": 182,
-      "category": "incorrect_values",
-      "severity": "medium",
-      "confidence": 0.9,
-      "comment": "Primary lightness value changed from 20% to 50% during conversion, but should remain 20% to preserve original appearance. This will make text significantly lighter than intended.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "app/assets/stylesheets/mobile/topic-post.scss",
-      "line_number": 247,
-      "category": "incorrect_values",
-      "severity": "medium",
-      "confidence": 0.8,
-      "comment": "Primary lightness value appears to have changed from 20% to 20% in the conversion, but secondary is set to 80% instead of expected inverse relationship. Should verify intended contrast.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "app/assets/stylesheets/mobile/user.scss",
-      "line_number": 497,
-      "category": "incorrect_values",
-      "severity": "medium",
-      "confidence": 0.9,
-      "comment": "Primary lightness value changed from 30% to 50% during conversion, but should remain 30% to preserve original appearance. This will make text significantly lighter than intended.",
-      "source_pass": "batched_review"
+      "file_path": "app/assets/stylesheets/desktop/topic-post.scss",
+      "line_number": 291,
+      "category": "incorrect_value",
+      "severity": "high",
+      "confidence": 0.95,
+      "comment": "Light-mode color regression \u2014 embedded-posts `.row a`. The original lightness was 30% but the first argument (light mode) in `dark-light-choose` was changed to 70%. The arguments appear to be swapped. This will make these links much lighter (washed out) in light mode.",
+      "source_pass": "review"
     },
     {
       "file_path": "app/assets/stylesheets/desktop/user.scss",
       "line_number": 522,
-      "category": "incorrect_values",
-      "severity": "medium",
-      "confidence": 0.9,
-      "comment": "Primary lightness value changed from 30% to 50% during conversion, but should remain 30% to preserve original appearance. This will make text significantly lighter than intended.",
-      "source_pass": "batched_review"
+      "category": "incorrect_value",
+      "severity": "high",
+      "confidence": 0.95,
+      "comment": "Light-mode color regression \u2014 `.name`. The original lightness of 30% (relatively dark/prominent text) was changed to 50% in light mode. This silently makes the `.name` text lighter and less readable in light mode. Should be `dark-light-choose(scale-color($primary, $lightness: 30%), scale-color($secondary, $lightness: 70%))`.",
+      "source_pass": "review"
+    },
+    {
+      "file_path": "app/assets/stylesheets/mobile/user.scss",
+      "line_number": 497,
+      "category": "incorrect_value",
+      "severity": "high",
+      "confidence": 0.95,
+      "comment": "Light-mode color regression \u2014 `.name`. Same issue as the desktop/user.scss bug but in the mobile stylesheet. The light-mode value was changed from 30% to 50%, making the `.name` text lighter and less readable in light mode.",
+      "source_pass": "review"
+    },
+    {
+      "file_path": "app/assets/stylesheets/mobile/topic-post.scss",
+      "line_number": 182,
+      "category": "incorrect_value",
+      "severity": "high",
+      "confidence": 0.95,
+      "comment": "Light-mode color regression \u2014 `h3`. The original lightness was 20% (near-black, prominent heading) but the first argument (light mode) in `dark-light-choose` was changed to 50%. The desktop equivalent correctly preserves `$lightness: 20%` in its `dark-light-choose`. This will make the `h3` heading significantly lighter/washed-out in light mode on mobile.",
+      "source_pass": "review"
     }
   ]
 }

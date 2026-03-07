@@ -1,51 +1,5 @@
 {
   "pr_url": "https://github.com/getsentry/sentry/pull/67876",
-  "total_issues": 5,
-  "issues": [
-    {
-      "file_path": "src/sentry/integrations/github/integration.py",
-      "line_number": 150,
-      "category": "null_reference",
-      "severity": "medium",
-      "confidence": 0.8,
-      "comment": "get_document_origin() accesses org.organization without checking if org.organization exists. If org is not None but org.organization is None, this will raise AttributeError.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "src/sentry/integrations/github/integration.py",
-      "line_number": 477,
-      "category": "logic_error",
-      "severity": "medium",
-      "confidence": 0.7,
-      "comment": "Integration query inconsistency: line 477 uses Integration.objects.get(external_id=installation_id) without status filter, but line 515 adds status=ObjectStatus.ACTIVE filter. This could cause the first check to find an inactive integration that the second check then fails to find.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "src/sentry/integrations/github/integration.py",
-      "line_number": 524,
-      "category": "missing_validation",
-      "severity": "high",
-      "confidence": 0.9,
-      "comment": "integration.metadata['sender']['login'] access assumes nested dictionary structure exists without validation. If metadata, metadata['sender'], or metadata['sender']['login'] don't exist, this will raise KeyError.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "src/sentry/integrations/github/integration.py",
-      "line_number": 522,
-      "category": "missing_validation",
-      "severity": "medium",
-      "confidence": 0.8,
-      "comment": "pipeline.fetch_state('github_authenticated_user') return value is used in comparison without checking if it's None. If the pipeline state wasn't set properly, this could cause unexpected behavior in the comparison.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "tests/sentry/integrations/github/test_integration.py",
-      "line_number": 388,
-      "category": "test_correctness",
-      "severity": "low",
-      "confidence": 0.6,
-      "comment": "test_installation_not_found() uses hardcoded state 'ddd023d87a913d5226e2a882c4c4cc05' which may not match the actual pipeline signature, potentially testing OAuth state validation failure instead of installation not found scenario as the test name suggests.",
-      "source_pass": "batched_review"
-    }
-  ]
+  "total_issues": 0,
+  "issues": []
 }

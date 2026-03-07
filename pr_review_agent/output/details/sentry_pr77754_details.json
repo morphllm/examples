@@ -4,12 +4,12 @@
   "issues": [
     {
       "file_path": "src/sentry/integrations/services/assignment_source.py",
-      "line_number": 17,
-      "category": "logic_error",
-      "severity": "medium",
-      "confidence": 1.0,
-      "comment": "queued: datetime = timezone.now() evaluates timezone.now() at class definition time, not instance creation time, causing all AssignmentSource instances to have the same timestamp. Should use field(default_factory=timezone.now) instead.",
-      "source_pass": "batched_review"
+      "line_number": 18,
+      "category": "api_misuse",
+      "severity": "high",
+      "confidence": 0.97,
+      "comment": "In Python dataclasses, default values are evaluated once when the class is defined (at module import time), not each time an instance is created. This means every AssignmentSource instance that relies on the default `queued` value will share the exact same timestamp \u2014 the time the module was first imported. Over the life of a long-running process, this timestamp will become increasingly stale and meaningless. The `from_integration` factory method doesn't pass `queued`, so it hits this default on every call. Fix: use `queued: datetime = field(default_factory=timezone.now)`.",
+      "source_pass": "review"
     }
   ]
 }

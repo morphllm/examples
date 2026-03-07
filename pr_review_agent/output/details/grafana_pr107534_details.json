@@ -1,33 +1,24 @@
 {
   "pr_url": "https://github.com/grafana/grafana/pull/107534",
-  "total_issues": 3,
+  "total_issues": 2,
   "issues": [
     {
-      "file_path": "public/app/plugins/datasource/loki/querySplitting.test.ts",
-      "line_number": 84,
-      "category": "test_correctness",
-      "severity": "medium",
-      "confidence": 0.8,
-      "comment": "Test creates datasource with 'replace' function but doesn't mock 'applyTemplateVariables' method that the implementation actually calls, while other tests in the same codebase do mock this method directly. This inconsistency suggests the test may not be properly isolating the unit under test.",
-      "source_pass": "batched_review"
+      "file_path": "public/app/plugins/datasource/loki/querySplitting.ts",
+      "line_number": 339,
+      "category": "logic_error",
+      "severity": "high",
+      "confidence": 0.95,
+      "comment": "Double application of `applyTemplateVariables` (including ad hoc filters). The new code calls `applyTemplateVariables` in `runSplitQuery`, but `DataSourceWithBackend.query()` (called via `datasource.runQuery()` \u2192 `super.query()`) already calls `applyTemplateVariables` internally. Since `addAdHocFilters` is NOT idempotent (it calls `addLabelToQuery` for each filter unconditionally), ad hoc filters will be added to the query expression 2 times, producing incorrect queries like `{a=\"b\", job=\"prometheus\", job=\"prometheus\"}`. Tests don't catch this because `datasource.runQuery` is mocked, preventing `super.query()` from being called.",
+      "source_pass": "review"
     },
     {
-      "file_path": "public/app/plugins/datasource/loki/shardQuerySplitting.test.ts",
-      "line_number": 95,
-      "category": "test_correctness",
-      "severity": "medium",
-      "confidence": 0.8,
-      "comment": "Test creates datasource with 'replace' function but doesn't mock 'applyTemplateVariables' method, which is inconsistent with other tests in the same file (lines 56-60) that explicitly mock 'applyTemplateVariables'. This inconsistency could lead to flaky test behavior.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "public/app/plugins/datasource/loki/shardQuerySplitting.test.ts",
-      "line_number": 56,
-      "category": "api_misuse",
-      "severity": "low",
-      "confidence": 0.6,
-      "comment": "Mock implementation of 'applyTemplateVariables' mutates the input query object and returns it, but the real method signature suggests it should return a new/modified query. If the real implementation doesn't mutate inputs, this mock could mask bugs in production code.",
-      "source_pass": "batched_review"
+      "file_path": "public/app/plugins/datasource/loki/shardQuerySplitting.ts",
+      "line_number": 57,
+      "category": "logic_error",
+      "severity": "high",
+      "confidence": 0.95,
+      "comment": "Triple application of `applyTemplateVariables` in the shard split path. `runShardSplitQuery` calls `applyTemplateVariables` (line 57), then calls `splitQueriesByStreamShard` \u2192 `runSplitQuery` which calls it again (line 339), then `datasource.runQuery()` \u2192 `super.query()` calls it a third time. Since `addAdHocFilters` is not idempotent, ad hoc filters will be added 3 times to the query expression, producing incorrect queries. Tests don't catch this because `datasource.runQuery` is mocked.",
+      "source_pass": "review"
     }
   ]
 }

@@ -1,69 +1,24 @@
 {
   "pr_url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/3",
-  "total_issues": 7,
+  "total_issues": 2,
   "issues": [
+    {
+      "file_path": "lib/validators/email_validator.rb",
+      "line_number": 20,
+      "category": "security",
+      "severity": "critical",
+      "confidence": 0.95,
+      "comment": "Missing `$` anchor in domain regex \u2014 whitelist bypass / blacklist false positives. The regex `@(#{domains})` is not anchored at the end with `$`. When the setting is a pipe-separated domain list like `\"example.com|mail.com\"`, the regex becomes `/@(example\\.com|mail\\.com)/i`. If `email_domains_whitelist` is set to `\"example.com\"`, an attacker can register with `user@example.com.evil.com` \u2014 the regex finds `@example.com` as a substring match and passes validation, even though the actual domain is `evil.com`. For blacklists, a legitimate email like `user@spam.com.legitimate.org` would be incorrectly blocked. The fix should anchor the regex with `$`, e.g. `regexp = Regexp.new(\"@(.+\\\\.)?(#{domains})$\", true)`.",
+      "source_pass": "review"
+    },
     {
       "file_path": "app/models/blocked_email.rb",
       "line_number": 11,
-      "category": "race_condition",
+      "category": "logic_error",
       "severity": "medium",
-      "confidence": 0.9,
-      "comment": "BlockedEmail.should_block? method has a race condition where multiple concurrent calls with the same email can read the same match_count value, both increment it, and both save, causing incorrect statistics (e.g. 2 calls incrementing from 5 results in match_count=6 instead of 7).",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "app/models/blocked_email.rb",
-      "line_number": 16,
-      "category": "missing_validation",
-      "severity": "low",
-      "confidence": 0.8,
-      "comment": "record.save call ignores return value and potential failures, causing statistics updates to fail silently if save encounters validation errors or database issues.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "app/assets/javascripts/discourse/controllers/create_account_controller.js",
-      "line_number": 275,
-      "category": "null_reference",
-      "severity": "medium",
-      "confidence": 0.8,
-      "comment": "result.values.email access is not null-checked before pushObject call - if result.values.email is undefined/null, it will push undefined into rejectedEmails array, causing subsequent contains() checks to potentially misbehave.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "app/assets/javascripts/discourse/controllers/create_account_controller.js",
-      "line_number": 71,
-      "category": "incorrect_value",
-      "severity": "medium",
-      "confidence": 0.9,
-      "comment": "JavaScript uses I18n.t('user.email.invalid') for blocked emails but server-side EmailValidator uses I18n.t(:'user.email.blocked'), causing users to see different error messages for the same blocked email condition depending on client vs server-side validation.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "app/models/blocked_email.rb",
-      "line_number": 12,
-      "category": "missing_validation",
-      "severity": "medium",
-      "confidence": 0.7,
-      "comment": "Email matching in BlockedEmail.where(email: email) is likely case-sensitive, but email addresses should typically be treated case-insensitively - users could bypass blocks by changing email case (e.g. User@SPAM.com vs user@spam.com).",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "app/assets/javascripts/discourse/controllers/create_account_controller.js",
-      "line_number": 68,
-      "category": "missing_validation",
-      "severity": "medium",
-      "confidence": 0.7,
-      "comment": "rejectedEmails.contains(email) check is case-sensitive, allowing users to bypass client-side blocked email detection by changing email case between attempts.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "spec/components/validators/email_validator_spec.rb",
-      "line_number": 10,
-      "category": "test_correctness",
-      "severity": "low",
-      "confidence": 0.8,
-      "comment": "EmailValidator test only stubs BlockedEmail.should_block? but doesn't test the whitelist/blacklist validation logic that runs first in the validator, providing incomplete test coverage of the validator's full behavior.",
-      "source_pass": "batched_review"
+      "confidence": 0.6,
+      "comment": "`BlockedEmail.should_block?` has write side-effects during read-only validation. This method is called from within `EmailValidator#validate_each`, meaning it runs during `User#valid?` \u2014 a nominally read-only check. Every call to `user.valid?` (or any validation trigger, including failed saves due to other validation errors like username) will increment `match_count` and update `last_match_at` in the database. This corrupts the statistics: the count reflects how many times validation ran, not how many actual blocked registration attempts occurred.",
+      "source_pass": "review"
     }
   ]
 }

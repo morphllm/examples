@@ -1,0 +1,326 @@
+============================================================
+PR Review Agent - Benchmark Pipeline
+============================================================
+============================================================
+PR Review Agent - Benchmark Pipeline
+============================================================
+Loaded 50 PRs
+Loaded 50 PRs
+Organism: pr_review_agent/evolver/seed_organism_v2.json
+Organism: pr_review_agent/evolver/seed_organism_v2.json
+  confidence_threshold=0.4, num_passes=4, max_issues=8
+WarpGrep: ENABLED
+Calibration: 5 PRs (1 per repo)
+Reviewing 5 PRs
+
+  confidence_threshold=0.4, num_passes=4, max_issues=8
+WarpGrep: ENABLED
+Calibration: 5 PRs (1 per repo)
+Reviewing 5 PRs
+
+[1/5] keycloak PR#37429 (4 golden)
+[1/5] keycloak PR#37429 (4 golden)
+  48 files, 343 added lines
+  48 files, 343 added lines
+  WarpGrep context: 57466 chars
+  WarpGrep context: 57466 chars
+    WarpGrep: messages_zh_CN.properties account totpStep1
+    WarpGrep: messages_zh_CN.properties account totpStep1
+    WarpGrep: zh_CN account messages totpStep1 traditional chinese simplified
+    WarpGrep: zh_CN account messages totpStep1 traditional chinese simplified
+  Review complete (tools: read_file=3, grep_pattern=6, warpgrep_codebase_search=2)
+  Review complete (tools: read_file=3, grep_pattern=6, warpgrep_codebase_search=2)
+  Pass 1/4: 5 issues
+  Pass 1/4: 5 issues
+    WarpGrep: How is error-invalid-multivalued-size used in the admin UI or account UI JavaScr
+    WarpGrep: How is error-invalid-multivalued-size used in the admin UI or account UI JavaScr
+  Review complete (tools: grep_pattern=9, read_file=3, list_directory=1, warpgrep_codebase_search=1)
+  Review complete (tools: grep_pattern=9, read_file=3, list_directory=1, warpgrep_codebase_search=1)
+  Pass 2/4: 6 issues
+  Pass 2/4: 6 issues
+    WarpGrep: How does account-ui handle message format interpolation for error-invalid-multiv
+    WarpGrep: How does account-ui handle message format interpolation for error-invalid-multiv
+    WarpGrep: How admin-ui i18n interpolation works, what format does it use for placeholders
+    WarpGrep: How admin-ui i18n interpolation works, what format does it use for placeholders
+  Review complete (tools: grep_pattern=5, list_directory=1, read_file=3, warpgrep_codebase_search=2)
+  Review complete (tools: grep_pattern=5, list_directory=1, read_file=3, warpgrep_codebase_search=2)
+  Pass 3/4: 6 issues
+  Pass 3/4: 6 issues
+  Review complete (tools: grep_pattern=6, read_file=4, list_directory=1)
+  Review complete (tools: grep_pattern=6, read_file=4, list_directory=1)
+  Pass 4/4: 5 issues
+  Pass 4/4: 5 issues
+  Review complete (tools: read_file=6, grep_pattern=7)
+  Review complete (tools: read_file=6, grep_pattern=7)
+  Quick-wins pass: 5 issues
+  Quick-wins pass: 5 issues
+    WarpGrep: How does account-ui and admin-ui handle message interpolation for error messages
+    WarpGrep: How does account-ui and admin-ui handle message interpolation for error messages
+  Review complete (tools: grep_pattern=7, read_file=8, warpgrep_codebase_search=1)
+  Review complete (tools: grep_pattern=7, read_file=8, warpgrep_codebase_search=1)
+  Judge removed 2 FPs (6 -> 4)
+  Judge removed 2 FPs (6 -> 4)
+  4 raw -> 4 filtered
+  4 raw -> 4 filtered
+    [1.00] localization: Italian text "Installa una delle seguenti applicazioni sul tuo cellulare:" placed in the L
+    [1.00] localization: `totpStep1` is set to Traditional Chinese text "在您的手機上安裝以下應用程式之一：" in the Simplified Chine
+    [1.00] incorrect_value: `error-invalid-multivalued-size` changed from `{{0}}`/`{{1}}`/`{{2}}` (double-curly fronte
+    [1.00] incorrect_value: Method name typo: `santizeAnchors` should be `sanitizeAnchors` (missing 'i' in 'sanitize')
+    [1.00] localization: Italian text "Installa una delle seguenti applicazioni sul tuo cellulare:" placed in the L
+    [1.00] localization: `totpStep1` is set to Traditional Chinese text "在您的手機上安裝以下應用程式之一：" in the Simplified Chine
+    [1.00] incorrect_value: `error-invalid-multivalued-size` changed from `{{0}}`/`{{1}}`/`{{2}}` (double-curly fronte
+    [1.00] incorrect_value: Method name typo: `santizeAnchors` should be `sanitizeAnchors` (missing 'i' in 'sanitize')
+[2/5] sentry PR#93824 (5 golden)
+[2/5] sentry PR#93824 (5 golden)
+  6 files, 199 added lines
+  6 files, 199 added lines
+  WarpGrep context: 109768 chars
+  WarpGrep context: 109768 chars
+  Review complete (tools: grep_pattern=4, read_file=14)
+  Review complete (tools: grep_pattern=4, read_file=14)
+  Pass 1/4: 3 issues
+  Pass 1/4: 3 issues
+    WarpGrep: multiprocessing SpawnProcess isinstance check if it's a subclass of multiprocess
+    WarpGrep: multiprocessing SpawnProcess isinstance check if it's a subclass of multiprocess
+    WarpGrep: multiprocessing.process.BaseProcess or SpawnProcess class hierarchy
+    WarpGrep: multiprocessing.process.BaseProcess or SpawnProcess class hierarchy
+  Review complete (tools: read_file=11, grep_pattern=5, warpgrep_codebase_search=2)
+  Review complete (tools: read_file=11, grep_pattern=5, warpgrep_codebase_search=2)
+  Pass 2/4: 3 issues
+  Pass 2/4: 3 issues
+    WarpGrep: multiprocessing.Process isinstance check for spawn context - does SpawnProcess i
+    WarpGrep: multiprocessing.Process isinstance check for spawn context - does SpawnProcess i
+    WarpGrep: multiprocessing.get_context spawn Process creation - how the mp_context Process 
+    WarpGrep: multiprocessing.get_context spawn Process creation - how the mp_context Process 
+  Review complete (tools: grep_pattern=5, read_file=12, warpgrep_codebase_search=2)
+  Review complete (tools: grep_pattern=5, read_file=12, warpgrep_codebase_search=2)
+  Pass 3/4: 3 issues
+  Pass 3/4: 3 issues
+  Review complete (tools: grep_pattern=4, read_file=12)
+  Review complete (tools: grep_pattern=4, read_file=12)
+  Pass 4/4: 3 issues
+  Pass 4/4: 3 issues
+    WarpGrep: SpawnProcess inherits from multiprocessing.Process class hierarchy
+    WarpGrep: SpawnProcess inherits from multiprocessing.Process class hierarchy
+  WarpGrep API error (turn 3): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 3): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  Review complete (tools: read_file=9, grep_pattern=2, warpgrep_codebase_search=1)
+  Review complete (tools: read_file=9, grep_pattern=2, warpgrep_codebase_search=1)
+  Quick-wins pass: 2 issues
+  Quick-wins pass: 2 issues
+    WarpGrep: SpansBuffer constructor __init__ slice_id parameter
+    WarpGrep: SpansBuffer constructor __init__ slice_id parameter
+  Review complete (tools: read_file=10, grep_pattern=6, warpgrep_codebase_search=1)
+  Review complete (tools: read_file=10, grep_pattern=6, warpgrep_codebase_search=1)
+  Judge removed 2 FPs (5 -> 3)
+  Judge removed 2 FPs (5 -> 3)
+  3 raw -> 3 filtered
+  3 raw -> 3 filtered
+    [1.00] incorrect_value: Inconsistent metric tag key `"shards"` (plural) used in `spans.buffer.flusher.wait_produce
+    [0.95] logic_error: In `join()`, when `remaining_time <= 0` the `break` exits the for-loop entirely, skipping 
+    [0.77] type_error: `isinstance(process, multiprocessing.Process)` returns False for processes created via `mu
+    [1.00] incorrect_value: Inconsistent metric tag key `"shards"` (plural) used in `spans.buffer.flusher.wait_produce
+    [0.95] logic_error: In `join()`, when `remaining_time <= 0` the `break` exits the for-loop entirely, skipping 
+    [0.77] type_error: `isinstance(process, multiprocessing.Process)` returns False for processes created via `mu
+[3/5] grafana PR#97529 (2 golden)
+[3/5] grafana PR#97529 (2 golden)
+  5 files, 25 added lines
+  5 files, 25 added lines
+  WarpGrep context: 195994 chars
+  WarpGrep context: 195994 chars
+    WarpGrep: callers of resource.NewResourceServer that handle return value
+    WarpGrep: callers of resource.NewResourceServer that handle return value
+  Final review call (tools used: read_file=26, grep_pattern=5, warpgrep_codebase_search=1)
+  Final review call (tools used: read_file=26, grep_pattern=5, warpgrep_codebase_search=1)
+    WarpGrep: handleEvent function in search.go, uses of the old logger import from grafana-cl
+    WarpGrep: handleEvent function in search.go, uses of the old logger import from grafana-cl
+  Final review call (tools used: read_file=19, grep_pattern=9, warpgrep_codebase_search=1)
+  Final review call (tools used: read_file=19, grep_pattern=9, warpgrep_codebase_search=1)
+  Pass 1/4: 0 issues
+  Pass 1/4: 0 issues
+  API error: Connection error., retrying...
+  API error: Connection error., retrying...
+    WarpGrep: searchServer.init or searchSupport.init method that initializes search and start
+    WarpGrep: searchServer.init or searchSupport.init method that initializes search and start
+  WarpGrep API error (turn 2): 400 Client Error: Bad Request for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 2): 400 Client Error: Bad Request for url: https://api.morphllm.com/v1/chat/completions
+  Final review call (tools used: read_file=25, grep_pattern=10, warpgrep_codebase_search=1)
+  Final review call (tools used: read_file=25, grep_pattern=10, warpgrep_codebase_search=1)
+  Pass 2/4: 2 issues
+  Pass 2/4: 2 issues
+  Final review call (tools used: read_file=23, grep_pattern=6)
+  Final review call (tools used: read_file=23, grep_pattern=6)
+  Final review call (tools used: read_file=19, grep_pattern=10)
+  Final review call (tools used: read_file=19, grep_pattern=10)
+  Pass 3/4: 0 issues  Pass 3/4: 0 issues
+
+  Final review call (tools used: read_file=18, grep_pattern=9)
+  Final review call (tools used: read_file=18, grep_pattern=9)
+  Pass 4/4: 0 issues
+  Pass 4/4: 0 issues
+    WarpGrep: callers of NewResourceServer in production and test code
+    WarpGrep: callers of NewResourceServer in production and test code
+  Final review call (tools used: read_file=22, grep_pattern=5, warpgrep_codebase_search=1)
+  Final review call (tools used: read_file=22, grep_pattern=5, warpgrep_codebase_search=1)
+    WarpGrep: server Stop method that calls cancel in resource server
+    WarpGrep: server Stop method that calls cancel in resource server
+    WarpGrep: searchServer init method that starts goroutines
+    WarpGrep: searchServer init method that starts goroutines
+  Review complete (tools: read_file=9, warpgrep_codebase_search=2)
+  Review complete (tools: read_file=9, warpgrep_codebase_search=2)
+  1 raw -> 1 filtered
+  1 raw -> 1 filtered
+    [0.95] logic_error: In `NewResourceServer`, when `s.Init(ctx)` fails at line 396, the function returns `nil, e
+    [0.95] logic_error: In `NewResourceServer`, when `s.Init(ctx)` fails at line 396, the function returns `nil, e
+[4/5] discourse-graphite PR#9 (2 golden)
+[4/5] discourse-graphite PR#9 (2 golden)
+  6 files, 31 added lines
+  6 files, 31 added lines
+  WarpGrep API error (turn 1): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 1): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep context: 17971 chars
+  WarpGrep context: 17971 chars
+    WarpGrep: Where is set_locale defined in application_controller.rb? Look for the method de
+    WarpGrep: Where is set_locale defined in application_controller.rb? Look for the method de
+    WarpGrep: DiscourseI18n class definition, does it include Fallbacks?
+    WarpGrep: DiscourseI18n class definition, does it include Fallbacks?
+    WarpGrep: FallbackLocaleList ensure_loaded method definition
+    WarpGrep: FallbackLocaleList ensure_loaded method definition
+  Final review call (tools used: read_file=13, list_directory=2, grep_pattern=12, warpgrep_codebase_search=3)
+  Final review call (tools used: read_file=13, list_directory=2, grep_pattern=12, warpgrep_codebase_search=3)
+  Pass 1/4: 4 issues
+  Pass 1/4: 4 issues
+  Final review call (tools used: read_file=14, grep_pattern=11, list_directory=2)
+  Final review call (tools used: read_file=14, grep_pattern=11, list_directory=2)
+  Pass 2/4: 2 issues
+  Pass 2/4: 2 issues
+    WarpGrep: set_locale method definition in application_controller
+    WarpGrep: set_locale method definition in application_controller
+    WarpGrep: calls to I18n.ensure_loaded! with string argument
+    WarpGrep: calls to I18n.ensure_loaded! with string argument
+  Review complete (tools: read_file=12, grep_pattern=10, warpgrep_codebase_search=2, list_directory=2)
+  Review complete (tools: read_file=12, grep_pattern=10, warpgrep_codebase_search=2, list_directory=2)
+  Pass 3/4: 3 issues
+  Pass 3/4: 3 issues
+    WarpGrep: set_locale method in application_controller that sets I18n.locale
+    WarpGrep: set_locale method in application_controller that sets I18n.locale
+  Review complete (tools: read_file=10, list_directory=1, grep_pattern=5, warpgrep_codebase_search=1)
+  Review complete (tools: read_file=10, list_directory=1, grep_pattern=5, warpgrep_codebase_search=1)
+  Pass 4/4: 3 issues
+  Pass 4/4: 3 issues
+  Review complete (tools: read_file=12, list_directory=1, grep_pattern=8)
+  Review complete (tools: read_file=12, list_directory=1, grep_pattern=8)
+  Quick-wins pass: 2 issues
+  Quick-wins pass: 2 issues
+  Review complete (tools: read_file=10, grep_pattern=5)
+  Review complete (tools: read_file=10, grep_pattern=5)
+  Judge removed 2 FPs (4 -> 2)
+  Judge removed 2 FPs (4 -> 2)
+  2 raw -> 2 filtered
+  2 raw -> 2 filtered
+    [1.00] type_error: The new `ensure_loaded!(locale)` method is missing `locale = locale.to_sym` before checkin
+    [1.00] type_error: The new `ensure_loaded!(locale)` method is missing `locale = locale.to_sym` before checkin
+    [1.00] logic_error: `FallbackLocaleList#[]` returns `[locale, SiteSetting.default_locale.to_sym, :en]` for ALL
+[5/5] cal.com PR#22532 (2 golden)
+    [1.00] logic_error: `FallbackLocaleList#[]` returns `[locale, SiteSetting.default_locale.to_sym, :en]` for ALL
+[5/5] cal.com PR#22532 (2 golden)
+  17 files, 379 added lines
+  17 files, 379 added lines
+  WarpGrep API error (turn 3): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 3): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 1): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 1): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 1): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 1): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep context: 8801 chars
+  WarpGrep context: 8801 chars
+    WarpGrep: connectedCalendars type definition or router output for calendars
+    WarpGrep: connectedCalendars type definition or router output for calendars
+    WarpGrep: CalendarCacheRepository class definition with getCacheStatusByCredentialIds
+    WarpGrep: CalendarCacheRepository class definition with getCacheStatusByCredentialIds
+  WarpGrep API error (turn 4): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 4): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  Final review call (tools used: grep_pattern=17, read_file=10, warpgrep_codebase_search=2, list_directory=1)
+  Final review call (tools used: grep_pattern=17, read_file=10, warpgrep_codebase_search=2, list_directory=1)
+    WarpGrep: fetchAvailabilityAndSetCache method in GoogleCalendarService
+    WarpGrep: fetchAvailabilityAndSetCache method in GoogleCalendarService
+    WarpGrep: Prisma updateMany @updatedAt behavior, does updateMany trigger @updatedAt
+    WarpGrep: Prisma updateMany @updatedAt behavior, does updateMany trigger @updatedAt
+    WarpGrep: How is SelectedCalendar updatedAt used in getConnectedDestinationCalendars or ge
+    WarpGrep: How is SelectedCalendar updatedAt used in getConnectedDestinationCalendars or ge
+  Final review call (tools used: grep_pattern=13, read_file=13, warpgrep_codebase_search=3)
+  Final review call (tools used: grep_pattern=13, read_file=13, warpgrep_codebase_search=3)
+  Pass 1/4: 0 issues
+  Pass 1/4: 0 issues
+    WarpGrep: GoogleCalendarService setAvailabilityInCache or updateManyByCredentialId method 
+    WarpGrep: GoogleCalendarService setAvailabilityInCache or updateManyByCredentialId method 
+    WarpGrep: GoogleCalendarService refreshCacheForCalendar method definition and the code aro
+    WarpGrep: GoogleCalendarService refreshCacheForCalendar method definition and the code aro
+  WarpGrep API error (turn 2): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 2): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  Final review call (tools used: grep_pattern=18, read_file=13, warpgrep_codebase_search=2)
+  Final review call (tools used: grep_pattern=18, read_file=13, warpgrep_codebase_search=2)
+  Pass 2/4: 0 issues
+  Pass 2/4: 0 issues
+    WarpGrep: Prisma updateMany with @updatedAt behavior, does updateMany trigger @updatedAt
+    WarpGrep: Prisma updateMany with @updatedAt behavior, does updateMany trigger @updatedAt
+    WarpGrep: ConnectedCalendar type definition with credentialId and integration type
+    WarpGrep: ConnectedCalendar type definition with credentialId and integration type
+    WarpGrep: getConnectedCalendars return type - what does connectedCalendars array contain -
+    WarpGrep: getConnectedCalendars return type - what does connectedCalendars array contain -
+  Final review call (tools used: grep_pattern=17, read_file=8, warpgrep_codebase_search=3, list_directory=1)
+  Final review call (tools used: grep_pattern=17, read_file=8, warpgrep_codebase_search=3, list_directory=1)
+    WarpGrep: useLocale hook definition and return value including locale/i18n
+    WarpGrep: useLocale hook definition and return value including locale/i18n
+  WarpGrep API error (turn 4): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 4): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+    WarpGrep: connectedCalendars type definition and credentialId property in getConnectedDest
+    WarpGrep: connectedCalendars type definition and credentialId property in getConnectedDest
+  Final review call (tools used: grep_pattern=15, read_file=11, warpgrep_codebase_search=2, list_directory=1)
+  Final review call (tools used: grep_pattern=15, read_file=11, warpgrep_codebase_search=2, list_directory=1)
+  Pass 3/4: 0 issues
+  Pass 3/4: 0 issues
+    WarpGrep: SelectedCalendarRepository updateManyByCredentialId definition
+    WarpGrep: SelectedCalendarRepository updateManyByCredentialId definition
+    WarpGrep: connectedCalendarsHandler return type ConnectedCalendarsHandlerResult type defin
+    WarpGrep: connectedCalendarsHandler return type ConnectedCalendarsHandlerResult type defin
+    WarpGrep: GOOGLE_CALENDAR_TYPE constant definition value
+    WarpGrep: GOOGLE_CALENDAR_TYPE constant definition value
+    WarpGrep: Prisma updateMany empty data object updatedAt
+    WarpGrep: Prisma updateMany empty data object updatedAt
+  Review complete (tools: grep_pattern=15, read_file=11, warpgrep_codebase_search=4, list_directory=1)
+  Review complete (tools: grep_pattern=15, read_file=11, warpgrep_codebase_search=4, list_directory=1)
+  Pass 4/4: 4 issues  Pass 4/4: 4 issues
+
+    WarpGrep: Prisma updateMany with empty data object to trigger @updatedAt
+    WarpGrep: Prisma updateMany with empty data object to trigger @updatedAt
+    WarpGrep: useLocale hook definition return value with locale string
+    WarpGrep: useLocale hook definition return value with locale string
+  Review complete (tools: grep_pattern=13, read_file=9, warpgrep_codebase_search=2)
+  Review complete (tools: grep_pattern=13, read_file=9, warpgrep_codebase_search=2)
+  Quick-wins pass: 3 issues
+  Quick-wins pass: 3 issues
+  Review complete (tools: read_file=9, grep_pattern=6, list_directory=2)
+  Review complete (tools: read_file=9, grep_pattern=6, list_directory=2)
+  3 raw -> 3 filtered
+  3 raw -> 3 filtered
+    [1.00] portability: `sed -i '' -E` uses BSD/macOS-specific syntax. On GNU/Linux, `sed -i ''` interprets the em
+    [0.97] localization: `new Intl.DateTimeFormat("en-US", {...})` hardcodes the locale to `"en-US"` for the cache 
+    [0.95] type_error: `updateManyByCredentialId` declares its `data` parameter as `Prisma.SelectedCalendarUpdate
+    [1.00] portability: `sed -i '' -E` uses BSD/macOS-specific syntax. On GNU/Linux, `sed -i ''` interprets the em
+    [0.97] localization: `new Intl.DateTimeFormat("en-US", {...})` hardcodes the locale to `"en-US"` for the cache 
+    [0.95] type_error: `updateManyByCredentialId` declares its `data` parameter as `Prisma.SelectedCalendarUpdate
+Wrote candidates to /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+Wrote candidates to /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+
+============================================================
+DONE: 5 reviewed, 19 raw -> 13 filtered
+
+============================================================
+DONE: 5 reviewed, 19 raw -> 13 filtered
+Avg/PR: 2.6, Time: 11607s
+Candidates: /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+Benchmark data updated: /Users/tejas/personal/applymodel/zmisc/examples/code-review-benchmark/offline/results/benchmark_data.json
+Avg/PR: 2.6, Time: 11607s
+Candidates: /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+Benchmark data updated: /Users/tejas/personal/applymodel/zmisc/examples/code-review-benchmark/offline/results/benchmark_data.json

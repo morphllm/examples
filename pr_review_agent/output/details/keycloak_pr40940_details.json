@@ -1,15 +1,24 @@
 {
   "pr_url": "https://github.com/keycloak/keycloak/pull/40940",
-  "total_issues": 1,
+  "total_issues": 2,
   "issues": [
     {
+      "file_path": "model/infinispan/src/main/java/org/keycloak/models/cache/infinispan/GroupAdapter.java",
+      "line_number": 277,
+      "category": "null_reference",
+      "severity": "high",
+      "confidence": 0.9,
+      "comment": "getSubGroupsCount() returns null when the underlying model is not found, violating the GroupModel interface contract which states \"Never returns null\". Callers like GroupUtils.populateSubGroupCount pass the result directly to representation.setSubGroupCount(group.getSubGroupsCount()), and downstream consumers may auto-unbox the Long to long, causing a NullPointerException. The fix should return 0L (or another non-null default) instead of null to honor the contract.",
+      "source_pass": "review"
+    },
+    {
       "file_path": "tests/base/src/test/java/org/keycloak/tests/admin/group/GroupTest.java",
-      "line_number": 155,
-      "category": "test_correctness",
+      "line_number": 161,
+      "category": "race_condition",
       "severity": "medium",
-      "confidence": 0.85,
-      "comment": "Test assertion `assertThat(caughtExceptions, Matchers.empty())` runs immediately after setting `deletedAll.set(true)` but doesn't wait for the reader thread to complete, causing the test to check exceptions before the background thread finishes and could miss exceptions added after the assertion.",
-      "source_pass": "pass2"
+      "confidence": 0.87,
+      "comment": "The reader thread is started but never join()ed before the assertion. Race condition: (1) Reader thread checks deletedAll \u2192 false, begins HTTP request. (2) Main thread finishes all deletions, sets deletedAll = true. (3) Main thread runs assertThat \u2192 passes (no exceptions yet). (4) Reader thread's in-flight HTTP request fails, adds exception to caughtExceptions \u2014 too late, assertion already passed. This means the test can give false positives, passing even when the concurrent read threw an exception. The thread should be joined (with a timeout) before the assertion.",
+      "source_pass": "review"
     }
   ]
 }

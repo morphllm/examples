@@ -1,132 +1,51 @@
 {
   "pr_url": "https://github.com/grafana/grafana/pull/90045",
-  "total_issues": 14,
+  "total_issues": 5,
   "issues": [
     {
-      "file_path": "pkg/apiserver/rest/dualwriter_mode1_test.go",
-      "line_number": 138,
+      "file_path": "pkg/apiserver/rest/dualwriter_mode3.go",
+      "line_number": 0,
       "category": "incorrect_value",
-      "severity": "critical",
-      "confidence": 1.0,
-      "comment": "Variable `p` is used in NewDualWriter call but was removed from line 138, causing undefined variable compilation error.",
-      "source_pass": "batched_review"
+      "severity": "medium",
+      "confidence": 0.92,
+      "comment": "In the Create method, when d.Storage.Create fails, the error path calls d.recordLegacyDuration instead of d.recordStorageDuration. The success path correctly calls recordStorageDuration. This is a copy-paste error that causes metrics to be recorded under the wrong histogram/counter, corrupting observability data.",
+      "source_pass": "review"
     },
     {
       "file_path": "pkg/apiserver/rest/dualwriter_mode3.go",
-      "line_number": 46,
+      "line_number": 0,
       "category": "incorrect_value",
       "severity": "medium",
-      "confidence": 0.9,
-      "comment": "d.recordLegacyDuration call uses `startStorage` timestamp but should record storage duration since this is a storage operation failure, causing incorrect metrics.",
-      "source_pass": "batched_review"
+      "confidence": 0.92,
+      "comment": "In the Update method, when d.Storage.Update fails, the error path calls d.recordLegacyDuration instead of d.recordStorageDuration. The success path correctly uses recordStorageDuration. Same copy-paste error as in Create, recording legacy operation metrics instead of storage metrics.",
+      "source_pass": "review"
     },
     {
       "file_path": "pkg/apiserver/rest/dualwriter_mode3.go",
-      "line_number": 127,
+      "line_number": 0,
       "category": "incorrect_value",
       "severity": "medium",
-      "confidence": 0.9,
-      "comment": "d.recordLegacyDuration call uses `startStorage` timestamp but should be d.recordStorageDuration since this is a storage operation failure, causing incorrect metrics.",
-      "source_pass": "batched_review"
+      "confidence": 0.93,
+      "comment": "In the Delete method, klog.NewContext is called with d.Log instead of the enriched local variable log. Every other method in the file uses ctx = klog.NewContext(ctx, log) with the enriched logger that includes 'name', 'kind', and 'method' values. Using d.Log means downstream code extracting the logger from context will get a less-informative logger missing those fields.",
+      "source_pass": "review"
     },
     {
       "file_path": "pkg/apiserver/rest/dualwriter_mode3.go",
-      "line_number": 108,
+      "line_number": 0,
       "category": "incorrect_value",
-      "severity": "medium",
-      "confidence": 0.8,
-      "comment": "d.recordStorageDuration call passes `name` as the kind parameter but should pass `options.Kind`, causing incorrect metric labeling.",
-      "source_pass": "batched_review"
+      "severity": "high",
+      "confidence": 0.95,
+      "comment": "In the Delete method's success path, recordStorageDuration is called with `name` (the object name, e.g. 'my-object') instead of `options.Kind` (e.g. 'Pod') as the third argument. The error path correctly passes options.Kind. This creates spurious metric label values (one per object name), leading to high cardinality and incorrect metric grouping.",
+      "source_pass": "review"
     },
     {
       "file_path": "pkg/apiserver/rest/dualwriter_mode3.go",
-      "line_number": 162,
+      "line_number": 0,
       "category": "incorrect_value",
       "severity": "medium",
-      "confidence": 0.9,
-      "comment": "d.recordStorageDuration call should be d.recordLegacyDuration since it's recording the legacy operation duration with `startLegacy` timestamp, causing incorrect metrics.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "pkg/apiserver/rest/dualwriter_mode3.go",
-      "line_number": 52,
-      "category": "race_condition",
-      "severity": "medium",
-      "confidence": 0.7,
-      "comment": "Goroutine inherits parent context which may be cancelled when HTTP request ends, causing legacy operations to be prematurely cancelled instead of running to completion.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "pkg/apiserver/rest/dualwriter_mode3.go",
-      "line_number": 112,
-      "category": "race_condition",
-      "severity": "medium",
-      "confidence": 0.7,
-      "comment": "Goroutine inherits parent context which may be cancelled when HTTP request ends, causing legacy operations to be prematurely cancelled instead of running to completion.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "pkg/apiserver/rest/dualwriter_mode3.go",
-      "line_number": 133,
-      "category": "race_condition",
-      "severity": "medium",
-      "confidence": 0.7,
-      "comment": "Goroutine inherits parent context which may be cancelled when HTTP request ends, causing legacy operations to be prematurely cancelled instead of running to completion.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "pkg/apiserver/rest/dualwriter_mode3.go",
-      "line_number": 157,
-      "category": "race_condition",
-      "severity": "medium",
-      "confidence": 0.7,
-      "comment": "Goroutine inherits parent context which may be cancelled when HTTP request ends, causing legacy operations to be prematurely cancelled instead of running to completion.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "pkg/apiserver/rest/dualwriter_mode3_test.go",
-      "line_number": 63,
-      "category": "incorrect_value",
-      "severity": "critical",
-      "confidence": 1.0,
-      "comment": "Variable `p` is used in NewDualWriter call but is not defined in this test function, causing undefined variable compilation error.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "pkg/apiserver/rest/dualwriter_mode3_test.go",
-      "line_number": 176,
-      "category": "incorrect_value",
-      "severity": "critical",
-      "confidence": 1.0,
-      "comment": "Variable `p` is used in NewDualWriter call but is not defined in this test function, causing undefined variable compilation error.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "pkg/apiserver/rest/dualwriter_mode3_test.go",
-      "line_number": 229,
-      "category": "incorrect_value",
-      "severity": "critical",
-      "confidence": 1.0,
-      "comment": "Variable `p` is used in NewDualWriter call but is not defined in this test function, causing undefined variable compilation error.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "pkg/apiserver/rest/dualwriter_mode3_test.go",
-      "line_number": 279,
-      "category": "incorrect_value",
-      "severity": "critical",
-      "confidence": 1.0,
-      "comment": "Variable `p` is used in NewDualWriter call but is not defined in this test function, causing undefined variable compilation error.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "pkg/apiserver/rest/dualwriter_mode3_test.go",
-      "line_number": 356,
-      "category": "incorrect_value",
-      "severity": "critical",
-      "confidence": 1.0,
-      "comment": "Variable `p` is used in NewDualWriter call but is not defined in this test function, causing undefined variable compilation error.",
-      "source_pass": "batched_review"
+      "confidence": 0.95,
+      "comment": "In the DeleteCollection method's goroutine, d.recordStorageDuration is called for the d.Legacy.DeleteCollection operation instead of d.recordLegacyDuration. All other equivalent goroutines (in Create, Delete, Update) correctly use d.recordLegacyDuration for legacy operations. This records legacy operation metrics as storage metrics.",
+      "source_pass": "review"
     }
   ]
 }

@@ -1,87 +1,15 @@
 {
   "pr_url": "https://github.com/grafana/grafana/pull/76186",
-  "total_issues": 9,
+  "total_issues": 1,
   "issues": [
     {
       "file_path": "pkg/plugins/log/fake.go",
       "line_number": 46,
-      "category": "api_misuse",
-      "severity": "high",
-      "confidence": 1.0,
-      "comment": "FromContext method calls NewTestLogger() but this function is not defined anywhere in the codebase, causing a compile error.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "pkg/services/pluginsintegration/clientmiddleware/contextual_logger_middleware.go",
-      "line_number": 40,
-      "category": "incorrect_value",
-      "severity": "high",
-      "confidence": 1.0,
-      "comment": "instrumentContext function references endpointQueryData constant which is not defined or imported in this file, causing undefined identifier error.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "pkg/services/pluginsintegration/clientmiddleware/contextual_logger_middleware.go",
-      "line_number": 45,
-      "category": "incorrect_value",
-      "severity": "high",
-      "confidence": 1.0,
-      "comment": "instrumentContext function references endpointCallResource constant which is not defined or imported in this file, causing undefined identifier error.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "pkg/services/pluginsintegration/clientmiddleware/contextual_logger_middleware.go",
-      "line_number": 50,
-      "category": "incorrect_value",
-      "severity": "high",
-      "confidence": 1.0,
-      "comment": "instrumentContext function references endpointCheckHealth constant which is not defined or imported in this file, causing undefined identifier error.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "pkg/services/pluginsintegration/clientmiddleware/contextual_logger_middleware.go",
-      "line_number": 55,
-      "category": "incorrect_value",
-      "severity": "high",
-      "confidence": 1.0,
-      "comment": "instrumentContext function references endpointCollectMetrics constant which is not defined or imported in this file, causing undefined identifier error.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "pkg/plugins/log/logger.go",
-      "line_number": 51,
-      "category": "logic_error",
+      "category": "test_correctness",
       "severity": "medium",
-      "confidence": 0.8,
-      "comment": "FromContext method calls d.New() without context parameters when type assertion fails, but New() expects ctx ...any parameters according to the interface, causing loss of contextual information.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "pkg/services/pluginsintegration/clientmiddleware/contextual_logger_middleware.go",
-      "line_number": 59,
-      "category": "logic_error",
-      "severity": "low",
-      "confidence": 0.7,
-      "comment": "SubscribeStream method does not call instrumentContext like other methods do, creating inconsistent behavior where streaming operations lack contextual logging information.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "pkg/services/pluginsintegration/clientmiddleware/contextual_logger_middleware.go",
-      "line_number": 63,
-      "category": "logic_error",
-      "severity": "low",
-      "confidence": 0.7,
-      "comment": "PublishStream method does not call instrumentContext like other methods do, creating inconsistent behavior where streaming operations lack contextual logging information.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "pkg/services/pluginsintegration/clientmiddleware/contextual_logger_middleware.go",
-      "line_number": 67,
-      "category": "logic_error",
-      "severity": "low",
-      "confidence": 0.7,
-      "comment": "RunStream method does not call instrumentContext like other methods do, creating inconsistent behavior where streaming operations lack contextual logging information.",
-      "source_pass": "batched_review"
+      "confidence": 0.65,
+      "comment": "TestLogger.FromContext returns a brand-new TestLogger that is not connected to the receiver `f`. Since LoggerMiddleware.logRequest now logs through m.logger.FromContext(ctx).Info(...), any test that creates a TestLogger, passes it to LoggerMiddleware, and then asserts on testLogger.InfoLogs.Calls or testLogger.ErrorLogs.Calls will see zero calls \u2014 the log writes silently go to the throwaway logger returned by FromContext. The correct implementation should return the receiver (`f`) so that log output remains observable in tests: `func (f *TestLogger) FromContext(_ context.Context) Logger { return f }`.",
+      "source_pass": "review"
     }
   ]
 }

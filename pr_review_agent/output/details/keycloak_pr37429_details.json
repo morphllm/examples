@@ -4,30 +4,30 @@
   "issues": [
     {
       "file_path": "themes/src/main/resources-community/theme/base/account/messages/messages_lt.properties",
-      "line_number": 141,
+      "line_number": 101,
       "category": "localization",
-      "severity": "high",
-      "confidence": 1.0,
-      "comment": "totpStep1 contains Italian text 'Installa una delle seguenti applicazioni sul tuo cellulare:' but should contain Lithuanian text, causing incorrect language display for Lithuanian users.",
-      "source_pass": "batched_review"
+      "severity": "medium",
+      "confidence": 0.98,
+      "comment": "The `totpStep1` key in the Lithuanian (`messages_lt.properties`) file was changed to Italian text: `totpStep1=Installa una delle seguenti applicazioni sul tuo cellulare:`. This is Italian (\"Install one of the following applications on your phone\"), not Lithuanian. The surrounding lines remain in Lithuanian (e.g., `totpStep2=Atidarykite program\u0117l\u0119...`), confirming this is a wrong-locale error.",
+      "source_pass": "review"
     },
     {
-      "file_path": "themes/src/main/resources-community/theme/base/account/messages/messages_zh_CN.properties",
-      "line_number": 112,
+      "file_path": "themes/src/main/resources-community/theme/base/login/messages/messages_lt.properties",
+      "line_number": 71,
       "category": "localization",
-      "severity": "high",
-      "confidence": 0.95,
-      "comment": "totpStep1 contains Traditional Chinese text '\u5728\u60a8\u7684\u624b\u6a5f\u4e0a\u5b89\u88dd\u4ee5\u4e0b\u61c9\u7528\u7a0b\u5f0f\u4e4b\u4e00\uff1a' but should contain Simplified Chinese text, causing incorrect character display for Simplified Chinese users.",
-      "source_pass": "batched_review"
+      "severity": "medium",
+      "confidence": 0.98,
+      "comment": "Same issue as Bug 1, but in the login messages file: `loginTotpStep1=Installa una delle seguenti applicazioni sul tuo cellulare:` \u2014 Italian text in a Lithuanian locale file.",
+      "source_pass": "review"
     },
     {
       "file_path": "themes/src/main/resources-community/theme/base/account/messages/messages_zh_CN.properties",
       "line_number": 112,
       "category": "localization",
       "severity": "medium",
-      "confidence": 0.85,
-      "comment": "totpStep1 contains Traditional Chinese text '\u5728\u60a8\u7684\u624b\u6a5f\u4e0a\u5b89\u88dd\u4ee5\u4e0b\u61c9\u7528\u7a0b\u5f0f\u4e4b\u4e00\uff1a' (using \u6a5f, \u61c9\u7528\u7a0b\u5f0f) but should contain Simplified Chinese text since this is the Simplified Chinese locale file (_zh_CN.properties), causing Traditional Chinese to appear for Simplified Chinese users.",
-      "source_pass": "pass2"
+      "confidence": 0.95,
+      "comment": "The `totpStep1` value uses Traditional Chinese characters (\u624b\u6a5f, \u5b89\u88dd, \u61c9\u7528\u7a0b\u5f0f) in a Simplified Chinese (`zh_Hans`) file: `totpStep1=\u5728\u60a8\u7684\u624b\u6a5f\u4e0a\u5b89\u88dd\u4ee5\u4e0b\u61c9\u7528\u7a0b\u5f0f\u4e4b\u4e00\uff1a`. The correct Simplified Chinese would use: \u624b\u673a, \u5b89\u88c5, \u5e94\u7528\u7a0b\u5e8f. The Traditional Chinese file (`messages_zh_Hant.properties`) has a proper Traditional Chinese translation. This `zh_Hans` (Simplified Chinese) file should use simplified characters throughout.",
+      "source_pass": "review"
     }
   ]
 }

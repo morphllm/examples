@@ -1,24 +1,15 @@
 {
   "pr_url": "https://github.com/grafana/grafana/pull/103633",
-  "total_issues": 2,
+  "total_issues": 1,
   "issues": [
     {
       "file_path": "pkg/services/authz/rbac/service_test.go",
-      "line_number": 982,
+      "line_number": 1387,
       "category": "test_correctness",
       "severity": "medium",
-      "confidence": 0.9,
-      "comment": "Test sets permission cache to `false` but comment says \"Allow access to the dashboard to prove this is not checked\". Should be `true` to actually test that denial cache takes precedence over permission cache.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "pkg/services/authz/rbac/service_test.go",
-      "line_number": 992,
-      "category": "test_correctness",
-      "severity": "medium",
-      "confidence": 0.9,
-      "comment": "Permission cache value is set to `false` but the comment says 'Allow access to the dashboard to prove this is not checked', which indicates it should be `true` to properly test that denial cache takes precedence over permission cache.",
-      "source_pass": "pass2"
+      "confidence": 0.95,
+      "comment": "Test sets wrong value \u2014 doesn't test what it claims. The comment says \"Allow access to the dashboard to prove this is not checked,\" but the value is `false`. In the scope map, `false` means the scope check in `checkPermission` evaluates to `false` \u2014 i.e., access is denied, not allowed. Every other test in this file uses `true` as the map value to indicate a granted permission. The intent is to prove that the denial cache takes priority over the permission cache. But since the permission cache also effectively denies here (value is `false`), the test would produce the same `Allowed: false` result even if the denial cache check were removed entirely. The value should be `true`: `map[string]bool{\"dashboards:uid:dash1\": true}`. Additionally, a fake store should be set up so that if the denial cache is ever bypassed, the test correctly distinguishes \"allowed by perm cache\" from \"denied by denial cache\" rather than panicking on a nil store.",
+      "source_pass": "review"
     }
   ]
 }

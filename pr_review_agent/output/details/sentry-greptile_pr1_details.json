@@ -1,51 +1,33 @@
 {
   "pr_url": "https://github.com/ai-code-review-evaluation/sentry-greptile/pull/1",
-  "total_issues": 5,
+  "total_issues": 3,
   "issues": [
     {
-      "file_path": "src/sentry/api/endpoints/organization_auditlogs.py",
-      "line_number": 71,
-      "category": "logic_error",
-      "severity": "high",
-      "confidence": 1.0,
-      "comment": "Variable organization_context is undefined but referenced in organization_context.member.has_global_access, causing NameError when optimized pagination is requested.",
-      "source_pass": "batched_review"
-    },
-    {
       "file_path": "src/sentry/api/paginator.py",
-      "line_number": 182,
-      "category": "api_misuse",
-      "severity": "high",
-      "confidence": 0.9,
-      "comment": "When cursor.is_prev is True, start_offset can be negative (offset value), but Django QuerySet slicing does not support negative start indices, causing TypeError on queryset[negative_start:stop].",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "src/sentry/api/paginator.py",
-      "line_number": 878,
+      "line_number": 0,
       "category": "api_misuse",
       "severity": "critical",
-      "confidence": 1.0,
-      "comment": "Line allows cursor.offset to be negative and uses it as start_offset in queryset[start_offset:stop], but Django QuerySet slicing does not support negative start indices, causing TypeError.",
-      "source_pass": "batched_review"
+      "confidence": 0.97,
+      "comment": "Django QuerySet does NOT support negative slicing \u2014 runtime crash. The OptimizedCursorPaginator.get_result() method explicitly allows negative offsets when enable_advanced_features=True, passing them to queryset slicing (queryset[start_offset:stop]). Django's QuerySet.__getitem__ explicitly checks for negative indices and raises AssertionError(\"Negative indexing is not supported.\"). A user can trigger this by crafting a cursor with a negative offset (e.g., ?cursor=100:-5:1&optimized_pagination=true), since Cursor.from_string accepts negative values via int(bits[1]). The same issue exists in BasePaginator.get_result() where when cursor.is_prev=True, offset is used directly without clamping to >= 0, allowing negative values to reach the queryset slice.",
+      "source_pass": "review"
     },
     {
       "file_path": "src/sentry/api/paginator.py",
-      "line_number": 839,
-      "category": "api_misuse",
-      "severity": "high",
-      "confidence": 0.8,
-      "comment": "Method self._is_asc(for_prev) is called but _is_asc method is not defined in OptimizedCursorPaginator class, causing AttributeError.",
-      "source_pass": "batched_review"
+      "line_number": 0,
+      "category": "type_error",
+      "severity": "critical",
+      "confidence": 0.95,
+      "comment": "math.floor/math.ceil on a datetime object causes TypeError. OptimizedCursorPaginator.get_item_key does getattr(item, self.key) which returns a datetime object when used with order_by=\"-datetime\" (e.g., AuditLogEntry.datetime is a DateTimeField). Calling math.floor(datetime_object) raises TypeError. The correct approach (as in DateTimePaginator.get_item_key) is to first convert to float via float(value.strftime(\"%s.%f\")) * self.multiplier. Additionally, value_from_cursor returns the raw cursor value (a number) instead of converting it back to a datetime object, which would cause a type mismatch at the database level when comparing a datetime column against a raw integer.",
+      "source_pass": "review"
     },
     {
       "file_path": "src/sentry/api/endpoints/organization_auditlogs.py",
-      "line_number": 71,
-      "category": "incorrect_value",
-      "severity": "high",
-      "confidence": 0.95,
-      "comment": "organization_context.member.has_global_access references undefined variable 'organization_context' but should reference 'organization' (which is the method parameter), causing NameError at runtime when optimized pagination is requested.",
-      "source_pass": "pass2"
+      "line_number": 0,
+      "category": "null_reference",
+      "severity": "medium",
+      "confidence": 0.6,
+      "comment": "Potential AttributeError on organization_context.member.has_global_access when member is None. RpcUserOrganizationContext.member is typed as RpcOrganizationMember | None and can be None when the user has no membership. While Python's short-circuit evaluation on 'request.user.is_superuser or organization_context.member.has_global_access' may prevent evaluation of the right side for superusers, if this logic ever changes or edge cases with API tokens arise, this would crash with AttributeError: 'NoneType' object has no attribute 'has_global_access'. A safe pattern would be getattr(organization_context.member, 'has_global_access', False).",
+      "source_pass": "review"
     }
   ]
 }

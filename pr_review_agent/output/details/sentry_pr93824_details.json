@@ -4,21 +4,21 @@
   "issues": [
     {
       "file_path": "src/sentry/spans/consumers/process/flusher.py",
-      "line_number": 207,
+      "line_number": 309,
       "category": "incorrect_value",
       "severity": "medium",
-      "confidence": 0.85,
-      "comment": "Metric tag uses 'shards' but other metrics in same function use 'shard' (lines 186, 202), causing inconsistent tagging that will break metric aggregation.",
-      "source_pass": "batched_review"
+      "confidence": 0.95,
+      "comment": "Inconsistent metric tag name `\"shards\"` vs `\"shard\"`. The `wait_produce` timer uses `\"shards\"` (plural) while all other metrics in the same function use the tag key `\"shard\"` (singular). This is a copy-paste typo that will cause this metric to be tagged under a different key than all sibling metrics, making dashboards and queries that filter on `shard` miss the `wait_produce` timer data (or vice versa).",
+      "source_pass": "review"
     },
     {
-      "file_path": "src/sentry/spans/consumers/process/flusher.py",
-      "line_number": 199,
-      "category": "incorrect_value",
+      "file_path": "tests/sentry/spans/consumers/process/test_consumer.py",
+      "line_number": 0,
+      "category": "test_correctness",
       "severity": "medium",
-      "confidence": 0.85,
-      "comment": "Metrics tag key 'shards' should be 'shard' to match other metrics calls on lines 165 and 175 that use the same shard_tag data, causing inconsistent metric tagging.",
-      "source_pass": "pass2"
+      "confidence": 0.92,
+      "comment": "`time.sleep(0.1)` is a no-op in test due to monkeypatch. The test calls `time.sleep(0.1)` with the comment \"Give flusher threads time to process after drift change,\" but `time.sleep` was already monkeypatched to `lambda _: None` earlier in the same test function. The sleep call does nothing, so the test does not actually wait for the flusher thread, defeating the stated purpose of the change. This will make the test flaky \u2014 sometimes the flusher won't have processed yet by the time `step.join()` is called.",
+      "source_pass": "review"
     }
   ]
 }

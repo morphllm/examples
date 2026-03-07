@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import sys
+
 from pr_review_agent.config import Config
 from pr_review_agent.pipeline.diff_parser import FileDiff
 from pr_review_agent.warpgrep.client import WarpGrepClient
@@ -16,6 +18,7 @@ class ContextGatherer:
         self.client = WarpGrepClient(
             api_key=config.morph_api_key,
             base_url=config.warpgrep_base_url,
+            model=config.warpgrep_model,
         )
 
     def gather_for_file(self, file_diff: FileDiff, repo_path: str) -> str:
@@ -36,9 +39,15 @@ class ContextGatherer:
 
         context_parts = []
         for query in queries:
-            result = self.client.search(query, repo_path)
-            if result and result != "No results found" and result != "No results":
-                context_parts.append(f"### Context: {query}\n{result[:2000]}")
+            try:
+                result = self.client.search(
+                    query, repo_path,
+                    max_turns=self.config.warpgrep_max_turns,
+                )
+                if result and len(result.strip()) > 20:
+                    context_parts.append(f"#### {query}\n{result[:3000]}")
+            except Exception as e:
+                print(f"  WarpGrep query failed: {e}", file=sys.stderr)
 
         if not context_parts:
             return ""
@@ -58,13 +67,11 @@ class ContextGatherer:
         Returns:
             Formatted codebase patterns string.
         """
-        # Build pattern queries based on the files changed
         pattern_queries = [
             "error handling patterns and conventions in this codebase",
             "testing patterns and test helper utilities",
         ]
 
-        # Add language-specific pattern queries
         languages = {f.language for f in file_diffs}
         for lang in languages:
             if lang == "python":
@@ -73,11 +80,21 @@ class ContextGatherer:
                 pattern_queries.append("error wrapping and sentinel error patterns")
             elif lang == "java":
                 pattern_queries.append("null checking patterns and Optional usage")
+            elif lang == "ruby":
+                pattern_queries.append("nil handling and ActiveRecord patterns")
+            elif lang == "typescript":
+                pattern_queries.append("null/undefined handling and type guard patterns")
 
         results = []
         for query in pattern_queries[:3]:
-            result = self.client.search(query, repo_path)
-            if result and result != "No results found" and result != "No results":
-                results.append(f"### Pattern: {query}\n{result[:1500]}")
+            try:
+                result = self.client.search(
+                    query, repo_path,
+                    max_turns=self.config.warpgrep_max_turns,
+                )
+                if result and len(result.strip()) > 20:
+                    results.append(f"### Pattern: {query}\n{result[:2000]}")
+            except Exception as e:
+                print(f"  WarpGrep pattern query failed: {e}", file=sys.stderr)
 
         return "\n\n".join(results) if results else "No codebase patterns gathered."

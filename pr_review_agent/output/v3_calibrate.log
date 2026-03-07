@@ -1,0 +1,83 @@
+============================================================
+PR Review Agent - Benchmark Pipeline
+============================================================
+Loaded 50 PRs
+Organism: pr_review_agent/evolver/seed_organism_v2.json
+  confidence_threshold=0.4, num_passes=4, max_issues=8
+WarpGrep: ENABLED
+Calibration: 5 PRs (1 per repo)
+Reviewing 5 PRs
+
+[1/5] keycloak PR#37429 (4 golden)
+  48 files, 343 added lines
+  WarpGrep context: 104773 chars
+  Review complete (tools: read_file=9, grep_pattern=8, list_directory=3)
+  Pass 1/4: 4 issues
+    WarpGrep: How does account-ui frontend process message property placeholders like {{0}} or
+    WarpGrep: How is error-invalid-multivalued-size used in the account-ui or admin-ui fronten
+  Review complete (tools: read_file=10, grep_pattern=11, warpgrep_codebase_search=2, list_directory=4)
+  Pass 2/4: 6 issues
+    WarpGrep: How does admin-ui or account-ui handle message format placeholders like {{0}} vs
+    WarpGrep: i18next or react-i18next configuration for loading properties files with double 
+  Review complete (tools: grep_pattern=12, read_file=8, warpgrep_codebase_search=2)
+  Pass 3/4: 5 issues
+    WarpGrep: messages_zh_CN.properties account totpStep1
+  Review complete (tools: grep_pattern=11, read_file=6, warpgrep_codebase_search=1, list_directory=1)
+  Pass 4/4: 4 issues
+    WarpGrep: zh_CN account messages totpStep1
+  Review complete (tools: read_file=4, grep_pattern=8, warpgrep_codebase_search=1)
+  Quick-wins pass: 3 issues
+    WarpGrep: loginTotpStep1 in login messages_lt.properties - what was the old value before t
+    WarpGrep: i18next configuration in account-ui or admin-ui, how are message properties load
+  Review complete (tools: grep_pattern=19, read_file=7, warpgrep_codebase_search=2)
+  Judge removed 1 FPs (5 -> 4)
+  4 raw -> 4 filtered
+    [1.00] localization: The `totpStep1` value 'Installa una delle seguenti applicazioni sul tuo cellulare:' is Ita
+    [1.00] localization: `totpStep1` uses Traditional Chinese characters (手機, 安裝, 應用程式) in the Simplified Chinese (
+    [1.00] incorrect_value: `error-invalid-multivalued-size` changed from `{{0}}` (i18next double-curly-brace interpol
+    [1.00] incorrect_value: Method name `santizeAnchors` is a typo — missing the letter 'i' in 'sanitize'. It should b
+[2/5] sentry PR#93824 (5 golden)
+  6 files, 199 added lines
+  WarpGrep context: 103439 chars
+    WarpGrep: DEFAULT_OPTIONS in test_buffer.py for spans buffer tests
+  Review complete (tools: read_file=11, grep_pattern=6, warpgrep_codebase_search=1)
+  Pass 1/4: 4 issues
+    WarpGrep: isinstance multiprocessing.Process SpawnProcess BaseProcess process.kill process
+  Review complete (tools: grep_pattern=8, read_file=11, warpgrep_codebase_search=1)
+  Pass 2/4: 3 issues
+    WarpGrep: How is SpawnProcess related to multiprocessing.Process in Python's class hierarc
+  Review complete (tools: grep_pattern=8, read_file=12, warpgrep_codebase_search=1)
+  Pass 3/4: 3 issues
+    WarpGrep: SpanFlusher join method, how is it called and with what timeout
+  Review complete (tools: read_file=11, grep_pattern=4, warpgrep_codebase_search=1)
+  Pass 4/4: 2 issues
+    WarpGrep: SpawnProcess class definition and its inheritance from BaseProcess, checking if 
+  Review complete (tools: grep_pattern=6, read_file=8, warpgrep_codebase_search=1)
+  Quick-wins pass: 3 issues
+    WarpGrep: Python multiprocessing SpawnProcess inherits from Process or BaseProcess - check
+    WarpGrep: old flusher code that called self.process.kill() without isinstance check
+  Review complete (tools: grep_pattern=5, read_file=8, warpgrep_codebase_search=2)
+  Judge removed 2 FPs (5 -> 3)
+  3 raw -> 3 filtered
+    [1.00] api_misuse: `isinstance(process, multiprocessing.Process)` will always return `False` for processes cr
+    [1.00] incorrect_value: Inconsistent metric tag key: `tags={"shards": shard_tag}` on the `spans.buffer.flusher.wai
+    [1.00] test_correctness: `time.sleep(0.1)` is a no-op because `monkeypatch.setattr("time.sleep", lambda _: None)` w
+[3/5] grafana PR#97529 (2 golden)
+  5 files, 25 added lines
+  WarpGrep API error (turn 3): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 1): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep context: 173155 chars
+    WarpGrep: callers of NewResourceServer function
+  Final review call (tools used: read_file=16, grep_pattern=13, warpgrep_codebase_search=1)
+  Final review call (tools used: read_file=11, grep_pattern=18)
+  Pass 1/4: 0 issues
+    WarpGrep: callers of NewResourceServer with ResourceServerOptions
+  Final review call (tools used: read_file=23, grep_pattern=9, warpgrep_codebase_search=1)
+  Pass 2/4: 0 issues
+    WarpGrep: callers of resource.NewResourceServer that assign to ResourceServer interface
+    WarpGrep: History and Origin methods on searchServer or searchSupport in resource package
+  Final review call (tools used: read_file=17, grep_pattern=11, warpgrep_codebase_search=2)
+    WarpGrep: callers of resource.NewResourceServer that use it as ResourceServer interface
+  Final review call (tools used: read_file=15, grep_pattern=11, warpgrep_codebase_search=1)
+  Pass 3/4: 0 issues
+    WarpGrep: callers of BuildIndex in the search backend

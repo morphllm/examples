@@ -1,42 +1,24 @@
 {
   "pr_url": "https://github.com/calcom/cal.com/pull/22345",
-  "total_issues": 4,
+  "total_issues": 2,
   "issues": [
     {
       "file_path": "packages/lib/server/service/insightsBooking.ts",
-      "line_number": 58,
-      "category": "type_error",
+      "line_number": 233,
+      "category": "logic_error",
       "severity": "high",
-      "confidence": 0.9,
-      "comment": "Constructor parameter type `InsightsBookingServicePublicOptions` allows optional `teamId` but validation with `insightsBookingServiceOptionsSchema` requires `teamId` for team scope, causing runtime errors when TypeScript types suggest it should work.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "packages/lib/server/service/__tests__/insightsBooking.integration-test.ts",
-      "line_number": 270,
-      "category": "test_correctness",
-      "severity": "medium",
-      "confidence": 0.7,
-      "comment": "Removed caching tests for authorization and filter conditions means caching behavior is no longer verified, potentially missing bugs in the caching implementation that still exists in the service.",
-      "source_pass": "batched_review"
+      "confidence": 0.85,
+      "comment": "Missing outer parentheses in `getBaseConditions` \u2014 SQL operator precedence bug. When `authConditions` contains an OR (as it does for org/team scopes, e.g. `(teamId condition) OR (userId condition)`), and a caller uses the result in a larger query like `WHERE ${baseConditions} AND \"status\" = 'accepted'`, SQL operator precedence (AND binds tighter than OR) will cause incorrect evaluation. The first OR branch would bypass the additional AND filter entirely. When only `authConditions` or only `filterConditions` is returned, they are not wrapped in parentheses, unlike the combined case. The fix is to wrap these returns: `return Prisma.sql\\`(${authConditions})\\`;` and `return Prisma.sql\\`(${filterConditions})\\`;`.",
+      "source_pass": "review"
     },
     {
       "file_path": "packages/lib/server/service/insightsBooking.ts",
-      "line_number": 163,
-      "category": "api_misuse",
-      "severity": "medium",
-      "confidence": 0.6,
-      "comment": "SQL template `ANY(${teamIds})` with potentially empty `teamIds` array may cause unexpected behavior - while PostgreSQL handles empty arrays, it would match no rows which might not be intended if there are no teams to check.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "packages/lib/server/service/__tests__/insightsBooking.integration-test.ts",
-      "line_number": 295,
-      "category": "api_misuse",
-      "severity": "low",
-      "confidence": 0.5,
-      "comment": "Test uses `ANY(${[testData.user.id]})` with single-element array which works in PostgreSQL but the array construction `[testData.user.id,]` has trailing comma that could indicate copy-paste error or inconsistent formatting.",
-      "source_pass": "batched_review"
+      "line_number": 125,
+      "category": "type_error",
+      "severity": "high",
+      "confidence": 0.9,
+      "comment": "`orgId: number` type is too strict \u2014 rejects `null` from callers. The zod schema (`insightsBookingServiceOptionsSchema`) accepts `orgId: z.number().nullish().optional()` for \"user\" and \"team\" scopes. The router passes `ctx.user.organizationId` which is typed `number | null`. With `orgId: number`, TypeScript rejects `null` values, breaking callers for users not in an organization. The type should be `orgId: number | null | undefined`.",
+      "source_pass": "review"
     }
   ]
 }

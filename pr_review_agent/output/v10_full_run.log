@@ -1,0 +1,27 @@
+============================================================
+PR Review Agent - Benchmark Pipeline
+============================================================
+Loaded 50 PRs
+WarpGrep: ENABLED
+Reviewing 50 PRs (parallel=1)
+
+[1/50] keycloak PR#37429 (4 golden)
+  [keycloak#37429] 48 files, 343 added lines
+    WarpGrep: santizeAnchors method call and its callers
+  Review complete (tools: read_file=12, grep_pattern=5, warpgrep_codebase_search=1)
+  Review plan: This PR adds HTML sanitization verification for theme message properties files, 
+  Risk areas: 5, Findings: 5
+  Query planner: 6 searches planned
+    [1] substring start length end VerifyMessageProperties
+    [2] messages_lt.properties totpStep1
+    [3] messages_zh_CN.properties totpStep1 手機 手机
+    [4] replaceAll resources-community resources _en.properties englishFile
+    [5] santizeAnchors replaceFirst englishMatcher.group value
+    [6] error-invalid-multivalued-size choice values MessageFormat
+  WarpGrep context: 19127 chars
+    WarpGrep: How account-ui processes message format placeholders like {{0}} or {0} in i18n
+    WarpGrep: How does account-ui i18n handle message formatting and interpolation for propert
+    WarpGrep: How Keycloak server serves message properties for account-ui and admin-ui, how a
+    WarpGrep: error-invalid-multivalued-size how is this validation error displayed in the acc
+    WarpGrep: How does the account-ui or admin-ui display validation errors from the server, p
+  Final review call (tools used: read_file=12, grep_pattern=11, warpgrep_codebase_search=5)

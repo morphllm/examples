@@ -1,0 +1,675 @@
+============================================================
+PR Review Agent - Benchmark Pipeline
+============================================================
+Loaded 50 PRs
+WarpGrep: ENABLED
+Reviewing 50 PRs
+
+Running 50 PRs with parallelism=10
+
+[1/50] keycloak PR#37429 (4 golden)
+[2/50] keycloak PR#37634 (4 golden)
+[3/50] keycloak PR#38446 (2 golden)
+[4/50] keycloak PR#36882 (1 golden)
+[5/50] keycloak PR#36880 (3 golden)
+[6/50] keycloak PR#37038 (2 golden)
+[7/50] keycloak PR#33832 (2 golden)
+[8/50] keycloak PR#40940 (2 golden)
+[9/50] keycloak-greptile PR#1 (2 golden)
+[10/50] sentry PR#93824 (5 golden)
+  [10/50] sentry PR#93824 6 files, 199 added lines
+  [3/50] keycloak PR#38446 8 files, 256 added lines
+  [1/50] keycloak PR#37429 48 files, 343 added lines
+  [8/50] keycloak PR#40940 4 files, 51 added lines
+  [7/50] keycloak PR#33832 12 files, 673 added lines
+  [9/50] keycloak-greptile PR#1 9 files, 407 added lines
+  [4/50] keycloak PR#36882 10 files, 56 added lines
+  [2/50] keycloak PR#37634 28 files, 722 added lines
+  [6/50] keycloak PR#37038 19 files, 831 added lines
+  [5/50] keycloak PR#36880 10 files, 866 added lines
+    WarpGrep: SpansBuffer constructor definition __init__ assigned_shards
+    WarpGrep: class ClientPermissions implements ClientPermissionEvaluator canMapRoles canMapC
+    WarpGrep: RECREATE_UPGRADE_EXIT_CODE usage and references
+    WarpGrep: picocli.exit method definition and what it does
+    WarpGrep: canViewClientDefault method definition in ClientPermissions
+    WarpGrep: getSubGroupsCount method definition in GroupModel interface
+    WarpGrep: callers of getSubGroupsCount method on GroupModel
+    WarpGrep: class ClientPermissions in admin/permissions package with canViewClientDefault a
+    WarpGrep: buildFromBackupAuthnCode method definition in UserCredentialModel
+    WarpGrep: RecoveryAuthnCodesCredentialModel isValid implementation credential provider
+    WarpGrep: totpStep1 Italian locale messages_it.properties "Installa una delle seguenti"
+    WarpGrep: callers of getSubGroupsCount() where result is unboxed or used without null chec
+    WarpGrep: getClientsWithPermission method definition in ClientPermissionEvaluator interfac
+    WarpGrep: quarkus runtime compatibility CompatibilityResult interface definition
+    WarpGrep: ModelToRepresentation groupToBriefRepresentation or toGroupHierarchy calls getSu
+    WarpGrep: new Context(context) copy constructor of OAuth2GrantType.Context
+    WarpGrep: getFederatedCredentialsStream method definition
+    WarpGrep: groupToBriefRepresentation definition method
+    WarpGrep: resolveUser and resolveClient methods in AdminPermissionsSchema to understand wh
+    WarpGrep: run_with_initialized_sentry definition implementation
+    WarpGrep: SpansBuffer constructor __init__ slice_id parameter
+    WarpGrep: totpStep1 in messages_zh_CN.properties for account theme
+    WarpGrep: implementations of CryptoProvider interface besides DefaultCryptoProvider, WildF
+    WarpGrep: SpansBuffer slice_id used for redis client get_redis_client
+    WarpGrep: _import_and_run function definition how it unpickles and calls the function with
+    WarpGrep: callers of groups().canManage() without arguments in admin resources
+    WarpGrep: PreAuthorizedCodeGrantType sets GRANT_TYPE using factory constant instead of con
+    WarpGrep: management method returning AdminPermissionManagement or MgmtPermissions in Admi
+    WarpGrep: Feature getKey() method definition in Profile class
+    WarpGrep: classes implementing OAuth2GrantTypeFactory interface
+    WarpGrep: GroupRepresentation subGroupCount field type and getSubGroupCount method
+    WarpGrep: ECDSAAlgorithm enum definition and getSignatureLength method
+    WarpGrep: AbstractRevisioned class definition and InRealm interface getRealm method
+  Review complete (tools: read_file=10, report_issue=2, warpgrep_codebase_search=3, grep_pattern=2)
+  Review complete: 2 issues
+  [2/50] keycloak PR#37634 2 raw -> 2 kept
+    [2/50] keycloak PR#37634 [0.99] logic_error: Copy-paste bug: Line 114 checks `grantType` again instead of `rawTokenId`. The message say
+    [2/50] keycloak PR#37634 [0.97] test_correctness: Two bugs in `isAccessTokenId` matcher:\n\n1. **Wrong substring indices**: `items[0].substr
+[11/50] sentry-greptile PR#5 (3 golden)
+  [11/50] sentry-greptile PR#5 105 files, 2312 added lines
+    WarpGrep: get_merged_pr_single_issue_template method definition in PRCommentWorkflow
+    WarpGrep: class PRCommentWorkflow definition and methods
+    WarpGrep: GitHubPRCommentWorkflow get_comment_body method calling get_merged_pr_single_iss
+    WarpGrep: UsernameForm extends which class, class hierarchy
+    WarpGrep: error-invalid-multivalued-size how is this message key used in the frontend or b
+    WarpGrep: class PRCommentWorkflow inherits from or extends
+    WarpGrep: multiprocessing.context.SpawnProcess class definition inheritance
+    WarpGrep: getSubGroupsCount result assigned to primitive long or compared with primitive
+    WarpGrep: BackwardsCompatibilityUserStorage implements CredentialInputUpdater getCredentia
+    WarpGrep: nodestore backend get_multi return type and order
+    WarpGrep: how error-invalid-multivalued-size message key is formatted and displayed in the
+    WarpGrep: JavaAlgorithm.getJavaAlgorithm method mapping ES256 ES384 ES512
+    WarpGrep: versioned feature mutual exclusion in Profile.java, can two versions of same fea
+    WarpGrep: CredentialInputUpdater interface definition with getCredentials method
+    WarpGrep: AbstractUsernameFormAuthenticator class hierarchy and methods named isConditiona
+    WarpGrep: SetupRecoveryAuthnCodesPage getRecoveryAuthnCodes method definition
+    WarpGrep: How does the account-ui or admin-ui JavaScript code resolve message property pla
+  Review complete (tools: read_file=5, warpgrep_codebase_search=8, grep_pattern=5, report_issue=1)
+  Review complete: 1 issues
+  [8/50] keycloak PR#40940 1 raw -> 1 kept
+    [8/50] keycloak PR#40940 [0.92] test_correctness: The reader thread is never joined before asserting on `caughtExceptions`. There is a race:
+[12/50] sentry-greptile PR#1 (4 golden)
+  [12/50] sentry-greptile PR#1 3 files, 128 added lines
+    WarpGrep: findByType method in ResourceStore interface and what Resource.getId() vs Resour
+    WarpGrep: i18n message format interpolation handling in account-ui or admin-ui, how are {{
+    WarpGrep: SpawnProcess class hierarchy is it subclass of multiprocessing.Process
+    WarpGrep: ManagedUser getId method definition
+    WarpGrep: EnterRecoveryAuthnCodePage enterRecoveryAuthnCode method and getRecoveryAuthnCod
+    WarpGrep: kc-recovery-codes-list template recovery codes display format
+    WarpGrep: Django QuerySet negative indexing slicing assertion error
+    WarpGrep: configureTestRealm method in PasskeysUsernamePasswordFormTest or its parent clas
+    WarpGrep: Django queryset negative indexing slicing not supported
+    WarpGrep: TextOverflow component definition and what CSS it applies
+    WarpGrep: how validation error messages are sent to admin-ui or account-ui, are they pre-f
+    WarpGrep: getTestKeycloakDeployment method definition
+    WarpGrep: getDefaultKeycloakDeployment method definition that creates Keycloak CR
+    WarpGrep: BasePaginator __init__ definition
+    WarpGrep: FeatureSpec class definition with setEnabledFeatures method
+    WarpGrep: how validation errors from user profile are serialized and returned to the admin
+    WarpGrep: def paginate method in Sentry API base endpoint, how paginator_cls is instantiat
+    WarpGrep: how ValidationError formatMessage is used to format user profile errors for REST
+    WarpGrep: How challenge method is called after password validation fails in AbstractUserna
+    WarpGrep: Resource getId() vs getName() - what do they return and how resources are create
+    WarpGrep: log_context get_logger function definition
+  Review complete (tools: read_file=8, grep_pattern=4, warpgrep_codebase_search=4, report_issue=2)
+  Review complete: 2 issues
+  [9/50] keycloak-greptile PR#1 2 raw -> 2 kept
+    [9/50] keycloak-greptile PR#1 [0.95] api_misuse: The call `isConditionalPasskeysEnabled()` has no arguments, but the only method defined (i
+    [9/50] keycloak-greptile PR#1 [0.92] logic_error: The new `isConditionalPasskeysEnabled` method uses `user != null` as the last condition, w
+[13/50] grafana PR#97529 (2 golden)
+  [13/50] grafana PR#97529 5 files, 25 added lines
+    WarpGrep: organization_context member attribute in ControlSiloOrganizationEndpoint or Orga
+    WarpGrep: organization_auditlogs endpoint get method in core endpoints
+    WarpGrep: EventRedisData class definition dcg_to_groups dcg_ids fields
+    WarpGrep: get_slow_conditions_for_groups function definition
+    WarpGrep: RpcUserOrganizationContext member field definition, can it be None
+    WarpGrep: Flex component definition with Item grow property
+    WarpGrep: callers of getBouncyCastleProvider and how the returned Provider is used
+    WarpGrep: Flex.Item component definition with grow property
+    WarpGrep: RpcOrganizationMember has_global_access field or property
+    WarpGrep: getResourceTypeResource method definition in AdminPermissionsSchema that returns
+    WarpGrep: findByResource method in PolicyStore that takes ResourceServer and Resource para
+    WarpGrep: OrganizationAuditPermission class definition
+  Max tool rounds reached (tools: warpgrep_codebase_search=11, read_file=23, grep_pattern=16, report_issue=3, list_directory=2)
+  Review complete: 3 issues
+  [11/50] sentry-greptile PR#5 3 raw -> 3 kept
+    [11/50] sentry-greptile PR#5 [0.92] logic_error: `zip(error_ids, events.values())` incorrectly pairs error_ids with event data. `nodestore.
+    [11/50] sentry-greptile PR#5 [0.88] logic_error: The old `FlexCenter` styled component included `${p => p.theme.overflowEllipsis}` which ad
+    [11/50] sentry-greptile PR#5 [0.75] logic_error: The mutual-exclusion validation for `age` and `timestamp` uses truthiness checks (`if self
+[14/50] sentry PR#80168 (2 golden)
+  [14/50] sentry PR#80168 4 files, 249 added lines
+    WarpGrep: delayed-authenticator provider implementation or factory
+    WarpGrep: classes that inherit from BasePaginator and don't override get_result
+  Review complete (tools: read_file=9, warpgrep_codebase_search=4, grep_pattern=2, report_issue=1)
+  Review complete: 1 issues
+  [7/50] keycloak PR#33832 1 raw -> 1 kept
+    [7/50] keycloak PR#33832 [0.95] logic_error: Dead code: Lines 115-116 create two `ASN1Encoder` instances, write BigInteger values to th
+[15/50] sentry PR#80528 (2 golden)
+  [15/50] sentry PR#80528 4 files, 289 added lines
+    WarpGrep: how consumer strategy factory receives click options kwargs from consumer config
+    WarpGrep: evaluate_group_key_value method definition in StatefulDetectorHandler
+    WarpGrep: class StatefulDetectorHandler definition
+    WarpGrep: printError method definition in AbstractUpdatesCommand or AbstractNonServerComma
+  Review complete (tools: read_file=10, warpgrep_codebase_search=8, grep_pattern=4, report_issue=3)
+  Review complete: 3 issues
+  [10/50] sentry PR#93824 3 raw -> 3 kept
+    [10/50] sentry PR#93824 [0.95] incorrect_value: In `_create_process_for_shards`, the new `SpansBuffer(shards)` is created without passing 
+    [10/50] sentry PR#93824 [0.92] naming: Inconsistent metrics tag key: `tags={\"shards\": shard_tag}` uses plural \"shards\" while 
+    [10/50] sentry PR#93824 [0.80] api_misuse: `isinstance(process, multiprocessing.Process)` will always be `False` for processes create
+[16/50] sentry PR#77754 (4 golden)
+    WarpGrep: generatedRecoveryAuthnCodesAsString implementation RecoveryAuthnCodesConfigBean
+  [16/50] sentry PR#77754 7 files, 212 added lines
+    WarpGrep: RecoveryAuthnCodesConfigBean generatedRecoveryAuthnCodesAsString definition
+    WarpGrep: has_global_access where it is set to True for organization members
+    WarpGrep: DetectorPriorityLevel enum definition and its values
+    WarpGrep: PriorityLevel enum definition and its values
+    WarpGrep: RecoveryAuthnCodesConfigBean class definition with generatedRecoveryAuthnCodesAs
+    WarpGrep: type searchSupport struct definition
+  Review complete (tools: read_file=9, grep_pattern=15, warpgrep_codebase_search=9, report_issue=5, list_directory=1)
+  Review complete: 5 issues
+  [1/50] keycloak PR#37429 5 raw -> 5 kept
+    [1/50] keycloak PR#37429 [0.98] localization: The Lithuanian (lt) locale `loginTotpStep1` was replaced with Italian text "Installa una d
+    [1/50] keycloak PR#37429 [0.98] localization: Same issue as the login variant: the Lithuanian (lt) account locale `totpStep1` was replac
+    [1/50] keycloak PR#37429 [0.97] localization: The Simplified Chinese (zh_CN) locale `totpStep1` was replaced with Traditional Chinese te
+    [1/50] keycloak PR#37429 [0.85] logic_error: The account-ui (and admin-ui) frontends use i18next for message interpolation, which expec
+    [1/50] keycloak PR#37429 [0.82] logic_error: The `end` loop does not account for `start`, so `start + end` can exceed `min(value.length
+[17/50] sentry PR#95633 (3 golden)
+  [17/50] sentry PR#95633 7 files, 1276 added lines
+    WarpGrep: RecoveryAuthnCodesBean class definition getGeneratedRecoveryAuthnCodesAsString
+    WarpGrep: queue.ShutDown exception in Python standard library queue module
+    WarpGrep: OrganizationPermission has_object_permission definition checks member
+    WarpGrep: resolveUser and resolveClient methods in the OLD AdminPermissionsSchema file (no
+  WarpGrep connection error, retrying in 3s (attempt 1/3): SSLError
+    WarpGrep: Python version used in sentry project, python_requires
+  Review complete (tools: warpgrep_codebase_search=8, grep_pattern=12, read_file=13)
+  Review complete: 0 issues
+  [4/50] keycloak PR#36882 0 raw -> 0 kept
+[18/50] sentry-greptile PR#2 (3 golden)
+  [18/50] sentry-greptile PR#2 9 files, 183 added lines
+    WarpGrep: is_active_superuser function definition checks is_superuser
+    WarpGrep: callers of create_incident_occurrence or create_issue_platform_occurrence
+  WarpGrep connection error, retrying in 3s (attempt 1/3): SSLError
+  Review complete (tools: read_file=7, report_issue=1, grep_pattern=3)
+  Review complete: 1 issues
+  [16/50] sentry PR#77754 1 raw -> 1 kept
+    [16/50] sentry PR#77754 [0.97] logic_error: Classic Python dataclass pitfall: `queued: datetime = timezone.now()` is evaluated once at
+[19/50] sentry-greptile PR#3 (3 golden)
+    WarpGrep: callers of mark_failed_threshold or try_incident_threshold
+  [19/50] sentry-greptile PR#3 8 files, 480 added lines
+  Review complete (tools: read_file=18, warpgrep_codebase_search=5, grep_pattern=13, report_issue=2)
+  Review complete: 2 issues
+  [6/50] keycloak PR#37038 2 raw -> 2 kept
+    [6/50] keycloak PR#37038 [0.95] security: GroupPermissionsV2.canManage() (no-arg) checks both VIEW and MANAGE scopes: `hasPermission
+    [6/50] keycloak PR#37038 [0.92] logic_error: In `getGroupIdsWithViewPermission()`, both `hasPermission(groupResource.getId(), ...)` and
+[20/50] grafana PR#103633 (2 golden)
+  [20/50] grafana PR#103633 4 files, 240 added lines
+  Review complete (tools: read_file=3, report_issue=1, warpgrep_codebase_search=2)
+  Review complete: 1 issues
+  [15/50] sentry PR#80528 1 raw -> 1 kept
+    [15/50] sentry PR#80528 [0.93] logic_error: In `get_monitor_environment_context`, the function copies `monitor_environment.monitor.con
+[21/50] sentry PR#67876 (3 golden)
+  [21/50] sentry PR#67876 3 files, 247 added lines
+    WarpGrep: How are cursors parsed from request parameters, specifically the offset value
+    WarpGrep: GitHubIdentityProvider get_oauth_client_id get_oauth_client_secret
+  WarpGrep API error (turn 2): 400 Client Error: Bad Request for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep connection error, retrying in 3s (attempt 1/3): SSLError
+  WarpGrep connection error, retrying in 6s (attempt 2/3): SSLError
+    WarpGrep: integration.metadata["sender"] in GitHub webhook handler, how is sender stored i
+    WarpGrep: findAll method for clients in ClientsResource that handles permissions and retur
+    WarpGrep: GitHub integration build_integration method that sets metadata with sender
+    WarpGrep: Django queryset negative indexing slicing support
+    WarpGrep: SnQLFunction definition for count function in discover.py with default_result_ty
+    WarpGrep: class OrganizationAuditLogsEndpoint or organization_auditlogs endpoint definitio
+    WarpGrep: InjectAdminClient MANAGED_REALM mode definition and what roles or permissions it
+    WarpGrep: has_global_access default True in OrganizationMember model
+    WarpGrep: Django QuerySet negative slicing raises AssertionError
+    WarpGrep: determine_active_organization active_organization attribute in PipelineView
+    WarpGrep: OptimizedCursorPaginator usage or import in tests
+    WarpGrep: class PipelineView determine_active_organization method
+    WarpGrep: AbstractPermissionTest realm config, myadmin user roles setup in fgap tests
+  Review complete (tools: read_file=7, warpgrep_codebase_search=14, grep_pattern=1, report_issue=4)
+  Review complete: 4 issues
+  [12/50] sentry-greptile PR#1 4 raw -> 4 kept
+    [12/50] sentry-greptile PR#1 [0.97] api_misuse: Django QuerySets do NOT support negative indexing/slicing. When `enable_advanced_features=
+    [12/50] sentry-greptile PR#1 [0.92] security: The authorization check `organization_context.member.has_global_access` is not a privilege
+    [12/50] sentry-greptile PR#1 [0.85] logic_error: The change to `BasePaginator.get_result()` alters behavior for ALL paginators inheriting f
+    [12/50] sentry-greptile PR#1 [0.72] null_reference: `organization_context.member` can be `None` (the field is typed `RpcOrganizationMember | N
+[22/50] keycloak PR#32918 (2 golden)
+  [22/50] keycloak PR#32918 4 files, 268 added lines
+    WarpGrep: getForLogin method in IdentityProviderStorageProvider interface definition
+    WarpGrep: organization_context.member usage and when member can be None
+    WarpGrep: getForLogin stream terminal operation consumption
+    WarpGrep: upsampled_count SnQLFunction definition in errors dataset
+    WarpGrep: getForLogin stream must be consumed for caching to work, lazy stream not consume
+    WarpGrep: IdentityProviderListQuery constructor with searchKey and existing query merge
+    WarpGrep: RpcOrganizationMember has_global_access attribute or property
+    WarpGrep: createOrganizationAwareIdentityProviderModel method in InfinispanIdentityProvide
+    WarpGrep: getById in InfinispanIdentityProviderStorageProvider returns organization aware 
+    WarpGrep: AbstractOrganizationTest cleanup or afterAbstractKeycloakTest or configureTestRe
+    WarpGrep: creating resource type resources for CLIENTS_RESOURCE_TYPE in AdminPermissionsSc
+    WarpGrep: GitHub webhook signature verification X_HUB_SIGNATURE
+  WarpGrep connection error, retrying in 3s (attempt 1/3): SSLError
+    WarpGrep: default_result_type usage in SnQLFunction and how it affects result metadata typ
+    WarpGrep: github webhook secret option for tests, github-app.webhook-secret
+    WarpGrep: class IntegrationTestCase setUp webhook-secret github-app
+    WarpGrep: Django queryset slicing with negative indices or negative offset behavior
+  WarpGrep API error (turn 2): 400 Client Error: Bad Request for url: https://api.morphllm.com/v1/chat/completions
+    WarpGrep: Python hash() used in cache keys or persistent storage keys
+    WarpGrep: requireView and requireViewClientScopes javadoc in ClientPermissionEvaluator int
+    WarpGrep: checkPermission function in authz rbac service that checks scope map for allowed
+    WarpGrep: is_valid_signature method in GitHub webhook endpoint compute_signature
+    WarpGrep: def paginate method in base API endpoint class that creates paginator instance
+    WarpGrep: Where is sentry.api.helpers.error_upsampling.options imported and used in the er
+    WarpGrep: LogoutSessionsPage class checkLogoutSessions uncheckLogoutSessions implementatio
+    WarpGrep: registerIDPInvalidation method definition in InfinispanIdentityProviderStoragePr
+    WarpGrep: getResourceType used in policy evaluation FGAPPolicyEvaluator or FGAPEvaluation
+    WarpGrep: ResultProcessor __call__ method and how it handles results
+    WarpGrep: UptimeResultsStrategyFactory class definition and __init__ constructor
+    WarpGrep: logoutOtherSessions macro definition password-commons.ftl checkbox default check
+  Review complete (tools: read_file=17, warpgrep_codebase_search=1, grep_pattern=17, report_issue=1)
+  Review complete: 1 issues
+  [13/50] grafana PR#97529 1 raw -> 1 kept
+    [13/50] grafana PR#97529 [0.78] logic_error: When `s.Init(ctx)` fails (line 396-399), the function returns `nil, err` without calling `
+[23/50] grafana PR#94942 (2 golden)
+    WarpGrep: How is cacheWrap initialized with shared cache backend between permCache and per
+  [23/50] grafana PR#94942 4 files, 41 added lines
+    WarpGrep: APITestCase setUp self.user property definition
+    WarpGrep: login-config-totp.ftl logout-sessions checkbox template
+    WarpGrep: OrderedQueueWorker run method, exception handling in finally block, complete_off
+    WarpGrep: login-config-totp.ftl logoutOtherSessions checkbox keycloak.v2
+    WarpGrep: UptimeResultsStrategyFactory constructor __init__ consumer_group parameter
+    WarpGrep: field.checkbox macro definition field.ftl keycloak.v2 template value checked
+    WarpGrep: getResourceTypeResource method definition in org.keycloak.authorization.AdminPer
+    WarpGrep: queryset slicing assert negative error in Django model QuerySet __getitem__
+    WarpGrep: IntegrationPipeline initialize redirect_url setup for extension
+    WarpGrep: mapper type definition with Scope method for dashboards that returns scope strin
+    WarpGrep: dashboard UID generation or validation format in Grafana
+  Review complete (tools: read_file=8, grep_pattern=2, report_issue=1)
+  Review complete: 1 issues
+  [23/50] grafana PR#94942 1 raw -> 1 kept
+    [23/50] grafana PR#94942 [0.97] logic_error: The `enableSqlExpressions` function always returns `false`, making SQL expressions permane
+[24/50] grafana PR#90939 (2 golden)
+  [24/50] grafana PR#90939 1 files, 13 added lines
+  Review complete (tools: read_file=10, warpgrep_codebase_search=4, grep_pattern=17, report_issue=3)
+  Review complete: 3 issues
+  [14/50] sentry PR#80168 3 raw -> 3 kept
+    [14/50] sentry PR#80168 [0.85] test_correctness: The `value` parameter in `build_mock_occurrence_and_event` (line ~253) is accepted but nev
+    [14/50] sentry PR#80168 [0.90] incorrect_value: In `test_state_results_multi_group`, the expected occurrence for `group_2` is created with
+    [14/50] sentry PR#80168 [0.70] api_misuse: `MetricAlertDetectorHandler` now extends `StatefulDetectorHandler[QuerySubscriptionUpdate]
+[25/50] grafana PR#80329 (1 golden)
+  [25/50] grafana PR#80329 3 files, 199 added lines
+    WarpGrep: ControlSiloOrganizationEndpoint how organization_context is built and whether me
+  Review complete (tools: warpgrep_codebase_search=16, read_file=10, grep_pattern=19, list_directory=2, report_issue=2)
+  Review complete: 2 issues
+  [5/50] keycloak PR#36880 2 raw -> 2 kept
+    [5/50] keycloak PR#36880 [0.78] null_reference: In `hasPermission(ClientModel client, String scope)`, after `getResourceTypeResource()` re
+    [5/50] keycloak PR#36880 [0.95] logic_error: Javadoc for `void requireView()` says "Returns {@code true} if {@link #canView()} returns 
+[26/50] grafana PR#90045 (3 golden)
+  [26/50] grafana PR#90045 4 files, 508 added lines
+    WarpGrep: CleanAnnotations method and how it's called, looking at the full cleanup flow
+  Review complete (tools: read_file=1, report_issue=1)
+  Review complete: 1 issues
+  [24/50] grafana PR#90939 1 raw -> 1 kept
+    [24/50] grafana PR#90939 [0.92] race_condition: Incomplete double-checked locking: after acquiring the write lock on line 53, the code doe
+[27/50] grafana PR#106778 (2 golden)
+  [27/50] grafana PR#106778 13 files, 542 added lines
+    WarpGrep: test_thread_queue_parallel_error_handling assertion and mock_processor_call side
+    WarpGrep: useRulerRuleAbilities function definition accepting undefined rule
+    WarpGrep: recordLegacyDuration and recordStorageDuration definition in dualwriter
+    WarpGrep: NewDualWriter function definition
+    WarpGrep: useRulerRuleAbility function definition for single action
+    WarpGrep: test_thread_queue_parallel_error_handling committed_offsets assertion
+    WarpGrep: negation in Sentry search queries like !event.type:error or event.type:!error
+  Review failed: Error code: 429 - {'type': 'error', 'error': {'type': 'rate_limit_error', 'message': "This request would exceed your organization's rate limit of 2,000,000 input tokens per minute (org: 0c1cbc13-3efa-412c-a200-4383e2b55935, model: claude-opus-4-6). For details, refer to: https://docs.claude.com/en/api/rate-limits. You can see the response headers for current usage. Please reduce the prompt length or the maximum tokens requested, or try again later. You may also contact sales at https://www.anthropic.com/contact-sales to discuss your options for a rate limit increase."}, 'request_id': 'req_011CYmZN114FjGwrJDKF7n1j'}
+  [26/50] grafana PR#90045 0 raw -> 0 kept
+[28/50] grafana PR#107534 (1 golden)
+    WarpGrep: isProvisionedPromRule function definition and what types it handles
+  [28/50] grafana PR#107534 4 files, 48 added lines
+  Review failed: Error code: 429 - {'type': 'error', 'error': {'type': 'rate_limit_error', 'message': "This request would exceed your organization's rate limit of 2,000,000 input tokens per minute (org: 0c1cbc13-3efa-412c-a200-4383e2b55935, model: claude-opus-4-6). For details, refer to: https://docs.claude.com/en/api/rate-limits. You can see the response headers for current usage. Please reduce the prompt length or the maximum tokens requested, or try again later. You may also contact sales at https://www.anthropic.com/contact-sales to discuss your options for a rate limit increase."}, 'request_id': 'req_011CYmZNP37ty4mRAuBJQVU1'}
+  [28/50] grafana PR#107534 0 raw -> 0 kept
+[29/50] grafana PR#79265 (5 golden)
+  [29/50] grafana PR#79265 11 files, 105 added lines
+  Review failed: Error code: 429 - {'type': 'error', 'error': {'type': 'rate_limit_error', 'message': "This request would exceed your organization's rate limit of 2,000,000 input tokens per minute (org: 0c1cbc13-3efa-412c-a200-4383e2b55935, model: claude-opus-4-6). For details, refer to: https://docs.claude.com/en/api/rate-limits. You can see the response headers for current usage. Please reduce the prompt length or the maximum tokens requested, or try again later. You may also contact sales at https://www.anthropic.com/contact-sales to discuss your options for a rate limit increase."}, 'request_id': 'req_011CYmZNaPk3uTCHkpJharpM'}
+  [22/50] keycloak PR#32918 0 raw -> 0 kept
+[30/50] discourse-graphite PR#9 (2 golden)
+  [30/50] discourse-graphite PR#9 6 files, 31 added lines
+    WarpGrep: OffsetTracker _get_partition_lock thread safety partition_locks setdefault
+    WarpGrep: WithCacheClientOption function definition that accepts cache interface in authzl
+    WarpGrep: Rule type definition in unified-alerting types, exported as Rule
+    WarpGrep: get_committable_offsets iteration over all_offsets without holding global lock
+  Review failed: Error code: 429 - {'type': 'error', 'error': {'type': 'rate_limit_error', 'message': "This request would exceed your organization's rate limit of 2,000,000 input tokens per minute (org: 0c1cbc13-3efa-412c-a200-4383e2b55935, model: claude-opus-4-6). For details, refer to: https://docs.claude.com/en/api/rate-limits. You can see the response headers for current usage. Please reduce the prompt length or the maximum tokens requested, or try again later. You may also contact sales at https://www.anthropic.com/contact-sales to discuss your options for a rate limit increase."}, 'request_id': 'req_011CYmZPUPrxwibz6iHyryft'}
+  [30/50] discourse-graphite PR#9 0 raw -> 0 kept
+[31/50] grafana PR#76186 (2 golden)
+    WarpGrep: GrafanaPromRuleDTO type definition and its relationship to Rule type in unified-
+  [31/50] grafana PR#76186 8 files, 137 added lines
+  Review failed: Error code: 429 - {'type': 'error', 'error': {'type': 'rate_limit_error', 'message': "This request would exceed your organization's rate limit of 2,000,000 input tokens per minute (org: 0c1cbc13-3efa-412c-a200-4383e2b55935, model: claude-opus-4-6). For details, refer to: https://docs.claude.com/en/api/rate-limits. You can see the response headers for current usage. Please reduce the prompt length or the maximum tokens requested, or try again later. You may also contact sales at https://www.anthropic.com/contact-sales to discuss your options for a rate limit increase."}, 'request_id': 'req_011CYmZQ4SjL1j6pAV4kvr6Q'}
+  [31/50] grafana PR#76186 0 raw -> 0 kept
+[32/50] discourse-graphite PR#10 (4 golden)
+  [32/50] discourse-graphite PR#10 36 files, 449 added lines
+    WarpGrep: OffsetTracker mark_committed all_offsets cleanup, concurrent access from commit 
+    WarpGrep: isProvisionedPromRule function and what promRule type it accepts vs Rule type
+  Review failed: Error code: 429 - {'type': 'error', 'error': {'type': 'rate_limit_error', 'message': "This request would exceed your organization's rate limit of 2,000,000 input tokens per minute (org: 0c1cbc13-3efa-412c-a200-4383e2b55935, model: claude-opus-4-6). For details, refer to: https://docs.claude.com/en/api/rate-limits. You can see the response headers for current usage. Please reduce the prompt length or the maximum tokens requested, or try again later. You may also contact sales at https://www.anthropic.com/contact-sales to discuss your options for a rate limit increase."}, 'request_id': 'req_011CYmZR48uk3dPPhFkrDMuN'}
+  [18/50] sentry-greptile PR#2 0 raw -> 0 kept
+[33/50] discourse-graphite PR#7 (3 golden)
+  [33/50] discourse-graphite PR#7 32 files, 115 added lines
+  WarpGrep connection error, retrying in 3s (attempt 1/3): SSLError
+    WarpGrep: Pipeline next_step method implementation dispatch current_step
+    WarpGrep: how sample_weight column is computed from sample_rate in event processing pipeli
+    WarpGrep: How does Arroyo Commit type work with offset values, does it expect next-to-read
+  Review complete (tools: read_file=19, warpgrep_codebase_search=18, grep_pattern=10, report_issue=2)
+  Review complete: 2 issues
+  [3/50] keycloak PR#38446 2 raw -> 2 kept
+    [3/50] keycloak PR#38446 [0.95] test_correctness: The logout-sessions checkbox logic in `setupRecoveryKeysForUserWithRequiredAction` is inve
+    [3/50] keycloak PR#38446 [0.85] logic_error: The `getCredentials()` method creates a `RecoveryAuthnCodesCredentialModel` via `createFro
+[34/50] discourse-graphite PR#8 (3 golden)
+    WarpGrep: arroyo CommitOffsets commit function offset plus one next offset to read
+    WarpGrep: prometheusRuleType definition with grafana.rule type guard
+  [34/50] discourse-graphite PR#8 16 files, 389 added lines
+    WarpGrep: sentry-organization-integrations-setup view handler IntegrationPipeline
+  Review complete (tools: read_file=20, warpgrep_codebase_search=8, grep_pattern=4, list_directory=1, report_issue=6)
+  Review complete: 6 issues
+  [19/50] sentry-greptile PR#3 6 raw -> 6 kept
+    [19/50] sentry-greptile PR#3 [0.95] logic_error: The `upsampled_count` SnQL function uses `Function("sum", [Column("sample_weight")])` with
+    [19/50] sentry-greptile PR#3 [0.95] incorrect_value: `default_result_type="number"` is inconsistent with `count()` which uses `default_result_t
+    [19/50] sentry-greptile PR#3 [0.92] incorrect_value: A `sentry-repo` git submodule reference is being added (`Subproject commit a5d290951de...`
+    [19/50] sentry-greptile PR#3 [0.90] logic_error: The cache key uses Python's built-in `hash()` on a tuple of project IDs: `hash(tuple(sorte
+    [19/50] sentry-greptile PR#3 [0.80] logic_error: `is_errors_query_for_error_upsampled_projects` is called with `dataset` (the closed-over o
+    [19/50] sentry-greptile PR#3 [0.85] logic_error: `_is_error_focused_query` uses a naive substring check `"event.type:error" in query`. This
+[35/50] discourse-graphite PR#3 (2 golden)
+    WarpGrep: isGrafanaPromAlertingRule and isGrafanaPromRecordingRule type guard definitions
+  [35/50] discourse-graphite PR#3 10 files, 155 added lines
+  Review complete (tools: read_file=13, warpgrep_codebase_search=5, grep_pattern=3, report_issue=2)
+  Review complete: 2 issues
+  [20/50] grafana PR#103633 2 raw -> 2 kept
+    [20/50] grafana PR#103633 [0.95] test_correctness: The test "Should deny on explicit cache deny entry" sets perm cache with `map[string]bool{
+    [20/50] grafana PR#103633 [0.80] logic_error: `userPermDenialCacheKey` uses `_` as a separator between `action`, `name`, and `parent`, b
+[36/50] discourse-graphite PR#5 (2 golden)
+  [36/50] discourse-graphite PR#5 5 files, 54 added lines
+    WarpGrep: class OrganizationIntegrationSetupView handle request pipeline current_step
+  Review complete (tools: read_file=5, report_issue=5)
+  Review complete: 5 issues
+  [33/50] discourse-graphite PR#7 5 raw -> 5 kept
+    [33/50] discourse-graphite PR#7 [0.95] incorrect_value: Light-mode regression: The old code was `color: scale-color($primary, $lightness: 30%)` bu
+    [33/50] discourse-graphite PR#7 [0.95] incorrect_value: Light-mode regression: The old code was `color: scale-color($primary, $lightness: 70%)` bu
+    [33/50] discourse-graphite PR#7 [0.95] incorrect_value: Light-mode regression: The old code was `color: scale-color($primary, $lightness: 30%)` fo
+    [33/50] discourse-graphite PR#7 [0.95] incorrect_value: Light-mode regression: The old code was `color: scale-color($primary, $lightness: 30%)` fo
+    [33/50] discourse-graphite PR#7 [0.95] incorrect_value: Light-mode regression: The old code was `color: scale-color($primary, $lightness: 20%)` fo
+[37/50] discourse-graphite PR#6 (1 golden)
+  [37/50] discourse-graphite PR#6 4 files, 44 added lines
+    WarpGrep: include_ method pattern in user_serializer for conditional attribute inclusion
+    WarpGrep: PipelineSessionStore save session state data bind_state
+  WarpGrep connection error, retrying in 3s (attempt 1/3): SSLError
+    WarpGrep: annotations.Item struct definition with xorm tags
+    WarpGrep: useIsRuleEditable hook definition and what happens when rule is undefined
+    WarpGrep: email_domains_whitelist setting definition and format
+    WarpGrep: email_domains_blacklist setting definition and format
+    WarpGrep: Enum class definition new method
+    WarpGrep: group.users.delete method usage in Rails has_many through
+    WarpGrep: email_domains_whitelist pipe separated or comma separated format
+    WarpGrep: How does the authn framework handle errors returned by Authenticate from clients
+    WarpGrep: authn service Authenticate method that calls client.Authenticate and handles the
+    WarpGrep: SimpleQueueProcessingStrategy close method shutdown call, and ResultsStrategyFac
+    WarpGrep: ActiveRecord has_many through collection delete with integer ID vs record object
+    WarpGrep: Group remove method definition for removing a user from group
+    WarpGrep: AnnotationCleanupJobBatchSize configuration default value and where it's set
+    WarpGrep: OffsetTracker add_offset called multiple times with same partition and offset
+  Review complete (tools: warpgrep_codebase_search=15, read_file=6, grep_pattern=9, report_issue=1)
+  Review complete: 1 issues
+  [17/50] sentry PR#95633 1 raw -> 1 kept
+    [17/50] sentry PR#95633 [0.92] test_correctness: The assertion `assert len(committed_offsets) == 0 or test_partition not in committed_offse
+[38/50] discourse-graphite PR#4 (6 golden)
+  [38/50] discourse-graphite PR#4 27 files, 646 added lines
+    WarpGrep: _lookupSubType method definition in store
+    WarpGrep: xorm InsertMulti autoincr behavior when ID is explicitly set
+    WarpGrep: useCanSilenceInFolder and useGrafanaRulesSilenceSupport function definitions
+    WarpGrep: basePath function in rest adapter and how type parameter is formatted (underscor
+    WarpGrep: usage of order mixin from mixins.scss
+    WarpGrep: admin groups create action POST data format group params wrapping
+    WarpGrep: frozen_string_literal in user_serializer.rb
+    WarpGrep: group_member view template in Discourse admin, itemView or itemViewClass
+  WarpGrep API error (turn 2): 400 Client Error: Bad Request for url: https://api.morphllm.com/v1/chat/completions
+    WarpGrep: Discourse Enum class definition, how does it assign values starting index
+    WarpGrep: how URI host is returned in Ruby - case preservation of host component
+    WarpGrep: webkit-box-ordinal-group default value and how it maps to standard order propert
+  WarpGrep API error (turn 2): 400 Client Error: Bad Request for url: https://api.morphllm.com/v1/chat/completions
+    WarpGrep: email_domains_blacklist site setting type definition default value
+  WarpGrep API error (turn 2): 400 Client Error: Bad Request for url: https://api.morphllm.com/v1/chat/completions
+  Review complete (tools: read_file=10, warpgrep_codebase_search=4, grep_pattern=4, report_issue=2)
+  Review complete: 2 issues
+  [25/50] grafana PR#80329 2 raw -> 2 kept
+    [25/50] grafana PR#80329 [0.95] incorrect_value: Debug/informational log messages are emitted at `Error` level (`r.log.Error`) in 6 places 
+    [25/50] grafana PR#80329 [0.75] incorrect_value: The cleanup ticker interval was changed from `time.Minute * 10` to `time.Minute * 1`, but 
+[39/50] discourse-graphite PR#1 (3 golden)
+  [39/50] discourse-graphite PR#1 3 files, 20 added lines
+    WarpGrep: record_for_host caller in topic_embed and how category_id is used
+    WarpGrep: how the serializer framework checks include_ methods, specifically whether it ex
+    WarpGrep: Group model findMembers empty name return value
+    WarpGrep: PG::Result accessing row by index when empty result set
+  Review complete (tools: read_file=3, warpgrep_codebase_search=2, grep_pattern=2, report_issue=1)
+  Review complete: 1 issues
+  [36/50] discourse-graphite PR#5 1 raw -> 1 kept
+    [36/50] discourse-graphite PR#5 [0.75] incorrect_value: The `order` mixin passes `$val` directly to `-webkit-box-ordinal-group` and `-moz-box-ordi
+[40/50] discourse-graphite PR#2 (2 golden)
+  [40/50] discourse-graphite PR#2 18 files, 156 added lines
+  Review complete (tools: warpgrep_codebase_search=3, grep_pattern=5, read_file=4, report_issue=2)
+  Review complete: 2 issues
+  [37/50] discourse-graphite PR#6 2 raw -> 2 kept
+    [37/50] discourse-graphite PR#6 [0.95] api_misuse: The expression `"." << website_host` uses the in-place mutating `<<` operator on a string 
+    [37/50] discourse-graphite PR#6 [0.92] naming: The method is named `include_website_name` but the Discourse serializer framework (ActiveM
+[41/50] cal.com PR#22532 (2 golden)
+  [41/50] cal.com PR#22532 17 files, 379 added lines
+    WarpGrep: open-uri Kernel open SSRF security in Ruby, open(url) vulnerability
+    WarpGrep: GrafanaRuleLoader component definition and its props
+    WarpGrep: PostCreator create method signature, cook_method parameter handling
+    WarpGrep: alias_level default value in Group model or database migration
+    WarpGrep: SelectedCalendar model definition in prisma schema
+    WarpGrep: updateManyByCredentialId usage and callers
+    WarpGrep: TopicUser.find_by user_id topic_id and how nil is handled
+    WarpGrep: unsubscribe_url in email message builder template_args
+  Review complete (tools: read_file=9, warpgrep_codebase_search=7, grep_pattern=7, report_issue=3)
+  Review complete: 3 issues
+  [34/50] discourse-graphite PR#8 3 raw -> 3 kept
+    [34/50] discourse-graphite PR#8 [0.93] api_misuse: `group.users.delete(user_id)` passes a raw integer ID to `delete` on a `has_many :through`
+    [34/50] discourse-graphite PR#8 [0.95] logic_error: `totalPages` formula `Math.floor(user_count / limit) + 1` is wrong when `user_count` is ev
+    [34/50] discourse-graphite PR#8 [0.88] test_correctness: The test "cannot remove members from automatic groups" uses `xhr :put, :remove_member` but
+[42/50] cal.com PR#8330 (2 golden)
+  [42/50] cal.com PR#8330 4 files, 111 added lines
+    WarpGrep: useFolder hook definition and how it handles undefined folderUID
+    WarpGrep: checkIfIsAvailable function definition
+    WarpGrep: host_list site setting type how values are stored pipe separated
+  WarpGrep API error (turn 2): 400 Client Error: Bad Request for url: https://api.morphllm.com/v1/chat/completions
+    WarpGrep: email_domains_blacklist default value site setting configuration
+    WarpGrep: Prisma updateMany and @updatedAt behavior, does updateMany trigger updatedAt aut
+    WarpGrep: perform_show_response method definition in topics_controller
+    WarpGrep: Jobs.run_immediately in test setup, how Discourse runs jobs synchronously in tes
+    WarpGrep: integration.metadata sender get check KeyError safety in GitHub installation flo
+    WarpGrep: how host_list type site settings are stored, format with pipe separator
+    WarpGrep: TopicUser notification_levels hash values regular muted
+  WarpGrep API error (turn 2): 400 Client Error: Bad Request for url: https://api.morphllm.com/v1/chat/completions
+    WarpGrep: email_in_restriction_setting definition with regex and anchor
+  Review complete (tools: read_file=12, warpgrep_codebase_search=5, grep_pattern=4, report_issue=7)
+  Review complete: 7 issues
+  [32/50] discourse-graphite PR#10 7 raw -> 6 kept
+    [32/50] discourse-graphite PR#10 [0.97] logic_error: The contents of `category_fabricator.rb` and `embeddable_host_fabricator.rb` have been swa
+    [32/50] discourse-graphite PR#10 [0.93] null_reference: The migration unconditionally accesses `execute(...)[0]['id']` on the result of the embed_
+    [32/50] discourse-graphite PR#10 [0.92] logic_error: The `update` action is a no-op: it simply re-renders the existing `@embedding` object with
+    [32/50] discourse-graphite PR#10 [0.88] logic_error: The SQL query `where("lower(host) = ?", host)` lowercases the DB column via `lower()`, but
+    [32/50] discourse-graphite PR#10 [0.85] security: The migration uses string interpolation to build SQL: `VALUES ('#{h}', ...)` where `h` com
+    [32/50] discourse-graphite PR#10 [0.85] test_correctness: The test was changed from `store.find('fruit', 1)` to `store.find('fruit', 2)`, but the pr
+[43/50] cal.com PR#14943 (2 golden)
+  [43/50] cal.com PR#14943 3 files, 38 added lines
+    WarpGrep: WorkflowMethods enum definition
+    WarpGrep: Prisma updateMany behavior with @updatedAt - does it automatically update the up
+    WarpGrep: checkIfIsAvailable function that checks busy times and date overrides
+    WarpGrep: validateUploadedFiles or validateUploadedFile in JavaScript, checking file type 
+  WarpGrep API error (turn 2): 400 Client Error: Bad Request for url: https://api.morphllm.com/v1/chat/completions
+    WarpGrep: ScreenedEmail should_block? implementation with atomic update
+    WarpGrep: scheduleEmailReminders or scheduleWhatsappReminders handler that also uses retry
+    WarpGrep: TopicEmbed import_remote method signature and callers, how user parameter is pas
+    WarpGrep: digest email method in user_notifications mailer with add_unsubscribe_link
+    WarpGrep: scheduleEmailReminders handler deleteMany
+  Review complete (tools: warpgrep_codebase_search=10, grep_pattern=8, read_file=7, report_issue=2)
+  Review complete: 2 issues
+  [35/50] discourse-graphite PR#3 2 raw -> 2 kept
+    [35/50] discourse-graphite PR#3 [0.85] security: The regex `Regexp.new("@(#{domains})", true)` lacks a `$` end-of-string anchor. This allow
+    [35/50] discourse-graphite PR#3 [0.82] race_condition: `BlockedEmail.should_block?` reads `match_count` into Ruby memory, increments it (`record.
+[44/50] cal.com PR#22345 (2 golden)
+  [44/50] cal.com PR#22345 2 files, 114 added lines
+  Review complete (tools: read_file=11, warpgrep_codebase_search=2, grep_pattern=7, report_issue=2)
+  Review complete: 2 issues
+  [29/50] grafana PR#79265 2 raw -> 2 kept
+    [29/50] grafana PR#79265 [0.95] api_misuse: The raw `ErrDeviceLimitReached` (a plain `fmt.Errorf("device limit reached")`) is returned
+    [29/50] grafana PR#79265 [0.92] test_correctness: The new `TestIntegrationBeyondDeviceLimit` function is missing the `testutil.SkipIntegrati
+[45/50] cal.com PR#11059 (5 golden)
+  [45/50] cal.com PR#11059 40 files, 375 added lines
+  Review complete (tools: read_file=4, grep_pattern=7, list_directory=6, warpgrep_codebase_search=2, report_issue=2)
+  Review complete: 2 issues
+  [42/50] cal.com PR#8330 2 raw -> 2 kept
+    [42/50] cal.com PR#8330 [0.97] type_error: Using `===` to compare two dayjs objects compares references, not values. `dayjs(date.star
+    [42/50] cal.com PR#8330 [0.97] logic_error: Copy-paste error: `end` is computed from `slotStartTime` instead of `slotEndTime`. Both `s
+[46/50] cal.com PR#7232 (2 golden)
+  [46/50] cal.com PR#7232 10 files, 241 added lines
+    WarpGrep: scheduleEmailReminders handler definition with prisma deleteMany or findMany wor
+    WarpGrep: AppListCard actions prop how it renders when value is null or empty
+    WarpGrep: refreshAccessToken in Google CalendarService
+  Review complete (tools: warpgrep_codebase_search=5, grep_pattern=4, read_file=5, report_issue=4)
+  Review complete: 4 issues
+  [41/50] cal.com PR#22532 4 raw -> 4 kept
+    [41/50] cal.com PR#22532 [0.92] api_misuse: The call `SelectedCalendarRepository.updateManyByCredentialId(this.credential.id, {})` is 
+    [41/50] cal.com PR#22532 [0.85] localization: The `Intl.DateTimeFormat` is hardcoded to "en-US" locale: `new Intl.DateTimeFormat("en-US"
+    [41/50] cal.com PR#22532 [0.90] portability: `sed -i '' -E "s|..."` uses macOS/BSD-specific syntax. On GNU/Linux systems, `sed -i ''` i
+    [41/50] cal.com PR#22532 [0.82] logic_error: The `actions` prop always receives a `<div className="flex w-32 justify-end">` wrapper, ev
+[47/50] cal.com PR#14740 (5 golden)
+  [47/50] cal.com PR#14740 15 files, 555 added lines
+  Review complete (tools: warpgrep_codebase_search=4, read_file=3, grep_pattern=1, report_issue=1)
+  Review complete: 1 issues
+  [43/50] cal.com PR#14943 1 raw -> 1 kept
+    [43/50] cal.com PR#14943 [0.95] logic_error: The second OR branch in the `deleteMany` query (`{ retryCount: { gt: 1 } }`) has no `metho
+[48/50] cal.com PR#10600 (4 golden)
+  [48/50] cal.com PR#10600 16 files, 280 added lines
+    WarpGrep: how CombinedRule.promRule is created, how Prometheus API response is mapped to R
+  Review complete (tools: read_file=25, warpgrep_codebase_search=15, grep_pattern=8, report_issue=2)
+  Review complete: 2 issues
+  [21/50] sentry PR#67876 2 raw -> 2 kept
+    [21/50] sentry PR#67876 [0.85] null_reference: The code accesses `integration.metadata["sender"]["login"]` without checking if `"sender"`
+    [21/50] sentry PR#67876 [0.72] logic_error: `get_user_info(payload["access_token"])` calls `resp.raise_for_status()` internally, which
+[49/50] cal.com PR#10967 (5 golden)
+  [49/50] cal.com PR#10967 22 files, 368 added lines
+    WarpGrep: isTeamAdmin and isTeamOwner function definitions
+    WarpGrep: converting prometheus rules API response to Rule type in alerting code
+    WarpGrep: class InsightsBookingService
+  Max tool rounds reached (tools: read_file=30, warpgrep_codebase_search=14, grep_pattern=11, report_issue=2)
+  Review complete: 2 issues
+  [27/50] grafana PR#106778 2 raw -> 2 kept
+    [27/50] grafana PR#106778 [0.95] api_misuse: Missing `key` prop on the `GrafanaRuleListItem` component rendered inside a `.map()`. The 
+    [27/50] grafana PR#106778 [0.88] logic_error: Behavioral regression for Grafana recording rules. `isAlertingRule` (line 386) uses `prome
+[50/50] cal.com PR#8087 (2 golden)
+    WarpGrep: WithStep component definition in EnableTwoFactorModal
+  [50/50] cal.com PR#8087 12 files, 82 added lines
+    WarpGrep: validateUploadedFiles type parameter image attachment in old discourse utilities
+    WarpGrep: isSenderIdNeeded in WorkflowStepContainer
+  Review complete (tools: read_file=11, warpgrep_codebase_search=5, grep_pattern=6, report_issue=6)
+  Review complete: 6 issues
+  [38/50] discourse-graphite PR#4 6 raw -> 6 kept
+    [38/50] discourse-graphite PR#4 [0.97] logic_error: `<%- end if %>` is invalid Ruby syntax. ERB passes `end if` (with no condition) to the Rub
+    [38/50] discourse-graphite PR#4 [0.92] security: The origin check `discourseUrl.indexOf(e.origin) === -1` uses substring matching, which is
+    [38/50] discourse-graphite PR#4 [0.80] null_reference: `i.content` can be nil for RSS/Atom feed items that don't have a `content` element (many f
+    [38/50] discourse-graphite PR#4 [0.85] security: `open(url).read` uses Ruby's `Kernel#open` (or `open-uri`'s `open`). Even with open-uri lo
+    [38/50] discourse-graphite PR#4 [0.82] test_correctness: `TopicView.expects(:new).with(123, nil, {best: 5})` has no `.returns(...)` so it returns n
+    [38/50] discourse-graphite PR#4 [0.78] security: `open(SiteSetting.feed_polling_url)` uses `Kernel#open`/`open-uri`. Although the URL is fr
+    WarpGrep: isTeamAdmin function definition
+    WarpGrep: parsedToken in zoom VideoApiAdapter after safeParse
+    WarpGrep: forEach async in handleCancelBooking.ts
+    WarpGrep: Ember route template resolution for nested template path topic/something.hbs vs 
+  WarpGrep API error (turn 2): 400 Client Error: Bad Request for url: https://api.morphllm.com/v1/chat/completions
+    WarpGrep: credentialId in zoho-bigin CalendarService class property
+    WarpGrep: sendAddGuestsEmails function definition and callers
+    WarpGrep: Upload.create_for method definition, how it uses the filesize/size parameter
+    WarpGrep: how is organization.slug used after loadUsers in handleNewBooking
+    WarpGrep: PasswordField component definition, type password toggle
+    WarpGrep: z.string().toString() output value in Zod
+    WarpGrep: getBaseConditions method definition in InsightsBookingService or insightsBooking
+    WarpGrep: implementations of Calendar interface createEvent method that don't accept crede
+    WarpGrep: Button component definition with default type prop
+    WarpGrep: callers of deleteScheduledEmailReminder
+    WarpGrep: handleCancelBooking workflow reminders deletion await
+  Review complete (tools: warpgrep_codebase_search=6, grep_pattern=10, read_file=9, report_issue=2, list_directory=3)
+  Review complete: 2 issues
+  [40/50] discourse-graphite PR#2 2 raw -> 2 kept
+    [40/50] discourse-graphite PR#2 [0.95] null_reference: `TopicUser.find_by(user_id: current_user.id, topic_id: params[:topic_id])` returns `nil` w
+    [40/50] discourse-graphite PR#2 [0.85] security: The `unsubscribe` action is a GET endpoint (per routes.rb: `get "t/:slug/:topic_id/unsubsc
+    WarpGrep: scheduleEmailReminders.ts cancel reminders cancelled true referenceId null handl
+  Review complete (tools: read_file=9, warpgrep_codebase_search=3, grep_pattern=2, report_issue=3)
+  Review complete: 3 issues
+  [47/50] cal.com PR#14740 3 raw -> 3 kept
+    [47/50] cal.com PR#14740 [0.95] logic_error: The `isTeamAdminOrOwner` variable uses `&&` (AND) between `isTeamAdmin` and `isTeamOwner`,
+    [47/50] cal.com PR#14740 [0.92] incorrect_value: `sendAddGuestsEmails(evt, guests)` passes the original `guests` from input instead of the 
+    [47/50] cal.com PR#14740 [0.85] logic_error: The `onSuccess` handler resets `multiEmailValue` but does NOT reset `isInvalidEmail` to `f
+    WarpGrep: callers creating InsightsBookingService or InsightsBookingBaseService instances,
+  Review complete (tools: read_file=14, grep_pattern=13, report_issue=5, warpgrep_codebase_search=2, list_directory=1)
+  Review complete: 5 issues
+  [49/50] cal.com PR#10967 5 raw -> 5 kept
+    [49/50] cal.com PR#10967 [0.97] logic_error: In `updateEvent`, the ternary's else branch uses `externalCalendarId` in the `.find()` cal
+    [49/50] cal.com PR#10967 [0.97] logic_error: Same bug as in `updateEvent`: in `deleteEvent`, when `externalCalendarId` is falsy, the el
+    [49/50] cal.com PR#10967 [0.95] null_reference: When `evt.destinationCalendar` is `null`, `undefined`, or an empty array `[]`, destructuri
+    [49/50] cal.com PR#10967 [0.95] logic_error: Logic inversion for slug assignment. Old code: `...(!IS_TEAM_BILLING_ENABLED && { slug })`
+    [49/50] cal.com PR#10967 [0.75] logic_error: For non-calendar (video) results, the old code set `credentialId: result.credentialId` but
+  Review complete (tools: read_file=12, grep_pattern=21, warpgrep_codebase_search=3, report_issue=3)
+  Review complete: 3 issues
+  [39/50] discourse-graphite PR#1 3 raw -> 3 kept
+    [39/50] discourse-graphite PR#1 [0.95] logic_error: Ruby does not support method overloading. The PR defines `def self.downsize(from, to, max_
+    [39/50] discourse-graphite PR#1 [0.92] logic_error: The old code used `Discourse.SiteSettings['max_' + type + '_size_kb']` to enforce type-spe
+    [39/50] discourse-graphite PR#1 [0.75] logic_error: After `OptimizedImage.downsize(tempfile.path, tempfile.path, "80%", ...)` overwrites the f
+  Review complete (tools: read_file=11, grep_pattern=10, warpgrep_codebase_search=1, report_issue=1)
+  Review complete: 1 issues
+  [50/50] cal.com PR#8087 1 raw -> 1 kept
+    [50/50] cal.com PR#8087 [0.97] api_misuse: The PR changes `bookingRefsFiltered.forEach((bookingRef) => {` to `bookingRefsFiltered.for
+    WarpGrep: symmetricDecrypt function definition in crypto
+    WarpGrep: deleteAllWorkflowReminders implementation in WorkflowRepository
+    WarpGrep: two-factor totp enable API handler endpoint
+  WarpGrep connection error, retrying in 3s (attempt 1/3): SSLError
+  WarpGrep connection error, retrying in 6s (attempt 2/3): SSLError
+    WarpGrep: webhook API route that checks request method POST in Next.js
+    WarpGrep: two-factor totp setup API handler endpoint
+    WarpGrep: findByIdAndParentId in TeamRepository definition
+    WarpGrep: import from components/security/DisableTwoFactorModal or components/security/Ena
+    WarpGrep: handleNewBooking originalRescheduledBooking workflowReminders forEach cancel
+    WarpGrep: two-factor totp disable API handler endpoint
+  Review complete (tools: read_file=20, warpgrep_codebase_search=6, grep_pattern=9, report_issue=4)
+  Review complete: 4 issues
+  [45/50] cal.com PR#11059 4 raw -> 4 kept
+    [45/50] cal.com PR#11059 [0.95] api_misuse: Invalid Zod schema syntax using computed property keys. `[z.string().toString()]` evaluate
+    [45/50] cal.com PR#11059 [0.93] logic_error: `parseRefreshTokenResponse` returns `refreshTokenResponse` (the SafeParseResult object `{s
+    [45/50] cal.com PR#11059 [0.92] incorrect_value: `credentialId` (which is `credential.id` — the credential's database primary key) is passe
+    [45/50] cal.com PR#11059 [0.90] type_error: When credential sharing is enabled, `refreshOAuthTokens` returns a raw `fetch` Response ob
+    WarpGrep: Prisma.sql toEqual in test assertions for comparing raw SQL conditions
+  Review complete (tools: read_file=9, warpgrep_codebase_search=6, grep_pattern=3, report_issue=4)
+  Review complete: 4 issues
+  [46/50] cal.com PR#7232 4 raw -> 4 kept
+    [46/50] cal.com PR#7232 [0.95] logic_error: When `immediateDelete=true` and `referenceId` is not null, the function cancels the SendGr
+    [46/50] cal.com PR#7232 [0.92] logic_error: Behavioral regression: The old code collected all DB delete promises (`remindersToDelete`)
+    [46/50] cal.com PR#7232 [0.88] logic_error: The entire `for...of` loop over `remindersToCancel` (including SendGrid cancel requests an
+    [46/50] cal.com PR#7232 [0.92] logic_error: Same behavioral regression as `handleCancelBooking.ts`: The old code collected DB delete p
+  Review complete (tools: read_file=8, grep_pattern=5, list_directory=3, warpgrep_codebase_search=5, report_issue=2)
+  Review complete: 2 issues
+  [44/50] cal.com PR#22345 2 raw -> 2 kept
+    [44/50] cal.com PR#22345 [0.90] logic_error: Missing parentheses wrapping in `getBaseConditions` when returning auth conditions alone (
+    [44/50] cal.com PR#22345 [0.75] type_error: `InsightsBookingServicePublicOptions.orgId` is typed as `number` (required, non-nullable),
+    WarpGrep: Dialog component onOpenChange closing behavior, type creation
+    WarpGrep: DialogContent component definition type creation prop handling
+    WarpGrep: onEnable callback in EnableTwoFactorModal when 2FA is successfully enabled
+    WarpGrep: react-hook-form register function return type what properties does it return
+  WarpGrep API error (turn 2): 400 Client Error: Bad Request for url: https://api.morphllm.com/v1/chat/completions
+    WarpGrep: findByEmailAndIncludeProfilesAndPassword method definition selecting user fields
+  Review complete (tools: warpgrep_codebase_search=12, read_file=24, grep_pattern=12, list_directory=1, report_issue=2)
+  Review complete: 2 issues
+  [48/50] cal.com PR#10600 2 raw -> 2 kept
+    [48/50] cal.com PR#10600 [0.88] logic_error: Behavioral regression: Previously `onEnable()` was called immediately when the enable API 
+    [48/50] cal.com PR#10600 [0.95] naming: Copy-paste error: the component function is named `TwoFactor` but lives in `BackupCode.tsx
+Wrote candidates to /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+
+============================================================
+DONE: 50 reviewed, 111 raw -> 110 filtered
+Avg/PR: 2.2, Time: 2134s
+Candidates: /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+Benchmark data updated: /Users/tejas/personal/applymodel/zmisc/examples/code-review-benchmark/offline/results/benchmark_data.json

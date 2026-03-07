@@ -1,0 +1,84 @@
+============================================================
+PR Review Agent - Benchmark Pipeline
+============================================================
+Loaded 50 PRs
+WarpGrep: ENABLED
+Calibration: 5 PRs (1 per repo)
+Reviewing 5 PRs
+
+Running 5 PRs with parallelism=5
+
+[1/5] keycloak PR#37429 (4 golden)
+[2/5] sentry PR#93824 (5 golden)
+[3/5] grafana PR#97529 (2 golden)
+[4/5] discourse-graphite PR#9 (2 golden)
+[5/5] cal.com PR#22532 (2 golden)
+  [4/5] discourse-graphite PR#9 6 files, 31 added lines
+  [3/5] grafana PR#97529 5 files, 25 added lines
+  [2/5] sentry PR#93824 6 files, 199 added lines
+  [5/5] cal.com PR#22532 17 files, 379 added lines
+  [1/5] keycloak PR#37429 48 files, 343 added lines
+    WarpGrep: updateManyByCredentialId in SelectedCalendarRepository - what does it do with em
+    WarpGrep: SpansBuffer constructor __init__ definition with assigned_shards parameter
+    WarpGrep: SelectedCalendarRepository import and updateManyByCredentialId usage
+    WarpGrep: set_locale method definition in ApplicationController
+    WarpGrep: import SelectedCalendarRepository in CalendarService.ts google calendar
+    WarpGrep: set_locale method definition in application_controller with locale assignment
+    WarpGrep: connectedCalendars type including cacheUpdatedAt property
+    WarpGrep: NewResourceServer callers that check returned error and use the server
+    WarpGrep: run_with_initialized_sentry function definition
+    WarpGrep: SelectedCalendar model definition in prisma schema including updatedAt
+    WarpGrep: _import_and_run function definition that unpickles and calls main_fn
+    WarpGrep: messages_zh_Hans.properties file - is zh_Hans the same as zh_CN simplified Chine
+    WarpGrep: SpansBuffer slice_id usage in get_redis_client or redis connection
+    WarpGrep: connectedCalendar integration type field - what is the value for google calendar
+    WarpGrep: isinstance check with multiprocessing.Process for SpawnProcess or spawned proces
+    WarpGrep: connectedCalendar integration type field for google calendar
+    WarpGrep: multiprocessing SpawnProcess inherits from Process or BaseProcess class hierarch
+    WarpGrep: how set_locale is used, before_action or around_action filter for set_locale
+    WarpGrep: Python multiprocessing SpawnProcess class definition inherits from BaseProcess o
+    WarpGrep: getConnectedCalendars return type and integration.type field
+    WarpGrep: messages_zh_CN.properties in account/messages directory under base theme
+    WarpGrep: ProcessSpansStrategyFactory constructor called with flusher_processes or how it'
+    WarpGrep: pass_kafka_slice_id how it passes kafka_slice_id to strategy factory constructor
+    WarpGrep: initializer ordering mechanism that reads order comments from Ruby files
+    WarpGrep: git rename or migration of messages_zh_CN.properties to messages_zh_Hans.propert
+  Review complete (tools: read_file=9, grep_pattern=20, warpgrep_codebase_search=3, list_directory=3)
+  Review complete: 4 issues
+  [1/5] keycloak PR#37429 4 raw -> 4 kept
+    [1/5] keycloak PR#37429 [1.00] localization: The totpStep1/loginTotpStep1 key was replaced with Italian text instead of Lithuanian. The
+    [1/5] keycloak PR#37429 [1.00] localization: The totpStep1/loginTotpStep1 key was replaced with Italian text instead of Lithuanian. The
+    [1/5] keycloak PR#37429 [0.90] localization: The replacement text "在您的手機上安裝以下應用程式之一：" uses Traditional Chinese characters (手機, 安裝, 應用程式
+    [1/5] keycloak PR#37429 [0.70] logic_error: In verifySafeHtml, the `end` loop condition `end < sanitized.length() && end < value.lengt
+    WarpGrep: multiprocessing.context.SpawnProcess vs multiprocessing.Process isinstance inher
+    WarpGrep: authedProcedure definition and how it provides prisma in context
+  Review complete (tools: read_file=13, grep_pattern=12, warpgrep_codebase_search=4, list_directory=1)
+  Review complete (tools: read_file=7, warpgrep_codebase_search=10, grep_pattern=6)
+  Review complete: 2 issues
+  [4/5] discourse-graphite PR#9 2 raw -> 2 kept
+    [4/5] discourse-graphite PR#9 [0.70] type_error: Missing `locale.to_sym` in `FallbackLocaleList#[]` — Symbol/String mismatch causes duplica
+    [4/5] discourse-graphite PR#9 [0.70] type_error: Missing `locale.to_sym` in `ensure_loaded!` — bypasses loaded-locale check on every call w
+  Review complete: 3 issues
+  [2/5] sentry PR#93824 3 raw -> 3 kept
+    [2/5] sentry PR#93824 [0.95] logic_error: Missing `slice_id` when creating per-shard `SpansBuffer` instances. The factory creates th
+    [2/5] sentry PR#93824 [0.82] type_error: `isinstance(process, multiprocessing.Process)` is always `False` for spawned processes — h
+    [2/5] sentry PR#93824 [0.92] incorrect_value: Inconsistent metrics tag key `"shard"` vs `"shards"`. All other metrics in the same functi
+    WarpGrep: initWatcher function definition in resource server.go
+    WarpGrep: UserWithCalendars type definition with selectedCalendars fields
+    WarpGrep: onChanged callback in SelectedCalendarsSettingsWebWrapper and how it triggers re
+  Max tool rounds reached (tools: warpgrep_codebase_search=11, read_file=21, grep_pattern=23, list_directory=3)
+    WarpGrep: server.go searchSupport struct definition and its init method
+  Review complete: 2 issues
+  [5/5] cal.com PR#22532 2 raw -> 2 kept
+    [5/5] cal.com PR#22532 [0.85] logic_error: The `deleteCacheMutation` does not include an `onSettled` handler to invalidate the `conne
+    [5/5] cal.com PR#22532 [0.55] api_misuse: `updateManyByCredentialId` is called with an empty data object `{}`, relying on the `@upda
+  Review complete (tools: read_file=14, warpgrep_codebase_search=3, grep_pattern=17, list_directory=1)
+  Review complete: 0 issues
+  [3/5] grafana PR#97529 0 raw -> 0 kept
+Wrote candidates to /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+
+============================================================
+DONE: 5 reviewed, 11 raw -> 11 filtered
+Avg/PR: 2.2, Time: 691s
+Candidates: /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+Benchmark data updated: /Users/tejas/personal/applymodel/zmisc/examples/code-review-benchmark/offline/results/benchmark_data.json

@@ -1,0 +1,55 @@
+============================================================
+PR Review Agent - Benchmark Pipeline
+============================================================
+Loaded 50 PRs
+WarpGrep: ENABLED
+Calibration: 5 PRs (1 per repo)
+Reviewing 5 PRs
+
+Running 5 PRs with parallelism=5
+
+[1/5] keycloak PR#37429 (4 golden)
+[2/5] sentry PR#93824 (5 golden)
+[3/5] grafana PR#97529 (2 golden)
+[4/5] discourse-graphite PR#9 (2 golden)
+[5/5] cal.com PR#22532 (2 golden)
+  [4/5] discourse-graphite PR#9 6 files, 31 added lines
+  [2/5] sentry PR#93824 6 files, 199 added lines
+  [3/5] grafana PR#97529 5 files, 25 added lines
+  [1/5] keycloak PR#37429 48 files, 343 added lines
+  [5/5] cal.com PR#22532 17 files, 379 added lines
+    WarpGrep: How does Prisma updateMany behave when data is an empty object? Does @updatedAt 
+    WarpGrep: set_locale method definition in application_controller.rb
+    WarpGrep: fetchAvailabilityAndSetCache method in GoogleCalendarService
+    WarpGrep: How is the SpansBuffer constructor used? What arguments does it take? Does it ac
+  Max tool rounds reached (tools: read_file=12, grep_pattern=15, warpgrep_codebase_search=2, list_directory=1)
+  Review complete (tools: read_file=14, grep_pattern=8, warpgrep_codebase_search=1)
+  Review complete: 3 issues
+  [2/5] sentry PR#93824 3 raw -> 3 kept
+    [2/5] sentry PR#93824 [0.95] incorrect_value: `SpansBuffer(shards)` is created without passing `slice_id`. The original `buffer` paramet
+    [2/5] sentry PR#93824 [0.95] incorrect_value: Inconsistent metric tag key: `tags={"shards": shard_tag}` on `spans.buffer.flusher.wait_pr
+    [2/5] sentry PR#93824 [0.92] test_correctness: The added `time.sleep(0.1)` is a no-op because `monkeypatch.setattr("time.sleep", lambda _
+  Review complete: 0 issues
+  [5/5] cal.com PR#22532 0 raw -> 0 kept
+  Review complete (tools: read_file=9, grep_pattern=15)
+  Review complete: 3 issues
+  [1/5] keycloak PR#37429 3 raw -> 3 kept
+    [1/5] keycloak PR#37429 [1.00] localization: Italian text "Installa una delle seguenti applicazioni sul tuo cellulare:" is used in the 
+    [1/5] keycloak PR#37429 [1.00] localization: Italian text "Installa una delle seguenti applicazioni sul tuo cellulare:" is used in the 
+    [1/5] keycloak PR#37429 [0.95] localization: Traditional Chinese characters are used in the Simplified Chinese (zh_CN) locale file. The
+    WarpGrep: I18n::Backend::Fallbacks translate method implementation that uses fallbacks
+  WarpGrep API error (turn 3): 400 Client Error: Bad Request for url: https://api.morphllm.com/v1/chat/completions
+  Max tool rounds reached (tools: read_file=10, grep_pattern=16, warpgrep_codebase_search=2)
+  Review complete: 0 issues
+  [4/5] discourse-graphite PR#9 0 raw -> 0 kept
+    WarpGrep: How does the old BuildIndex in bleve.go handle errors from bleve.New and bleve.N
+  Review complete (tools: read_file=8, grep_pattern=19, warpgrep_codebase_search=1)
+  Review complete: 0 issues
+  [3/5] grafana PR#97529 0 raw -> 0 kept
+Wrote candidates to /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+
+============================================================
+DONE: 5 reviewed, 6 raw -> 6 filtered
+Avg/PR: 1.2, Time: 644s
+Candidates: /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+Benchmark data updated: /Users/tejas/personal/applymodel/zmisc/examples/code-review-benchmark/offline/results/benchmark_data.json

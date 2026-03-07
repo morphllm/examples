@@ -1,0 +1,77 @@
+============================================================
+PR Review Agent - Benchmark Pipeline
+============================================================
+Loaded 50 PRs
+WarpGrep: ENABLED
+Calibration: 5 PRs (1 per repo)
+Reviewing 5 PRs
+
+Running 5 PRs with parallelism=5
+
+[1/5] keycloak PR#37429 (4 golden)
+[2/5] sentry PR#93824 (5 golden)
+[3/5] grafana PR#97529 (2 golden)
+[4/5] discourse-graphite PR#9 (2 golden)
+[5/5] cal.com PR#22532 (2 golden)
+  [4/5] discourse-graphite PR#9 6 files, 31 added lines
+  [2/5] sentry PR#93824 6 files, 199 added lines
+  [3/5] grafana PR#97529 5 files, 25 added lines
+  [5/5] cal.com PR#22532 17 files, 379 added lines
+  [1/5] keycloak PR#37429 48 files, 343 added lines
+    WarpGrep: Prisma updateMany with empty data object - what happens
+    WarpGrep: SpansBuffer class definition and constructor
+    WarpGrep: set_locale method definition in application_controller
+    WarpGrep: SelectedCalendarRepository import in GoogleCalendarService
+    WarpGrep: multiprocessing.get_context("spawn") Process type vs multiprocessing.Process isi
+    WarpGrep: Prisma @updatedAt behavior with updateMany - does it auto-update?
+    WarpGrep: cacheUpdatedAt property usage in connected calendars
+    WarpGrep: NewResourceServer function callers that handle the return value
+    WarpGrep: CalendarCacheRepository import and which implementation gets used (mock vs real)
+    WarpGrep: CalendarCacheRepository constructor or factory to determine if mock or real is u
+    WarpGrep: searchSupport struct definition with tracer and log fields
+    WarpGrep: SpansBuffer slice_id usage in flush_segments and process_spans
+    WarpGrep: How is SelectedCalendar.updatedAt used in UI or API responses
+    WarpGrep: LocaleSiteSetting.fallback_locale method definition
+    WarpGrep: Prisma updateMany with empty data object behavior, @updatedAt behavior with upda
+    WarpGrep: run_with_initialized_sentry function definition and how it wraps target function
+    WarpGrep: How does the admin UI frontend handle message interpolation with double curly br
+  Review complete (tools: read_file=11, grep_pattern=12, list_directory=1, warpgrep_codebase_search=1)
+  Review complete (tools: read_file=13, warpgrep_codebase_search=8, grep_pattern=19, list_directory=1)
+  Review complete: 2 issues
+  [5/5] cal.com PR#22532 2 raw -> 2 kept
+    [5/5] cal.com PR#22532 [0.92] api_misuse: Empty data object `{}` passed to `updateManyByCredentialId` is a complete no-op. The inten
+    [5/5] cal.com PR#22532 [0.60] localization: The locale for `Intl.DateTimeFormat` is hardcoded to `"en-US"` when the component already 
+  Review complete: 5 issues
+  [1/5] keycloak PR#37429 5 raw -> 5 kept
+    [1/5] keycloak PR#37429 [0.98] localization: The totpStep1/loginTotpStep1 translation was replaced with Italian text instead of Lithuan
+    [1/5] keycloak PR#37429 [0.98] localization: The totpStep1 translation was replaced with Italian text instead of Lithuanian. The new te
+    [1/5] keycloak PR#37429 [0.97] localization: The new totpStep1 value uses Traditional Chinese characters in what should be a Simplified
+    [1/5] keycloak PR#37429 [0.95] api_misuse: Frontend interpolation format broken — {{0}} changed to {0} with Java-only syntax. These f
+    [1/5] keycloak PR#37429 [0.95] api_misuse: Frontend interpolation format broken — {{0}} changed to {0} with Java-only syntax. These f
+    WarpGrep: SpawnProcess class inheritance multiprocessing.process.BaseProcess
+    WarpGrep: isinstance check with multiprocessing.Process for SpawnProcess objects created b
+    WarpGrep: how is set_locale used in application controller, is it a before_action?
+  Review complete (tools: read_file=16, warpgrep_codebase_search=3, grep_pattern=7)
+    WarpGrep: Python multiprocessing context SpawnProcess inherits from BaseProcess not Proces
+  Review complete: 2 issues
+  [4/5] discourse-graphite PR#9 2 raw -> 2 kept
+    [4/5] discourse-graphite PR#9 [0.85] type_error: Missing `locale.to_sym` in `ensure_loaded!` — Symbol/String mismatch. The `@loaded_locales
+    [4/5] discourse-graphite PR#9 [0.70] type_error: FallbackLocaleList#[] doesn't normalize locale to symbol — produces mixed-type fallback ar
+  Review complete (tools: warpgrep_codebase_search=7, grep_pattern=12, read_file=12)
+  Review complete: 3 issues
+  [2/5] sentry PR#93824 3 raw -> 3 kept
+    [2/5] sentry PR#93824 [0.95] incorrect_value: Inconsistent metric tag key: the `wait_produce` metric uses `"shards"` (plural) while the 
+    [2/5] sentry PR#93824 [0.92] type_error: `isinstance(process, multiprocessing.Process)` is always False for SpawnProcess instances.
+    [2/5] sentry PR#93824 [0.85] logic_error: Missing `slice_id` propagation to sub-buffers. In `_create_process_for_shards`, the sub-bu
+    WarpGrep: callers of BuildIndex on bleveBackend or SearchBackend
+  Review complete (tools: read_file=20, warpgrep_codebase_search=3, grep_pattern=9)
+  Review complete: 1 issues
+  [3/5] grafana PR#97529 1 raw -> 1 kept
+    [3/5] grafana PR#97529 [0.85] logic_error: When `NewResourceServer` calls `s.Init(ctx)` and Init partially succeeds then fails (e.g.,
+Wrote candidates to /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+
+============================================================
+DONE: 5 reviewed, 13 raw -> 13 filtered
+Avg/PR: 2.6, Time: 548s
+Candidates: /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+Benchmark data updated: /Users/tejas/personal/applymodel/zmisc/examples/code-review-benchmark/offline/results/benchmark_data.json

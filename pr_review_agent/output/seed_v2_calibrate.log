@@ -1,0 +1,52 @@
+============================================================
+PR Review Agent - Benchmark Pipeline
+============================================================
+Loaded 50 PRs
+Organism: pr_review_agent/evolver/seed_organism_v2.json
+  confidence_threshold=0.4, num_passes=4, max_issues=8
+WarpGrep: ENABLED
+Calibration: 5 PRs (1 per repo)
+Reviewing 5 PRs
+
+[1/5] keycloak PR#37429 (4 golden)
+  48 files, 343 added lines
+  WarpGrep context: 20086 chars
+  Pass 1/4: 5 issues
+  Pass 2/4: 6 issues
+  Pass 3/4: 4 issues
+  Pass 4/4: 4 issues
+  Quick-wins pass: 3 issues
+  Judge removed 1 FPs (7 -> 6)
+  6 raw -> 5 filtered
+    [1.00] localization: totpStep1 is set to Italian text "Installa una delle seguenti applicazioni sul tuo cellula
+    [1.00] localization: totpStep1 is set to Traditional Chinese characters ('在您的手機上安裝以下應用程式之一：') in the Simplified
+    [1.00] incorrect_value: Method name typo: 'santizeAnchors' is missing the 'i' — should be 'sanitizeAnchors'. While
+    [0.97] incorrect_value: error-invalid-multivalued-size changed from frontend-compatible double-curly-brace placeho
+    [0.77] logic_error: In the diff-highlighting logic, the `start` and `end` counters can overlap when the two st
+[2/5] sentry PR#93824 (5 golden)
+  6 files, 199 added lines
+  WarpGrep context: 20086 chars
+  Pass 1/4: 3 issues
+  Pass 2/4: 3 issues
+  Pass 3/4: 3 issues
+  Pass 4/4: 3 issues
+  Quick-wins pass: 3 issues
+  5 raw -> 5 filtered
+    [1.00] api_misuse: `isinstance(process, multiprocessing.Process)` returns False for processes created via `mu
+    [1.00] incorrect_value: Inconsistent metric tag key `"shards"` (plural) in `metrics.timer("spans.buffer.flusher.wa
+    [1.00] test_correctness: `time.sleep(0.1)` is a no-op because `monkeypatch.setattr("time.sleep", lambda _: None)` w
+    [0.65] incorrect_value: Docstring says "Creates one process per shard for parallel processing" but the code actual
+    [0.63] logic_error: In `join()`, when `remaining_time <= 0` the loop `break`s without calling `process.termina
+[3/5] grafana PR#97529 (2 golden)
+  5 files, 25 added lines
+  Pass 1/4: 3 issues
+  Pass 2/4: 2 issues
+  Pass 3/4: 3 issues
+  Pass 4/4: 2 issues
+  Quick-wins pass: 1 issues
+  Judge removed 3 FPs (4 -> 1)
+  1 raw -> 1 filtered
+    [1.00] race_condition: Lock scope in `BuildIndex` was reduced from covering the entire build operation to only th
+[4/5] discourse-graphite PR#9 (2 golden)
+  6 files, 31 added lines
+  WarpGrep context: 11215 chars

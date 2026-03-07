@@ -3,40 +3,40 @@
   "total_issues": 4,
   "issues": [
     {
+      "file_path": "packages/trpc/server/routers/viewer/bookings.tsx",
+      "line_number": 553,
+      "category": "api_misuse",
+      "severity": "critical",
+      "confidence": 0.95,
+      "comment": "forEach with async callback \u2014 promises silently discarded. Array.prototype.forEach ignores the return value of callbacks, so when the callback is async, the returned Promise is silently discarded. The await getCalendar(...) and subsequent deleteEvent/deleteMeeting calls inside the callback will not be awaited by the calling code. The function proceeds to the next statements (sending emails, etc.) before the calendar/video deletion operations even start. Errors are uncatchable as rejected promises become unhandled promise rejections. This is a regression from the old code. Correct fix: Use Promise.all(bookingRefsFiltered.map(async (bookingRef) => { ... })) or a for...of loop instead of forEach.",
+      "source_pass": "review"
+    },
+    {
       "file_path": "packages/app-store/vital/lib/reschedule.ts",
       "line_number": 125,
-      "category": "race_condition",
-      "severity": "high",
-      "confidence": 0.9,
-      "comment": "forEach callback is marked async but forEach doesn't wait for async callbacks to complete. The calendar deletions will run concurrently without proper coordination, potentially causing race conditions and the function may complete before all deletions finish.",
-      "source_pass": "batched_review"
+      "category": "api_misuse",
+      "severity": "critical",
+      "confidence": 0.95,
+      "comment": "forEach with async callback \u2014 promises silently discarded. Array.prototype.forEach ignores the return value of callbacks, so when the callback is async, the returned Promise is silently discarded. The await getCalendar(...) and subsequent deleteEvent/deleteMeeting calls inside the callback will not be awaited. The forEach is wrapped in a try/catch block, but since forEach doesn't await the async callbacks, rejected promises will become unhandled promise rejections instead of being caught. This is a regression from the old code. Correct fix: Use Promise.all(bookingRefsFiltered.map(async (bookingRef) => { ... })) or a for...of loop instead of forEach.",
+      "source_pass": "review"
     },
     {
       "file_path": "packages/app-store/wipemycalother/lib/reschedule.ts",
       "line_number": 125,
-      "category": "race_condition",
-      "severity": "high",
-      "confidence": 0.9,
-      "comment": "forEach callback is marked async but forEach doesn't wait for async callbacks to complete. The calendar deletions will run concurrently without proper coordination, potentially causing race conditions and the function may complete before all deletions finish.",
-      "source_pass": "batched_review"
+      "category": "api_misuse",
+      "severity": "critical",
+      "confidence": 0.95,
+      "comment": "forEach with async callback \u2014 promises silently discarded. Array.prototype.forEach ignores the return value of callbacks, so when the callback is async, the returned Promise is silently discarded. The await getCalendar(...) and subsequent deleteEvent/deleteMeeting calls inside the callback will not be awaited. The forEach is wrapped in a try/catch block, but since forEach doesn't await the async callbacks, rejected promises will become unhandled promise rejections instead of being caught. This is a regression from the old code. Correct fix: Use Promise.all(bookingRefsFiltered.map(async (bookingRef) => { ... })) or a for...of loop instead of forEach.",
+      "source_pass": "review"
     },
     {
-      "file_path": "packages/features/bookings/lib/handleCancelBooking.ts",
-      "line_number": 461,
-      "category": "race_condition",
-      "severity": "high",
-      "confidence": 0.9,
-      "comment": "forEach callback is marked async but forEach doesn't wait for async callbacks to complete. The calendar deletions for recurring events will run concurrently without coordination, potentially causing the function to complete before all deletions finish.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "packages/trpc/server/routers/viewer/bookings.tsx",
-      "line_number": 553,
-      "category": "race_condition",
-      "severity": "high",
-      "confidence": 0.9,
-      "comment": "forEach callback is marked async but forEach doesn't wait for async callbacks to complete. The calendar deletions will run concurrently without proper coordination, potentially causing race conditions and the function may complete before all deletions finish.",
-      "source_pass": "batched_review"
+      "file_path": "packages/core/CalendarManager.ts",
+      "line_number": 28,
+      "category": "type_error",
+      "severity": "medium",
+      "confidence": 0.6,
+      "comment": "getCalendarCredentials stores unawaited Promise, breaking the type contract. getCalendarCredentials remains a synchronous function but calls getCalendar(credential) which is now async (returns Promise<Calendar | null>). The calendar field stored in the returned objects is now a Promise<Calendar | null> instead of Calendar | null. While getConnectedCalendars handles this by awaiting the stored promise, other consumers of getCalendarCredentials may access the calendar property expecting a resolved value without await, leading to type errors or incorrect behavior.",
+      "source_pass": "review"
     }
   ]
 }

@@ -1,0 +1,632 @@
+============================================================
+PR Review Agent - Benchmark Pipeline
+============================================================
+============================================================
+PR Review Agent - Benchmark Pipeline
+============================================================
+Loaded 50 PRs
+Loaded 50 PRs
+WarpGrep: ENABLED
+WarpGrep: ENABLED
+Hard set: 7 PRs (hardest by candidate/golden ratio)
+Reviewing 7 PRs (parallel=1)
+
+[1/7] keycloak PR#37429 (4 golden)
+Hard set: 7 PRs (hardest by candidate/golden ratio)
+Reviewing 7 PRs (parallel=1)
+
+[1/7] keycloak PR#37429 (4 golden)
+  [keycloak#37429] 48 files, 343 added lines
+  [keycloak#37429] 48 files, 343 added lines
+  WarpGrep API 429, retrying in 3s (attempt 1/3)
+  WarpGrep API 429, retrying in 3s (attempt 1/3)
+  WarpGrep API 429, retrying in 6s (attempt 2/3)
+  WarpGrep API 429, retrying in 6s (attempt 2/3)
+  WarpGrep API 429, retrying in 12s (attempt 3/3)
+  WarpGrep API 429, retrying in 12s (attempt 3/3)
+  WarpGrep API error (turn 2): 429
+  WarpGrep API error (turn 2): 429
+  WarpGrep context: 80295 chars
+  WarpGrep context: 80295 chars
+  Review complete (tools: read_file=6, grep_pattern=6, list_directory=1)
+  Review complete (tools: read_file=6, grep_pattern=6, list_directory=1)
+  Pass 1/6: 4 issues
+  Pass 1/6: 4 issues
+    WarpGrep: How is error-invalid-multivalued-size used in the admin-ui or account-ui JavaScr
+    WarpGrep: How is error-invalid-multivalued-size used in the admin-ui or account-ui JavaScr
+    WarpGrep: How does admin-ui JavaScript frontend process message properties with double cur
+    WarpGrep: How does admin-ui JavaScript frontend process message properties with double cur
+  Review complete (tools: grep_pattern=10, read_file=8, warpgrep_codebase_search=2)
+  Review complete (tools: grep_pattern=10, read_file=8, warpgrep_codebase_search=2)
+  Pass 2/6: 4 issues
+  Pass 2/6: 4 issues
+    WarpGrep: How does account-ui handle message format placeholders - double curly braces vs 
+    WarpGrep: How does account-ui handle message format placeholders - double curly braces vs 
+    WarpGrep: How are error-invalid-multivalued-size messages used in the account-ui frontend
+    WarpGrep: How are error-invalid-multivalued-size messages used in the account-ui frontend
+    WarpGrep: account-ui message interpolation format double curly braces or how account-ui lo
+    WarpGrep: account-ui message interpolation format double curly braces or how account-ui lo
+  WarpGrep API 429, retrying in 3s (attempt 1/3)
+  WarpGrep API 429, retrying in 3s (attempt 1/3)
+  WarpGrep API 429, retrying in 6s (attempt 2/3)
+  WarpGrep API 429, retrying in 6s (attempt 2/3)
+  WarpGrep API 429, retrying in 12s (attempt 3/3)
+  WarpGrep API 429, retrying in 12s (attempt 3/3)
+  WarpGrep API error (turn 4): 429
+  WarpGrep API error (turn 4): 429
+  Final review call (tools used: read_file=15, grep_pattern=14, list_directory=1, warpgrep_codebase_search=3)
+  Final review call (tools used: read_file=15, grep_pattern=14, list_directory=1, warpgrep_codebase_search=3)
+  Pass 3/6: 0 issues
+  Pass 3/6: 0 issues
+  Mid-review WarpGrep boost: +83711 chars  Mid-review WarpGrep boost: +83711 chars
+
+    WarpGrep: How is i18n or i18next used in admin-ui or account-ui for interpolation and plac
+    WarpGrep: How is i18n or i18next used in admin-ui or account-ui for interpolation and plac
+    WarpGrep: i18next configuration and initialization in admin-ui, especially interpolation s
+    WarpGrep: i18next configuration and initialization in admin-ui, especially interpolation s
+  Review complete (tools: read_file=5, grep_pattern=3, warpgrep_codebase_search=2)
+  Review complete (tools: read_file=5, grep_pattern=3, warpgrep_codebase_search=2)
+  Pass 4/6: 5 issues
+  Pass 4/6: 5 issues
+    WarpGrep: How is error-invalid-multivalued-size used in the JavaScript frontend / admin UI
+    WarpGrep: How is error-invalid-multivalued-size used in the JavaScript frontend / admin UI
+  Review complete (tools: grep_pattern=5, read_file=4, warpgrep_codebase_search=1)
+  Review complete (tools: grep_pattern=5, read_file=4, warpgrep_codebase_search=1)
+  Pass 5/6: 3 issues
+  Pass 5/6: 3 issues
+  Review complete (tools: read_file=18, grep_pattern=7, list_directory=1)
+  Review complete (tools: read_file=18, grep_pattern=7, list_directory=1)
+  Pass 6/6: 4 issues
+  Pass 6/6: 4 issues
+    WarpGrep: totpStep1 in zh_CN account messages properties file
+    WarpGrep: totpStep1 in zh_CN account messages properties file
+    WarpGrep: messages_zh_CN.properties in account messages directory
+    WarpGrep: messages_zh_CN.properties in account messages directory
+  Review complete (tools: read_file=5, grep_pattern=6, warpgrep_codebase_search=2, list_directory=1)
+  Review complete (tools: read_file=5, grep_pattern=6, warpgrep_codebase_search=2, list_directory=1)
+  Quick-wins pass: 4 issues
+  Quick-wins pass: 4 issues
+  Aggregating 24 issues from 7 passes...
+  Aggregating 24 issues from 7 passes...
+  Aggregation: 24 raw -> 6 curated
+  Aggregation: 24 raw -> 6 curated
+  [keycloak#37429] 6 raw -> 4 filtered
+    [0.98] localization: Italian text in Lithuanian (lt) locale file. `totpStep1` was changed from correct Lithuani
+  [keycloak#37429] 6 raw -> 4 filtered
+    [0.98] localization: Italian text in Lithuanian (lt) locale file. `totpStep1` was changed from correct Lithuani
+    [0.88] incorrect_value: Java MessageFormat/ChoiceFormat syntax used in an i18next frontend properties file. Change
+    [0.82] logic_error: StringIndexOutOfBoundsException in the `end` trimming loop of `verifySafeHtml()`. The loop
+    [0.75] incorrect_value: Method name typo: `santizeAnchors` is missing the letter 'i' — should be `sanitizeAnchors`
+    [0.88] incorrect_value: Java MessageFormat/ChoiceFormat syntax used in an i18next frontend properties file. Change
+    [0.82] logic_error: StringIndexOutOfBoundsException in the `end` trimming loop of `verifySafeHtml()`. The loop
+    [0.75] incorrect_value: Method name typo: `santizeAnchors` is missing the letter 'i' — should be `sanitizeAnchors`
+[2/7] sentry PR#77754 (4 golden)
+[2/7] sentry PR#77754 (4 golden)
+  [sentry#77754] 7 files, 212 added lines
+  [sentry#77754] 7 files, 212 added lines
+  WarpGrep connection error, retrying in 3s (attempt 1/3): SSLError
+  WarpGrep connection error, retrying in 3s (attempt 1/3): SSLError
+  WarpGrep connection error, retrying in 3s (attempt 1/3): SSLError
+  WarpGrep connection error, retrying in 3s (attempt 1/3): SSLError
+  WarpGrep API 429, retrying in 6s (attempt 2/3)
+  WarpGrep API 429, retrying in 6s (attempt 2/3)
+  WarpGrep API 429, retrying in 3s (attempt 1/3)
+  WarpGrep API 429, retrying in 3s (attempt 1/3)
+  WarpGrep connection error, retrying in 6s (attempt 2/3): SSLError
+  WarpGrep connection error, retrying in 6s (attempt 2/3): SSLError
+  WarpGrep connection error, retrying in 12s (attempt 3/3): SSLError
+  WarpGrep connection error, retrying in 12s (attempt 3/3): SSLError
+  WarpGrep API 429, retrying in 12s (attempt 3/3)
+  WarpGrep API 429, retrying in 12s (attempt 3/3)
+  WarpGrep API error (turn 2): HTTPSConnectionPool(host='api.morphllm.com', port=443): Max retries exceeded with url: /v1/chat/completions (Caused by SSLError(SSLError(1, '[SSL: SSLV3_ALERT_BAD_RECORD_MAC] ssl/tls alert bad record mac (_ssl.c:2710)')))
+  WarpGrep API error (turn 2): HTTPSConnectionPool(host='api.morphllm.com', port=443): Max retries exceeded with url: /v1/chat/completions (Caused by SSLError(SSLError(1, '[SSL: SSLV3_ALERT_BAD_RECORD_MAC] ssl/tls alert bad record mac (_ssl.c:2710)')))
+  WarpGrep API 429, retrying in 3s (attempt 1/3)
+  WarpGrep API 429, retrying in 3s (attempt 1/3)
+  WarpGrep API 429, retrying in 6s (attempt 2/3)
+  WarpGrep API 429, retrying in 6s (attempt 2/3)
+  WarpGrep API error (turn 2): 429
+  WarpGrep API error (turn 2): 429
+  WarpGrep API 429, retrying in 3s (attempt 1/3)
+  WarpGrep API 429, retrying in 3s (attempt 1/3)
+  WarpGrep API 429, retrying in 6s (attempt 2/3)
+  WarpGrep API 429, retrying in 6s (attempt 2/3)
+  WarpGrep API 429, retrying in 12s (attempt 3/3)
+  WarpGrep API 429, retrying in 12s (attempt 3/3)
+  WarpGrep API 429, retrying in 12s (attempt 3/3)
+  WarpGrep API 429, retrying in 12s (attempt 3/3)
+  WarpGrep API error (turn 1): 429
+  WarpGrep API error (turn 1): 429
+  WarpGrep API error (turn 1): 429
+  WarpGrep API error (turn 1): 429
+  WarpGrep context: 70866 chars
+  WarpGrep context: 70866 chars
+    WarpGrep: concrete implementations of sync_assignee_outbound method in integration classes
+    WarpGrep: concrete implementations of sync_assignee_outbound method in integration classes
+    WarpGrep: concrete implementations of sync_status_outbound method in integration classes
+    WarpGrep: concrete implementations of sync_status_outbound method in integration classes
+  Review complete (tools: read_file=3, grep_pattern=2, warpgrep_codebase_search=2)
+  Review complete (tools: read_file=3, grep_pattern=2, warpgrep_codebase_search=2)
+  Pass 1/6: 1 issues
+  Pass 1/6: 1 issues
+    WarpGrep: dataclass field default_factory timezone.now pattern in sentry codebase
+    WarpGrep: dataclass field default_factory timezone.now pattern in sentry codebase
+  Review complete (tools: read_file=10, grep_pattern=5, warpgrep_codebase_search=1)
+  Review complete (tools: read_file=10, grep_pattern=5, warpgrep_codebase_search=1)
+  Pass 2/6: 1 issues
+  Pass 2/6: 1 issues
+    WarpGrep: Python dataclass with datetime.now or timezone.now as default field value - clas
+    WarpGrep: Python dataclass with datetime.now or timezone.now as default field value - clas
+  Review complete (tools: read_file=19, grep_pattern=12, warpgrep_codebase_search=1)
+  Review complete (tools: read_file=19, grep_pattern=12, warpgrep_codebase_search=1)
+  Pass 3/6: 1 issues
+  Pass 3/6: 1 issues
+  Mid-review WarpGrep boost: +15133 chars
+  Mid-review WarpGrep boost: +15133 chars
+  Review complete (tools: read_file=11, grep_pattern=5)  Review complete (tools: read_file=11, grep_pattern=5)
+
+  Pass 4/6: 1 issues  Pass 4/6: 1 issues
+
+  Review complete (tools: read_file=7, grep_pattern=6)
+  Review complete (tools: read_file=7, grep_pattern=6)
+  Pass 5/6: 3 issues
+  Pass 5/6: 3 issues
+    WarpGrep: callers of deassign that pass assigned_to or extra parameter
+    WarpGrep: callers of deassign that pass assigned_to or extra parameter
+    WarpGrep: timezone.now used as default value in dataclass field definition
+    WarpGrep: timezone.now used as default value in dataclass field definition
+  Review complete (tools: read_file=16, grep_pattern=9, warpgrep_codebase_search=2)
+  Review complete (tools: read_file=16, grep_pattern=9, warpgrep_codebase_search=2)
+  Pass 6/6: 2 issues
+  Pass 6/6: 2 issues
+    WarpGrep: concrete implementations of sync_status_outbound method that override the abstra
+    WarpGrep: concrete implementations of sync_status_outbound method that override the abstra
+    WarpGrep: callers of sync_assignee_outbound that pass assignment_source keyword argument
+    WarpGrep: callers of sync_assignee_outbound that pass assignment_source keyword argument
+  Review complete (tools: warpgrep_codebase_search=2, grep_pattern=2, read_file=5)
+  Review complete (tools: warpgrep_codebase_search=2, grep_pattern=2, read_file=5)
+  Quick-wins pass: 4 issues
+  Quick-wins pass: 4 issues
+  Aggregating 13 issues from 7 passes...
+  Aggregating 13 issues from 7 passes...
+  Aggregation: 13 raw -> 3 curated
+  Aggregation: 13 raw -> 3 curated
+  [sentry#77754] 3 raw -> 2 filtered
+    [0.97] logic_error: `queued: datetime = timezone.now()` is evaluated once at class definition (module import) 
+    [0.85] test_correctness: Test method name `test_from_dict_inalid_data` has a typo — missing 'v', should be `test_fr
+  [sentry#77754] 3 raw -> 2 filtered
+    [0.97] logic_error: `queued: datetime = timezone.now()` is evaluated once at class definition (module import) 
+    [0.85] test_correctness: Test method name `test_from_dict_inalid_data` has a typo — missing 'v', should be `test_fr
+[3/7] sentry PR#93824 (5 golden)
+[3/7] sentry PR#93824 (5 golden)
+  [sentry#93824] 6 files, 199 added lines
+  [sentry#93824] 6 files, 199 added lines
+  WarpGrep API 429, retrying in 3s (attempt 1/3)
+  WarpGrep API 429, retrying in 3s (attempt 1/3)
+  WarpGrep API 429, retrying in 6s (attempt 2/3)  WarpGrep API 429, retrying in 6s (attempt 2/3)
+
+  WarpGrep API 429, retrying in 12s (attempt 3/3)
+  WarpGrep API 429, retrying in 12s (attempt 3/3)
+  WarpGrep API error (turn 2): 429
+  WarpGrep API error (turn 2): 429
+  WarpGrep context: 130273 chars
+  WarpGrep context: 130273 chars
+  Review complete (tools: read_file=8, grep_pattern=2)
+  Review complete (tools: read_file=8, grep_pattern=2)
+  Pass 1/6: 1 issues
+  Pass 1/6: 1 issues
+  Review complete (tools: read_file=11, grep_pattern=4)
+  Review complete (tools: read_file=11, grep_pattern=4)
+  Pass 2/6: 2 issues
+  Pass 2/6: 2 issues
+    WarpGrep: SpansBuffer constructor __init__ assigned_shards slice_id parameters
+    WarpGrep: SpansBuffer constructor __init__ assigned_shards slice_id parameters
+    WarpGrep: Dashboard or query using the metric tag "shards" or "shard" for spans.buffer.flu
+    WarpGrep: Dashboard or query using the metric tag "shards" or "shard" for spans.buffer.flu
+    WarpGrep: run_with_initialized_sentry function signature and how it wraps target functions
+    WarpGrep: run_with_initialized_sentry function signature and how it wraps target functions
+  Review complete (tools: read_file=12, grep_pattern=7, warpgrep_codebase_search=3)
+  Review complete (tools: read_file=12, grep_pattern=7, warpgrep_codebase_search=3)
+  Pass 3/6: 2 issues
+  Pass 3/6: 2 issues
+  Mid-review WarpGrep boost: +47500 chars
+  Mid-review WarpGrep boost: +47500 chars
+    WarpGrep: SpansBuffer constructor definition __init__ slice_id
+    WarpGrep: SpansBuffer constructor definition __init__ slice_id
+  Review complete (tools: warpgrep_codebase_search=1, grep_pattern=3, read_file=5)
+  Review complete (tools: warpgrep_codebase_search=1, grep_pattern=3, read_file=5)
+  Pass 4/6: 3 issues
+  Pass 4/6: 3 issues
+  Review complete (tools: read_file=5, grep_pattern=3)
+  Review complete (tools: read_file=5, grep_pattern=3)
+  Pass 5/6: 2 issues
+  Pass 5/6: 2 issues
+    WarpGrep: SpansBuffer constructor definition with assigned_shards parameter
+    WarpGrep: SpansBuffer constructor definition with assigned_shards parameter
+    WarpGrep: How ProcessSpansStrategyFactory is instantiated and what parameters are passed f
+    WarpGrep: How ProcessSpansStrategyFactory is instantiated and what parameters are passed f
+  Review complete (tools: read_file=10, grep_pattern=7, warpgrep_codebase_search=2)
+  Review complete (tools: read_file=10, grep_pattern=7, warpgrep_codebase_search=2)
+  Pass 6/6: 1 issues
+  Pass 6/6: 1 issues
+  Review complete (tools: read_file=2, grep_pattern=1)
+  Review complete (tools: read_file=2, grep_pattern=1)
+  Quick-wins pass: 2 issues
+  Quick-wins pass: 2 issues
+  Aggregating 13 issues from 7 passes...
+  Aggregating 13 issues from 7 passes...
+  Aggregation: 13 raw -> 4 curated
+  Aggregation: 13 raw -> 4 curated
+  [sentry#93824] 4 raw -> 4 filtered
+    [0.97] incorrect_value: Inconsistent metric tag key: `tags={"shards": shard_tag}` (plural) is used for the `spans.
+    [0.92] test_correctness: The added `time.sleep(0.1)` is a no-op because `monkeypatch.setattr("time.sleep", lambda _  [sentry#93824] 4 raw -> 4 filtered
+    [0.97] incorrect_value: Inconsistent metric tag key: `tags={"shards": shard_tag}` (plural) is used for the `spans.
+    [0.92] test_correctness: The added `time.sleep(0.1)` is a no-op because `monkeypatch.setattr("time.sleep", lambda _
+
+    [0.75] logic_error: In `join()`, when `remaining_time <= 0` the `break` exits the for-loop early, skipping `pr    [0.75] logic_error: In `join()`, when `remaining_time <= 0` the `break` exits the for-loop early, skipping `pr
+    [0.70] incorrect_value: `SpansBuffer(shards)` is created without passing a `slice_id`. The original buffer (passed
+
+    [0.70] incorrect_value: `SpansBuffer(shards)` is created without passing a `slice_id`. The original buffer (passed
+[4/7] grafana PR#79265 (5 golden)
+[4/7] grafana PR#79265 (5 golden)
+  [grafana#79265] 11 files, 105 added lines
+  [grafana#79265] 11 files, 105 added lines
+  WarpGrep context: 287888 chars
+  WarpGrep context: 287888 chars
+    WarpGrep: AnonymousDeviceLimit setting field definition and usage in Cfg struct
+    WarpGrep: AnonymousDeviceLimit setting field definition and usage in Cfg struct
+    WarpGrep: AnonymousSettings struct definition and Anonymous field in Cfg struct
+    WarpGrep: AnonymousSettings struct definition and Anonymous field in Cfg struct
+    WarpGrep: validator.AnonUserLimitValidator in ProvideAnonymousDeviceService parameter
+    WarpGrep: validator.AnonUserLimitValidator in ProvideAnonymousDeviceService parameter
+  Review complete (tools: read_file=8, grep_pattern=3, warpgrep_codebase_search=3)
+  Review complete (tools: read_file=8, grep_pattern=3, warpgrep_codebase_search=3)
+  Pass 1/6: 3 issues
+  Pass 1/6: 3 issues
+  Review complete (tools: grep_pattern=7, read_file=12)
+  Review complete (tools: grep_pattern=7, read_file=12)
+  Pass 2/6: 3 issues
+  Pass 2/6: 3 issues
+    WarpGrep: What functions or services depend on anonstore.AnonStore as a parameter in wire 
+    WarpGrep: What functions or services depend on anonstore.AnonStore as a parameter in wire 
+    WarpGrep: Does xorm Exec translate ? placeholders to $N for PostgreSQL
+    WarpGrep: Does xorm Exec translate ? placeholders to $N for PostgreSQL
+    WarpGrep: How does the authn framework handle errors from Authenticate method - what HTTP 
+    WarpGrep: How does the authn framework handle errors from Authenticate method - what HTTP 
+    WarpGrep: How does the contexthandler or middleware handle authentication errors from auth
+    WarpGrep: How does the contexthandler or middleware handle authentication errors from auth
+  API error: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'prompt is too long: 201916 tokens > 200000 maximum'}, 'request_id': 'req_011CYaqsYKMSBtMuRHYHfPyT'}, retrying...
+  API error: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'prompt is too long: 201916 tokens > 200000 maximum'}, 'request_id': 'req_011CYaqsYKMSBtMuRHYHfPyT'}, retrying...
+    WarpGrep: wire_gen.go usage of ProvideAnonDBStore or AnonDBStore construction
+    WarpGrep: wire_gen.go usage of ProvideAnonDBStore or AnonDBStore construction
+    WarpGrep: wire_gen.go how AnonDBStore is constructed with wire injection
+    WarpGrep: wire_gen.go how AnonDBStore is constructed with wire injection
+    WarpGrep: WithDbSession retry mechanism, does it call the callback multiple times
+    WarpGrep: WithDbSession retry mechanism, does it call the callback multiple times
+  Review complete (tools: read_file=21, grep_pattern=12, warpgrep_codebase_search=3)
+  Review complete (tools: read_file=21, grep_pattern=12, warpgrep_codebase_search=3)
+  Pass 3/6: 4 issues
+  Pass 3/6: 4 issues
+  Mid-review WarpGrep boost: +39340 chars
+  Mid-review WarpGrep boost: +39340 chars
+    WarpGrep: How does authn framework handle errors from Authenticate method - errutil vs raw
+    WarpGrep: How does authn framework handle errors from Authenticate method - errutil vs raw
+    WarpGrep: How does authn service handle authentication errors and convert to HTTP status c
+    WarpGrep: How does authn service handle authentication errors and convert to HTTP status c
+  Review complete (tools: warpgrep_codebase_search=2, grep_pattern=3, read_file=7)
+  Review complete (tools: warpgrep_codebase_search=2, grep_pattern=3, read_file=7)
+  Pass 4/6: 3 issues
+  Pass 4/6: 3 issues
+    WarpGrep: How does the authn framework handle errors from Authenticate - does it distingui
+    WarpGrep: How does the authn framework handle errors from Authenticate - does it distingui
+    WarpGrep: How is the error from authn.Authenticate converted to an HTTP response - find th
+    WarpGrep: How is the error from authn.Authenticate converted to an HTTP response - find th
+  Review complete (tools: grep_pattern=4, read_file=11, warpgrep_codebase_search=2)
+  Review complete (tools: grep_pattern=4, read_file=11, warpgrep_codebase_search=2)
+  Pass 5/6: 3 issues
+  Pass 5/6: 3 issues
+    WarpGrep: wire.go references to ProvideAnonDBStore and AnonStore binding
+    WarpGrep: wire.go references to ProvideAnonDBStore and AnonStore binding
+    WarpGrep: How does the authn framework handle errors returned by Authenticate method - err
+    WarpGrep: How does the authn framework handle errors returned by Authenticate method - err
+    WarpGrep: errDeviceLimit definition and usage in anonymous client
+    WarpGrep: errDeviceLimit definition and usage in anonymous client
+  API error: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'prompt is too long: 201230 tokens > 200000 maximum'}, 'request_id': 'req_011CYauQNP2NEbAWhxUcDa8R'}, retrying...
+  API error: Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', 'message': 'prompt is too long: 201230 tokens > 200000 maximum'}, 'request_id': 'req_011CYauQNP2NEbAWhxUcDa8R'}, retrying...
+    WarpGrep: Find usages of config.anonymousDeviceLimit in TypeScript frontend code
+    WarpGrep: Find usages of config.anonymousDeviceLimit in TypeScript frontend code
+    WarpGrep: How is the validator AnonUserLimitValidator interface defined and what does Vali
+    WarpGrep: How is the validator AnonUserLimitValidator interface defined and what does Vali
+  Final review call (tools used: grep_pattern=11, read_file=18, warpgrep_codebase_search=2)
+  Final review call (tools used: grep_pattern=11, read_file=18, warpgrep_codebase_search=2)
+  Pass 6/6: 0 issues
+  Pass 6/6: 0 issues
+  Review complete (tools: grep_pattern=9, read_file=8)
+  Review complete (tools: grep_pattern=9, read_file=8)
+  Quick-wins pass: 3 issues
+  Aggregating 19 issues from 7 passes...
+  Quick-wins pass: 3 issues
+  Aggregating 19 issues from 7 passes...
+  Aggregation: 19 raw -> 5 curated
+  Aggregation: 19 raw -> 5 curated
+  [grafana#79265] 5 raw -> 5 filtered
+    [0.92] test_correctness: `TestIntegrationBeyondDeviceLimit` is missing the `testutil.SkipIntegrationTestInShortMode
+    [0.90] type_error: `anonymousDeviceLimit = undefined` causes TypeScript to infer the property type as literal  [grafana#79265] 5 raw -> 5 filtered
+    [0.92] test_correctness: `TestIntegrationBeyondDeviceLimit` is missing the `testutil.SkipIntegrationTestInShortMode
+    [0.90] type_error: `anonymousDeviceLimit = undefined` causes TypeScript to infer the property type as literal
+    [0.88] incorrect_value: `return nil, err` returns the raw `anonstore.ErrDeviceLimitReached` (defined as `fmt.Error
+    [0.80] race_condition: TOCTOU race condition in `CreateOrUpdateDevice`: `CountDevices` (SELECT) and the subsequen
+    [0.75] logic_error: In `updateDevice`, `args` is declared outside the `WithDbSession` closure but mutated insi
+
+    [0.88] incorrect_value: `return nil, err` returns the raw `anonstore.ErrDeviceLimitReached` (defined as `fmt.Error
+    [0.80] race_condition: TOCTOU race condition in `CreateOrUpdateDevice`: `CountDevices` (SELECT) and the subsequen
+    [0.75] logic_error: In `updateDevice`, `args` is declared outside the `WithDbSession` closure but mutated insi
+[5/7] cal.com PR#14740 (5 golden)[5/7] cal.com PR#14740 (5 golden)
+
+  [cal.com#14740] 15 files, 555 added lines
+  [cal.com#14740] 15 files, 555 added lines
+  WarpGrep API 429, retrying in 3s (attempt 1/3)
+  WarpGrep API 429, retrying in 3s (attempt 1/3)
+  WarpGrep API 429, retrying in 3s (attempt 1/3)
+  WarpGrep API 429, retrying in 3s (attempt 1/3)
+  WarpGrep API 429, retrying in 6s (attempt 2/3)
+  WarpGrep API 429, retrying in 6s (attempt 2/3)
+  WarpGrep API 429, retrying in 6s (attempt 2/3)
+  WarpGrep API 429, retrying in 6s (attempt 2/3)
+  WarpGrep context: 264386 chars
+  WarpGrep context: 264386 chars
+    WarpGrep: isTeamAdmin function definition or export
+    WarpGrep: isTeamAdmin function definition or export
+    WarpGrep: isTeamAdmin function export definition in packages/lib/server/queries/teams
+    WarpGrep: isTeamAdmin function export definition in packages/lib/server/queries/teams
+  Review complete (tools: grep_pattern=11, read_file=7, warpgrep_codebase_search=2, list_directory=2)
+  Review complete (tools: grep_pattern=11, read_file=7, warpgrep_codebase_search=2, list_directory=2)
+  Pass 1/6: 3 issues
+  Pass 1/6: 3 issues
+  Review complete (tools: grep_pattern=9, read_file=7)
+  Review complete (tools: grep_pattern=9, read_file=7)
+  Pass 2/6: 3 issues
+  Pass 2/6: 3 issues
+    WarpGrep: isTeamAdmin function definition that checks for admin role in team membership
+    WarpGrep: isTeamAdmin function definition that checks for admin role in team membership
+    WarpGrep: isTeamAdmin function definition checking admin membership role
+    WarpGrep: isTeamAdmin function definition checking admin membership role
+    WarpGrep: EventManager constructor parameters, what fields does user need to have for new 
+    WarpGrep: EventManager constructor parameters, what fields does user need to have for new 
+  Final review call (tools used: read_file=9, grep_pattern=14, list_directory=2, warpgrep_codebase_search=3)
+  Final review call (tools used: read_file=9, grep_pattern=14, list_directory=2, warpgrep_codebase_search=3)
+  Pass 3/6: 0 issues
+  Pass 3/6: 0 issues
+  Mid-review WarpGrep boost: +27119 chars
+  Mid-review WarpGrep boost: +27119 chars
+    WarpGrep: getUsersCredentials import from server
+    WarpGrep: getUsersCredentials import from server
+  Review complete (tools: read_file=9, grep_pattern=9, warpgrep_codebase_search=1, list_directory=2)
+  Review complete (tools: read_file=9, grep_pattern=9, warpgrep_codebase_search=1, list_directory=2)
+  Pass 4/6: 4 issues
+  Pass 4/6: 4 issues
+  Review complete (tools: read_file=6, grep_pattern=11, list_directory=2)
+  Review complete (tools: read_file=6, grep_pattern=11, list_directory=2)
+  Pass 5/6: 2 issues
+  Pass 5/6: 2 issues
+    WarpGrep: isTeamAdmin and isTeamOwner function definitions in server queries
+    WarpGrep: isTeamAdmin and isTeamOwner function definitions in server queries
+    WarpGrep: isTeamAdmin function definition that checks team admin membership
+    WarpGrep: isTeamAdmin function definition that checks team admin membership
+    WarpGrep: isTeamAdmin function definition that takes userId and teamId    WarpGrep: isTeamAdmin function definition that takes userId and teamId
+
+    WarpGrep: sendAddGuestsEmails called with guests or uniqueGuests arguments in addGuests ha
+    WarpGrep: sendAddGuestsEmails called with guests or uniqueGuests arguments in addGuests ha
+    WarpGrep: AddGuestsInput_2024_08_13 type definition with guests field
+    WarpGrep: AddGuestsInput_2024_08_13 type definition with guests field
+  Final review call (tools used: read_file=9, grep_pattern=14, warpgrep_codebase_search=5)
+  Final review call (tools used: read_file=9, grep_pattern=14, warpgrep_codebase_search=5)
+  Pass 6/6: 3 issues
+  Pass 6/6: 3 issues
+  Review complete (tools: read_file=3, grep_pattern=2)
+  Review complete (tools: read_file=3, grep_pattern=2)
+  Quick-wins pass: 4 issues
+  Aggregating 19 issues from 7 passes...
+  Quick-wins pass: 4 issues
+  Aggregating 19 issues from 7 passes...
+  Aggregation: 19 raw -> 5 curated
+  Aggregation: 19 raw -> 5 curated
+  [cal.com#14740] 5 raw -> 4 filtered
+  [cal.com#14740] 5 raw -> 4 filtered
+    [0.97] logic_error: `isTeamAdminOrOwner` uses `&&` (AND) but the variable name and intent require `||` (OR): `
+    [0.95] incorrect_value: `sendAddGuestsEmails(evt, guests)` passes the raw input `guests` array instead of the filt
+    [0.92] security: Case-sensitive blacklist bypass: `blacklistedGuestEmails` entries are lowercased via `.map
+    [0.82] logic_error: `getUsersCredentials(ctx.user)` fetches credentials of the logged-in user, not the booking
+    [0.97] logic_error: `isTeamAdminOrOwner` uses `&&` (AND) but the variable name and intent require `||` (OR): `
+    [0.95] incorrect_value: `sendAddGuestsEmails(evt, guests)` passes the raw input `guests` array instead of the filt
+    [0.92] security: Case-sensitive blacklist bypass: `blacklistedGuestEmails` entries are lowercased via `.map
+    [0.82] logic_error: `getUsersCredentials(ctx.user)` fetches credentials of the logged-in user, not the booking
+[6/7] discourse-graphite PR#4 (6 golden)
+[6/7] discourse-graphite PR#4 (6 golden)
+  [discourse-graphite#4] 27 files, 646 added lines
+  [discourse-graphite#4] 27 files, 646 added lines
+  WarpGrep API error (turn 3): 400 Client Error: Bad Request for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 3): 400 Client Error: Bad Request for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep context: 169779 chars
+  WarpGrep context: 169779 chars
+    WarpGrep: ERB template end if syntax in embed views
+    WarpGrep: ERB template end if syntax in embed views
+    WarpGrep: SSRF protection for open-uri or open() in topic_embed import_remote
+    WarpGrep: SSRF protection for open-uri or open() in topic_embed import_remote
+  WarpGrep API error (turn 2): 400 Client Error: Bad Request for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 2): 400 Client Error: Bad Request for url: https://api.morphllm.com/v1/chat/completions
+  Review complete (tools: grep_pattern=11, read_file=14, warpgrep_codebase_search=2)
+  Review complete (tools: grep_pattern=11, read_file=14, warpgrep_codebase_search=2)
+  Pass 1/6: 5 issues
+  Pass 1/6: 5 issues
+    WarpGrep: How is the Enum class initialized with symbol arguments for cook_methods
+    WarpGrep: How is the Enum class initialized with symbol arguments for cook_methods
+  WarpGrep connection error, retrying in 3s (attempt 1/3): SSLError
+  WarpGrep connection error, retrying in 3s (attempt 1/3): SSLError
+  WarpGrep API error (turn 2): 400 Client Error: Bad Request for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 2): 400 Client Error: Bad Request for url: https://api.morphllm.com/v1/chat/completions
+    WarpGrep: X-Frame-Options ALLOWALL header handling in embed controller
+    WarpGrep: X-Frame-Options ALLOWALL header handling in embed controller
+  Review complete (tools: read_file=14, grep_pattern=10, warpgrep_codebase_search=2)
+  Review complete (tools: read_file=14, grep_pattern=10, warpgrep_codebase_search=2)
+  Pass 2/6: 5 issues
+  Pass 2/6: 5 issues
+    WarpGrep: Discourse Enum class definition, how does Enum.new work with positional args vs 
+    WarpGrep: Discourse Enum class definition, how does Enum.new work with positional args vs 
+    WarpGrep: Discourse test setup for running jobs immediately vs async, Jobs.run_immediately
+    WarpGrep: Discourse test setup for running jobs immediately vs async, Jobs.run_immediately
+    WarpGrep: Jobs.run_immediately! in embed controller spec tests to ensure async jobs run sy
+    WarpGrep: Jobs.run_immediately! in embed controller spec tests to ensure async jobs run sy
+    WarpGrep: Default job execution mode in Discourse test environment - are jobs run immediat
+    WarpGrep: Default job execution mode in Discourse test environment - are jobs run immediat
+  Final review call (tools used: read_file=15, grep_pattern=17, warpgrep_codebase_search=4)
+  Final review call (tools used: read_file=15, grep_pattern=17, warpgrep_codebase_search=4)
+  Pass 3/6: 0 issues
+  Pass 3/6: 0 issues
+  Mid-review WarpGrep boost: +3586 chars
+  Mid-review WarpGrep boost: +3586 chars
+    WarpGrep: How ERB handles end if syntax in templates
+    WarpGrep: How ERB handles end if syntax in templates
+    WarpGrep: disqus.thor import_remote usage with user parameter
+    WarpGrep: disqus.thor import_remote usage with user parameter
+  Review complete (tools: read_file=15, grep_pattern=12, warpgrep_codebase_search=2)
+  Review complete (tools: read_file=15, grep_pattern=12, warpgrep_codebase_search=2)
+    WarpGrep: Discourse Enum class definition, how Enum.new works, starting value
+    WarpGrep: Discourse Enum class definition, how Enum.new works, starting value
+  Review complete (tools: read_file=8, grep_pattern=3, warpgrep_codebase_search=1)
+  Review complete (tools: read_file=8, grep_pattern=3, warpgrep_codebase_search=1)
+  Pass 4/6: 5 issues
+  Pass 4/6: 5 issues
+  Review complete (tools: read_file=9, grep_pattern=6)
+  Review complete (tools: read_file=9, grep_pattern=6)
+  Pass 5/6: 4 issues
+  Pass 5/6: 4 issues
+    WarpGrep: indexOf origin validation for postMessage embed security
+    WarpGrep: indexOf origin validation for postMessage embed security
+    WarpGrep: open-uri SSRF open(url) vulnerability in topic_embed import_remote
+    WarpGrep: open-uri SSRF open(url) vulnerability in topic_embed import_remote
+  WarpGrep API error (turn 2): 400 Client Error: Bad Request for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 2): 400 Client Error: Bad Request for url: https://api.morphllm.com/v1/chat/completions
+    WarpGrep: ERB end if syntax in view templates
+    WarpGrep: ERB end if syntax in view templates
+    WarpGrep: ERB compilation end if modifier form in Rails views
+    WarpGrep: ERB compilation end if modifier form in Rails views
+    WarpGrep: SimpleRSS content nil handling RSS feed items
+    WarpGrep: SimpleRSS content nil handling RSS feed items
+  Review complete (tools: read_file=18, grep_pattern=16, warpgrep_codebase_search=5)
+  Review complete (tools: read_file=18, grep_pattern=16, warpgrep_codebase_search=5)
+  Pass 6/6: 5 issues
+  Pass 6/6: 5 issues
+  Review complete (tools: read_file=9, grep_pattern=10)
+  Review complete (tools: read_file=9, grep_pattern=10)
+  Quick-wins pass: 5 issues
+  Quick-wins pass: 5 issues
+  Aggregating 29 issues from 7 passes...
+  Aggregating 29 issues from 7 passes...
+  Aggregation: 29 raw -> 6 curated
+  Aggregation: 29 raw -> 6 curated
+  [discourse-graphite#4] 6 raw -> 5 filtered
+  [discourse-graphite#4] 6 raw -> 5 filtered
+    [0.95] logic_error: `<%- end if %>` is invalid Ruby. `end if` is a modifier-if form that requires a condition 
+    [0.90] security: Origin validation via `discourseUrl.indexOf(e.origin) === -1` uses substring matching. If 
+    [0.85] security: SSRF vulnerability: `open(url).read` in `import_remote` uses Ruby's `Kernel#open` (via ope
+    [0.85] security: `response.headers['X-Frame-Options'] = "ALLOWALL"` sets a non-standard value. The HTTP spe
+    [0.85] null_reference: `CGI.unescapeHTML(i.content.scrub)` will raise `NoMethodError: undefined method 'scrub' fo
+    [0.95] logic_error: `<%- end if %>` is invalid Ruby. `end if` is a modifier-if form that requires a condition 
+    [0.90] security: Origin validation via `discourseUrl.indexOf(e.origin) === -1` uses substring matching. If 
+    [0.85] security: SSRF vulnerability: `open(url).read` in `import_remote` uses Ruby's `Kernel#open` (via ope
+    [0.85] security: `response.headers['X-Frame-Options'] = "ALLOWALL"` sets a non-standard value. The HTTP spe
+    [0.85] null_reference: `CGI.unescapeHTML(i.content.scrub)` will raise `NoMethodError: undefined method 'scrub' fo
+[7/7] cal.com PR#22345 (2 golden)
+[7/7] cal.com PR#22345 (2 golden)
+  [cal.com#22345] 2 files, 114 added lines
+  [cal.com#22345] 2 files, 114 added lines
+  WarpGrep API 429, retrying in 3s (attempt 1/3)
+  WarpGrep API 429, retrying in 3s (attempt 1/3)
+  WarpGrep API 429, retrying in 3s (attempt 1/3)
+  WarpGrep API 429, retrying in 3s (attempt 1/3)
+  WarpGrep API 429, retrying in 6s (attempt 2/3)
+  WarpGrep API 429, retrying in 6s (attempt 2/3)
+  WarpGrep API 429, retrying in 6s (attempt 2/3)
+  WarpGrep API 429, retrying in 6s (attempt 2/3)
+  WarpGrep API 429, retrying in 12s (attempt 3/3)
+  WarpGrep API 429, retrying in 12s (attempt 3/3)
+  WarpGrep API 429, retrying in 12s (attempt 3/3)
+  WarpGrep API 429, retrying in 12s (attempt 3/3)
+  WarpGrep API error (turn 4): 429
+  WarpGrep API error (turn 4): 429
+  WarpGrep API error (turn 4): 429
+  WarpGrep API error (turn 4): 429
+  WarpGrep context: 329112 chars
+  WarpGrep context: 329112 chars
+  Review complete (tools: read_file=6, grep_pattern=4)
+  Review complete (tools: read_file=6, grep_pattern=4)
+  Pass 1/6: 2 issues
+  Pass 1/6: 2 issues
+    WarpGrep: Find all files that import from insightsBooking or reference InsightsBookingServ
+    WarpGrep: Find all files that import from insightsBooking or reference InsightsBookingServ
+  Review complete (tools: grep_pattern=8, read_file=4, warpgrep_codebase_search=1, list_directory=3)
+  Review complete (tools: grep_pattern=8, read_file=4, warpgrep_codebase_search=1, list_directory=3)
+  Pass 2/6: 0 issues
+  Pass 2/6: 0 issues
+    WarpGrep: insightsBookingServiceOptionsSchema.safeParse in the old insightsBooking.ts file
+    WarpGrep: insightsBookingServiceOptionsSchema.safeParse in the old insightsBooking.ts file
+    WarpGrep: insightsBookingServiceOptionsSchema definition in old insightsBooking.ts with sc
+    WarpGrep: insightsBookingServiceOptionsSchema definition in old insightsBooking.ts with sc
+  Review complete (tools: read_file=8, grep_pattern=8, list_directory=3, warpgrep_codebase_search=2)
+  Review complete (tools: read_file=8, grep_pattern=8, list_directory=3, warpgrep_codebase_search=2)
+  Pass 3/6: 2 issues
+  Pass 3/6: 2 issues
+  Mid-review WarpGrep boost: +56246 chars
+  Mid-review WarpGrep boost: +56246 chars
+    WarpGrep: findFirstByUserIdAndTeamId in MembershipRepository
+    WarpGrep: findFirstByUserIdAndTeamId in MembershipRepository
+  WarpGrep connection error, retrying in 3s (attempt 1/3): SSLError
+  WarpGrep connection error, retrying in 3s (attempt 1/3): SSLError
+  Review complete (tools: read_file=4, grep_pattern=10, list_directory=2, warpgrep_codebase_search=1)
+  Review complete (tools: read_file=4, grep_pattern=10, list_directory=2, warpgrep_codebase_search=1)
+    WarpGrep: imports of InsightsBookingService from packages/lib/server/service/insightsBooki
+    WarpGrep: imports of InsightsBookingService from packages/lib/server/service/insightsBooki
+    WarpGrep: who imports or uses InsightsBookingService from packages/lib/server/service
+    WarpGrep: who imports or uses InsightsBookingService from packages/lib/server/service
+  Review complete (tools: read_file=4, grep_pattern=4, warpgrep_codebase_search=2)
+  Review complete (tools: read_file=4, grep_pattern=4, warpgrep_codebase_search=2)
+  Pass 4/6: 0 issues
+  Pass 4/6: 0 issues
+    WarpGrep: InsightsBookingService class definition in packages/lib/server/service
+    WarpGrep: InsightsBookingService class definition in packages/lib/server/service
+  Review complete (tools: read_file=7, grep_pattern=6, warpgrep_codebase_search=1, list_directory=2)
+  Review complete (tools: read_file=7, grep_pattern=6, warpgrep_codebase_search=1, list_directory=2)
+  Pass 5/6: 1 issues  Pass 5/6: 1 issues
+
+    WarpGrep: isOrgOwnerOrAdmin method definition in insightsBooking or MembershipRepository f
+    WarpGrep: isOrgOwnerOrAdmin method definition in insightsBooking or MembershipRepository f
+  Review complete (tools: grep_pattern=8, read_file=7, list_directory=3, warpgrep_codebase_search=1)
+  Review complete (tools: grep_pattern=8, read_file=7, list_directory=3, warpgrep_codebase_search=1)
+  Pass 6/6: 1 issues
+  Pass 6/6: 1 issues
+  Review complete (tools: read_file=4, grep_pattern=6, list_directory=2)
+  Review complete (tools: read_file=4, grep_pattern=6, list_directory=2)
+  Aggregating 6 issues from 6 passes...
+  Aggregating 6 issues from 6 passes...
+  Aggregation: 6 raw -> 2 curated
+  Aggregation: 6 raw -> 2 curated
+  [cal.com#22345] 2 raw -> 2 filtered
+    [0.90] logic_error: In `getBaseConditions`, the `else if (authConditions)` branch returns `authConditions` dir
+    [0.75] type_error: `InsightsBookingServicePublicOptions` defines `orgId: number` (required, non-nullable), bu
+  [cal.com#22345] 2 raw -> 2 filtered
+    [0.90] logic_error: In `getBaseConditions`, the `else if (authConditions)` branch returns `authConditions` dir
+    [0.75] type_error: `InsightsBookingServicePublicOptions` defines `orgId: number` (required, non-nullable), bu
+Wrote candidates to /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+Wrote candidates to /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+
+============================================================
+
+============================================================
+DONE: 7 reviewed, 31 raw -> 26 filtered
+Avg/PR: 3.7, Time: 18761s
+Candidates: /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+Benchmark data updated: /Users/tejas/personal/applymodel/zmisc/examples/code-review-benchmark/offline/results/benchmark_data.json
+DONE: 7 reviewed, 31 raw -> 26 filtered
+Avg/PR: 3.7, Time: 18761s
+Candidates: /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+Benchmark data updated: /Users/tejas/personal/applymodel/zmisc/examples/code-review-benchmark/offline/results/benchmark_data.json

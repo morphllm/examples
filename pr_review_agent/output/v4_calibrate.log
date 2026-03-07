@@ -1,0 +1,414 @@
+============================================================
+PR Review Agent - Benchmark Pipeline
+============================================================
+============================================================
+PR Review Agent - Benchmark Pipeline
+============================================================
+Loaded 50 PRs
+Loaded 50 PRs
+Organism: pr_review_agent/evolver/seed_organism_v2.json
+Organism: pr_review_agent/evolver/seed_organism_v2.json
+  confidence_threshold=0.4, num_passes=4, max_issues=8
+WarpGrep: ENABLED
+  confidence_threshold=0.4, num_passes=4, max_issues=8
+WarpGrep: ENABLED
+Calibration: 5 PRs (1 per repo)
+Reviewing 5 PRs
+
+Calibration: 5 PRs (1 per repo)
+Reviewing 5 PRs
+
+[1/5] keycloak PR#37429 (4 golden)[1/5] keycloak PR#37429 (4 golden)
+
+  48 files, 343 added lines
+  48 files, 343 added lines
+  WarpGrep API error (turn 2): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 2): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 1): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 1): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep context: 25222 chars
+  WarpGrep context: 25222 chars
+    WarpGrep: Italian locale message "Installa una delle seguenti applicazioni" in properties 
+    WarpGrep: Italian locale message "Installa una delle seguenti applicazioni" in properties 
+  Review complete (tools: read_file=6, grep_pattern=6, warpgrep_codebase_search=1, list_directory=1)
+  Review complete (tools: read_file=6, grep_pattern=6, warpgrep_codebase_search=1, list_directory=1)
+  Pass 1/4: 4 issues
+  Pass 1/4: 4 issues
+  Review complete (tools: read_file=9, grep_pattern=8)
+  Review complete (tools: read_file=9, grep_pattern=8)
+  Pass 2/4: 3 issues
+  Pass 2/4: 3 issues
+    WarpGrep: How are admin-ui account-ui frontend messages rendered? i18next or similar frame
+    WarpGrep: How are admin-ui account-ui frontend messages rendered? i18next or similar frame
+  Review complete (tools: grep_pattern=12, read_file=8, warpgrep_codebase_search=1, list_directory=1)
+  Review complete (tools: grep_pattern=12, read_file=8, warpgrep_codebase_search=1, list_directory=1)
+  Pass 3/4: 5 issues
+  Pass 3/4: 5 issues
+    WarpGrep: Where is santizeAnchors or sanitizeAnchors called and defined
+    WarpGrep: Where is santizeAnchors or sanitizeAnchors called and defined
+  WarpGrep API error (turn 2): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 2): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  Review complete (tools: read_file=9, grep_pattern=15, list_directory=1, warpgrep_codebase_search=1)
+  Pass 4/4: 4 issues
+  Review complete (tools: read_file=9, grep_pattern=15, list_directory=1, warpgrep_codebase_search=1)
+  Pass 4/4: 4 issues
+    WarpGrep: messages_zh_CN.properties in account messages community theme totpStep1
+    WarpGrep: messages_zh_CN.properties in account messages community theme totpStep1
+  Review complete (tools: read_file=3, grep_pattern=1, warpgrep_codebase_search=1)
+  Review complete (tools: read_file=3, grep_pattern=1, warpgrep_codebase_search=1)
+  Quick-wins pass: 4 issues
+  Quick-wins pass: 4 issues
+    WarpGrep: messages_zh_CN.properties account totpStep1
+    WarpGrep: messages_zh_CN.properties account totpStep1
+    WarpGrep: admin-ui i18n initialization, i18next setup for admin console
+    WarpGrep: admin-ui i18n initialization, i18next setup for admin console
+    WarpGrep: how error-invalid-multivalued-size is used in admin-ui or account-ui React code
+    WarpGrep: how error-invalid-multivalued-size is used in admin-ui or account-ui React code
+    WarpGrep: how validation errors or error messages are displayed in admin-ui, look for t() 
+    WarpGrep: how validation errors or error messages are displayed in admin-ui, look for t() 
+  WarpGrep API error (turn 3): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 3): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+    WarpGrep: how are user profile validation error messages translated in admin-ui or account
+    WarpGrep: how are user profile validation error messages translated in admin-ui or account
+  Review complete (tools: grep_pattern=14, read_file=7, warpgrep_codebase_search=5)
+  Review complete (tools: grep_pattern=14, read_file=7, warpgrep_codebase_search=5)
+  Judge removed 1 FPs (5 -> 4)
+  Judge removed 1 FPs (5 -> 4)
+  4 raw -> 4 filtered
+  4 raw -> 4 filtered
+    [1.00] localization: Italian text "Installa una delle seguenti applicazioni sul tuo cellulare:" placed in the L
+    [1.00] localization: Traditional Chinese characters (手機, 安裝, 應用程式) used in Simplified Chinese (zh_CN) locale fi
+    [1.00] incorrect_value: Method name `santizeAnchors` is misspelled — it should be `sanitizeAnchors` (missing 'i' i
+    [0.77] incorrect_value: error-invalid-multivalued-size changed from i18next interpolation format `{{0}}` to Java M
+    [1.00] localization: Italian text "Installa una delle seguenti applicazioni sul tuo cellulare:" placed in the L
+    [1.00] localization: Traditional Chinese characters (手機, 安裝,  Review complete (tools: read_file=5, grep_pattern=3)
+  Review complete (tools: read_file=5, grep_pattern=3)
+  Pass 2/4: 2 issues
+  Pass 2/4: 2 issues
+    WarpGrep: Python multiprocessing SpawnProcess class hierarchy - does SpawnProcess inherit 
+    WarpGrep: Python multiprocessing SpawnProcess class hierarchy - does SpawnProcess inherit 
+    WarpGrep: multiprocessing.context SpawnProcess class definition and its base class inherit
+    WarpGrep: multiprocessing.context SpawnProcess class definition and its base class inherit
+    WarpGrep: SpawnProcess isinstance check multiprocessing.Process BaseProcess context
+    WarpGrep: SpawnProcess isinstance check multiprocessing.Process BaseProcess context
+  Review complete (tools: read_file=11, grep_pattern=7, warpgrep_codebase_search=3)
+  Review complete (tools: read_file=11, grep_pattern=7, warpgrep_codebase_search=3)
+  Pass 3/4: 3 issues
+  Pass 3/4: 3 issues
+    WarpGrep: SpawnProcess class definition or multiprocessing.Process isinstance check with s
+    WarpGrep: SpawnProcess class definition or multiprocessing.Process isinstance check with s
+  WarpGrep API error (turn 3): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 3): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+    WarpGrep: SpansBuffer __init__ constructor definition with assigned_shards parameter
+    WarpGrep: SpansBuffer __init__ constructor definition with assigned_shards parameter
+  Review complete (tools: grep_pattern=3, read_file=9, warpgrep_codebase_search=2)
+  Review complete (tools: grep_pattern=3, read_file=9, warpgrep_codebase_search=2)
+  Pass 4/4: 3 issues
+  Pass 4/4: 3 issues
+  Review complete (tools: read_file=2, grep_pattern=1)
+  Review complete (tools: read_file=2, grep_pattern=1)
+  Quick-wins pass: 1 issues
+  Quick-wins pass: 1 issues
+    WarpGrep: SpawnProcess inherits from multiprocessing.Process or BaseProcess - check multip
+    WarpGrep: SpawnProcess inherits from multiprocessing.Process or BaseProcess - check multip
+    WarpGrep: Python SpawnProcess class hierarchy - does SpawnProcess inherit from multiproces
+    WarpGrep: Python SpawnProcess class hierarchy - does SpawnProcess inherit from multiproces
+  Review complete (tools: grep_pattern=6, read_file=6, warpgrep_codebase_search=2)
+  Review complete (tools: grep_pattern=6, read_file=6, warpgrep_codebase_search=2)
+  Judge removed 1 FPs (4 -> 3)
+  Judge removed 1 FPs (4 -> 3)
+  3 raw -> 3 filtered
+  3 raw -> 3 filtered
+    [1.00] type_error: `isinstance(process, multiprocessing.Process)` will return `False` for `SpawnProcess` inst
+    [1.00] incorrect_value: Inconsistent metric tag key `"shards"` in `metrics.timer("spans.buffer.flusher.wait_produc
+    [0.95] test_correctness: The added `time.sleep(0.1)` is a no-op because `monkeypatch.setattr("time.sleep", lambda _
+    [1.00] type_error: `isinstance(process, multiprocessing.Process)` will return `False` for `SpawnProcess` inst
+    [1.00] incorrect_value: Inconsistent metric tag key `"shards"` in `metrics.timer("spans.buffer.flusher.wait_produc
+    [0.95] test_correctness: The added `time.sleep(0.1)` is a no-op because `monkeypatch.setattr("time.sleep", lambda _
+[3/5] grafana PR#97529 (2 golden)
+[3/5] grafana PR#97529 (2 golden)
+  5 files, 25 added lines
+  5 files, 25 added lines
+  WarpGrep context: 204534 chars
+  WarpGrep context: 204534 chars
+    WarpGrep: handleEvent function in searchSupport or searchServer in search.go
+    WarpGrep: handleEvent function in searchSupport or searchServer in search.go
+  Final review call (tools used: read_file=20, grep_pattern=9, warpgrep_codebase_search=1)
+  Final review call (tools used: read_file=20, grep_pattern=9, warpgrep_codebase_search=1)
+  Final review call (tools used: read_file=20, grep_pattern=11)
+  Final review call (tools used: read_file=20, grep_pattern=11)
+  Pass 1/4: 0 issues
+  Pass 1/4: 0 issues
+  API error: Error code: 500 - {'type': 'error', 'error': {'type': 'api_error', 'message': 'Internal server error'}, 'request_id': 'req_011CYa8W5esbjBxT9ByrBqS1'}, retrying...
+  API error: Error code: 500 - {'type': 'error', 'error': {'type': 'api_error', 'message': 'Internal server error'}, 'request_id': 'req_011CYa8W5esbjBxT9ByrBqS1'}, retrying...
+    WarpGrep: getOrCreateIndex function definition that coordinates concurrent index building    WarpGrep: getOrCreateIndex function definition that coordinates concurrent index building
+
+  Review complete (tools: read_file=24, grep_pattern=7, warpgrep_codebase_search=1)
+  Review complete (tools: read_file=24, grep_pattern=7, warpgrep_codebase_search=1)
+  Pass 2/4: 2 issues
+  Pass 2/4: 2 issues
+    WarpGrep: How does the search server receive write events from the broadcaster? Where is t
+    WarpGrep: How does the search server receive write events from the broadcaster? Where is t
+  Final review call (tools used: read_file=22, grep_pattern=8, warpgrep_codebase_search=1)
+  Final review call (tools used: read_file=22, grep_pattern=8, warpgrep_codebase_search=1)
+    WarpGrep: Init function callers in ResourceServer, who calls s.Init(ctx)
+    WarpGrep: Init function callers in ResourceServer, who calls s.Init(ctx)
+    WarpGrep: overridesService init function definition, what does it do with context
+    WarpGrep: overridesService init function definition, what does it do with context
+  Final review call (tools used: read_file=15, grep_pattern=14, warpgrep_codebase_search=2)
+  Final review call (tools used: read_file=15, grep_pattern=14, warpgrep_codebase_search=2)
+  Pass 3/4: 0 issues
+  Pass 3/4: 0 issues
+  Final review call (tools used: read_file=18, grep_pattern=11)
+  Final review call (tools used: read_file=18, grep_pattern=11)
+  Pass 4/4: 0 issues
+  Pass 4/4: 0 issues
+  Final review call (tools used: read_file=18, grep_pattern=15)
+  Final review call (tools used: read_file=18, grep_pattern=15)
+    WarpGrep: callers of BuildIndex method in bleve backend or search backend
+    WarpGrep: callers of BuildIndex method in bleve backend or search backend
+  Review complete (tools: read_file=13, warpgrep_codebase_search=1, grep_pattern=3)
+  Review complete (tools: read_file=13, warpgrep_codebase_search=1, grep_pattern=3)
+  Judge removed 2 FPs (2 -> 0)
+  0 raw -> 0 filtered
+  Judge removed 2 FPs (2 -> 0)
+  0 raw -> 0 filtered
+[4/5] discourse-graphite PR#9 (2 golden)
+[4/5] discourse-graphite PR#9 (2 golden)
+  6 files, 31 added lines
+  6 files, 31 added lines
+  WarpGrep API error (turn 1): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 1): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 1): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 1): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep context: 17786 chars
+  WarpGrep context: 17786 chars
+    WarpGrep: set_locale method definition in ApplicationController
+    WarpGrep: set_locale method definition in ApplicationController
+  Review complete (tools: read_file=8, grep_pattern=8, warpgrep_codebase_search=1)
+  Review complete (tools: read_file=8, grep_pattern=8, warpgrep_codebase_search=1)
+  Pass 1/4: 4 issues
+  Pass 1/4: 4 issues
+  Review complete (tools: read_file=9, list_directory=1, grep_pattern=9)
+  Review complete (tools: read_file=9, list_directory=1, grep_pattern=9)
+  Pass 2/4: 3 issues
+  Pass 2/4: 3 issues
+    WarpGrep: set_locale method in application_controller
+    WarpGrep: set_locale method in application_controller
+    WarpGrep: DiscourseI18n class definition in I18n backend
+    WarpGrep: DiscourseI18n class definition in I18n backend
+  Review complete (tools: read_file=13, grep_pattern=10, warpgrep_codebase_search=2)
+  Review complete (tools: read_file=13, grep_pattern=10, warpgrep_codebase_search=2)
+  Pass 3/4: 4 issues
+  Pass 3/4: 4 issues
+    WarpGrep: set_locale method in application_controller.rb - full method definition
+    WarpGrep: set_locale method in application_controller.rb - full method definition
+    WarpGrep: DiscourseI18n backend class definition and translate method
+    WarpGrep: DiscourseI18n backend class definition and translate method
+  Review complete (tools: read_file=13, warpgrep_codebase_search=2, grep_pattern=11, list_directory=1)
+  Review complete (tools: read_file=13, warpgrep_codebase_search=2, grep_pattern=11, list_directory=1)
+  Pass 4/4: 2 issues
+  Pass 4/4: 2 issues
+    WarpGrep: Definition of DiscourseI18n class and what it inherits from
+    WarpGrep: Definition of DiscourseI18n class and what it inherits from
+    WarpGrep: set_locale method in application_controller that determines user locale
+    WarpGrep: set_locale method in application_controller that determines user locale
+  WarpGrep API error (turn 3): HTTPSConnectionPool(host='api.morphllm.com', port=443): Max retries exceeded with url: /v1/chat/completions (Caused by SSLError(SSLError(1, '[SSL: SSLV3_ALERT_BAD_RECORD_MAC] ssl/tls alert bad record mac (_ssl.c:2710)')))
+  WarpGrep API error (turn 3): HTTPSConnectionPool(host='api.morphllm.com', port=443): Max retries exceeded with url: /v1/chat/completions (Caused by SSLError(SSLError(1, '[SSL: SSLV3_ALERT_BAD_RECORD_MAC] ssl/tls alert bad record mac (_ssl.c:2710)')))
+  Review complete (tools: read_file=12, warpgrep_codebase_search=2, grep_pattern=12)
+  Review complete (tools: read_file=12, warpgrep_codebase_search=2, grep_pattern=12)
+  Quick-wins pass: 2 issues
+  Quick-wins pass: 2 issues
+    WarpGrep: Where is I18n.locale set or assigned a value, specifically looking at how the lo
+    WarpGrep: Where is I18n.locale set or assigned a value, specifically looking at how the lo
+  Review complete (tools: read_file=16, grep_pattern=10, warpgrep_codebase_search=1)
+  Review complete (tools: read_file=16, grep_pattern=10, warpgrep_codebase_search=1)
+  Judge removed 4 FPs (5 -> 1)
+  1 raw -> 1 filtered
+  Judge removed 4 FPs (5 -> 1)
+  1 raw -> 1 filtered
+    [0.78] logic_error: `FallbackLocaleList#[]` returns `[locale, SiteSetting.default_locale.to_sym, :en]` for ALL
+    [0.78] logic_error: `FallbackLocaleList#[]` returns `[locale, SiteSetting.default_locale.to_sym, :en]` for ALL
+[5/5] cal.com PR#22532 (2 golden)
+[5/5] cal.com PR#22532 (2 golden)
+  17 files, 379 added lines
+  17 files, 379 added lines
+  WarpGrep API error (turn 1): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 1): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 1): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 1): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 1): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 1): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep context: 8801 chars
+  WarpGrep context: 8801 chars
+    WarpGrep: SelectedCalendarRepository import in googlecalendar CalendarService
+    WarpGrep: SelectedCalendarRepository import in googlecalendar CalendarService
+  WarpGrep API error (turn 2): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 2): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+    WarpGrep: fetchAvailabilityAndSetCache method definition in GoogleCalendarService
+    WarpGrep: fetchAvailabilityAndSetCache method definition in GoogleCalendarService
+    WarpGrep: setAvailabilityInCache method in CalendarService
+    WarpGrep: setAvailabilityInCache method in CalendarService
+  Final review call (tools used: grep_pattern=21, read_file=10, warpgrep_codebase_search=3)
+  Final review call (tools used: grep_pattern=21, read_file=10, warpgrep_codebase_search=3)
+    WarpGrep: fetchAndUpdateAvailabilityCache method in GoogleCalendarService
+    WarpGrep: fetchAndUpdateAvailabilityCache method in GoogleCalendarService
+    WarpGrep: fetchAndUpdateAvailabilityCache method definition in calendar cache
+    WarpGrep: fetchAndUpdateAvailabilityCache method definition in calendar cache
+  WarpGrep API error (turn 1): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 1): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+    WarpGrep: connectedCalendars credentialId type definition in getConnectedDestinationCalend
+    WarpGrep: connectedCalendars credentialId type definition in getConnectedDestinationCalend
+    WarpGrep: CalendarCacheRepository class definition and constructor
+    WarpGrep: CalendarCacheRepository class definition and constructor
+  Final review call (tools used: read_file=16, grep_pattern=14, warpgrep_codebase_search=4, list_directory=1)
+  Final review call (tools used: read_file=16, grep_pattern=14, warpgrep_codebase_search=4, list_directory=1)
+  Pass 1/4: 0 issues
+  Pass 1/4: 0 issues
+    WarpGrep: updateManyByCredentialId call in GoogleCalendarService or CalendarService with e
+    WarpGrep: updateManyByCredentialId call in GoogleCalendarService or CalendarService with e
+  WarpGrep API error (turn 1): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 1): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+    WarpGrep: Prisma SelectedCalendar updateMany mutation input type definition
+    WarpGrep: Prisma SelectedCalendar updateMany mutation input type definition
+  Final review call (tools used: grep_pattern=15, read_file=18, warpgrep_codebase_search=2)
+  Final review call (tools used: grep_pattern=15, read_file=18, warpgrep_codebase_search=2)
+  Pass 2/4: 0 issues
+  Pass 2/4: 0 issues
+    WarpGrep: CalendarService handleCacheUpdate or fetchAvailability and setAvailabilityInCach
+    WarpGrep: CalendarService handleCacheUpdate or fetchAvailability and setAvailabilityInCach
+    WarpGrep: setAvailabilityInCache method in googlecalendar CalendarService
+    WarpGrep: setAvailabilityInCache method in googlecalendar CalendarService
+    WarpGrep: How is CalendarCacheRepository instantiated or injected via DI container
+    WarpGrep: How is CalendarCacheRepository instantiated or injected via DI container
+  Final review call (tools used: grep_pattern=20, read_file=12, warpgrep_codebase_search=3, list_directory=2)
+  Final review call (tools used: grep_pattern=20, read_file=12, warpgrep_codebase_search=3, list_directory=2)
+    WarpGrep: getConnectedDestinationCalendarsAndEnsureDefaultsInDb return type, what fields d
+    WarpGrep: getConnectedDestinationCalendarsAndEnsureDefaultsInDb return type, what fields d
+    WarpGrep: getConnectedCalendars return type connectedCalendars credentialId delegationCred
+    WarpGrep: getConnectedCalendars return type connectedCalendars credentialId delegationCred
+    WarpGrep: CalendarCacheRepository import instantiation new CalendarCacheRepository
+    WarpGrep: CalendarCacheRepository import instantiation new CalendarCacheRepository
+    WarpGrep: AppListCard actions prop rendering how actions is used in the component
+    WarpGrep: AppListCard actions prop rendering how actions is used in the component
+  Final review call (tools used: read_file=13, grep_pattern=17, warpgrep_codebase_search=4, list_directory=1)
+  Final review call (tools used: read_file=13, grep_pattern=17, warpgrep_codebase_search=4, list_directory=1)
+  Pass 3/4: 0 issues
+  Pass 3/4: 0 issues
+    WarpGrep: useLocale hook definition returning locale and t
+    WarpGrep: useLocale hook definition returning locale and t
+    WarpGrep: SelectedCalendarRepository class definition file path
+    WarpGrep: SelectedCalendarRepository class definition file path
+    WarpGrep: CalendarCacheRepository class definition file
+    WarpGrep: CalendarCacheRepository class definition file
+  Review complete (tools: grep_pattern=17, read_file=9, warpgrep_codebase_search=3, list_directory=3)
+  Review complete (tools: grep_pattern=17, read_file=9, warpgrep_codebase_search=3, list_directory=3)
+  Pass 4/4: 3 issues
+  Pass 4/4: 3 issues
+    WarpGrep: SelectedCalendarRepository updateManyByCredentialId definition and all callers
+    WarpGrep: SelectedCalendarRepository updateManyByCredentialId definition and all callers
+    WarpGrep: fetchAvailability setAvailabilityInCache updateManyByCredentialId in GoogleCalen
+    WarpGrep: fetchAvailability setAvailabilityInCache updateManyByCredentialId in GoogleCalen
+    WarpGrep: Prisma updateMany with empty data object and @updatedAt behavior
+    WarpGrep: Prisma updateMany with empty data object and @updatedAt behavior
+    WarpGrep: connectedCalendar.cacheUpdatedAt property definition on connected calendar type
+    WarpGrep: connectedCalendar.cacheUpdatedAt property definition on connected calendar type
+    WarpGrep: Intl.DateTimeFormat hardcoded locale in React components, looking for "en-US" or
+    WarpGrep: Intl.DateTimeFormat hardcoded locale in React components, looking for "en-US" or
+  Review complete (tools: grep_pattern=11, read_file=14, warpgrep_codebase_search=5)
+  Review complete (tools: grep_pattern=11, read_file=14, warpgrep_codebase_search=5)
+  Quick-wins pass: 4 issues
+  Quick-wins pass: 4 issues
+    WarpGrep: SelectedCalendarRepository updateManyByCredentialId definition
+    WarpGrep: SelectedCalendarRepository updateManyByCredentialId definition
+  Review complete (tools: grep_pattern=9, read_file=8, warpgrep_codebase_search=1)
+  Review complete (tools: grep_pattern=9, read_file=8, warpgrep_codebase_search=1)
+  4 raw -> 3 filtered
+  4 raw -> 3 filtered
+    [1.00] localization: Hardcoded `"en-US"` locale in `new Intl.DateTimeFormat("en-US", ...)` instead of using the
+    [1.00] localization: Hardcoded `"en-US"` locale in `new Intl.DateTimeFormat("en-US", ...)` instead of using the
+    [0.97] portability: `sed -i '' -E "s|...|...|"` uses BSD/macOS-specific syntax. The space between `-i` and `''
+    [0.75] api_misuse: `SelectedCalendarRepository.updateManyByCredentialId(this.credential.id, {})` passes an em
+    [0.97] portability: `sed -i '' -E "s|...|...|"` uses BSD/macOS-specific syntax. The space between `-i` and `''
+    [0.75] api_misuse: `SelectedCalendarRepository.updateManyByCredentialId(this.credential.id, {})` passes an em
+Wrote candidates to /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+Wrote candidates to /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+
+============================================================
+DONE: 5 reviewed, 21 raw -> 7 filtered
+Avg/PR: 1.4, Time: 12746s
+Candidates: /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+Benchmark data updated: /Users/tejas/personal/applymodel/zmisc/examples/code-review-benchmark/offline/results/benchmark_data.json
+
+============================================================
+DONE: 5 reviewed, 21 raw -> 7 filtered
+Avg/PR: 1.4, Time: 12746s
+Candidates: /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+Benchmark data updated: /Users/tejas/personal/applymodel/zmisc/examples/code-review-benchmark/offline/results/benchmark_data.json
+n google calendar or calendar cache service
+    WarpGrep: fetchAvailabilityAndSetCache in googlecalendar CalendarService
+    WarpGrep: fetchAvailabilityAndSetCache in googlecalendar CalendarService
+    WarpGrep: fetchAvailabilityAndSetCache method implementation in google calendar service th
+    WarpGrep: fetchAvailabilityAndSetCache method implementation in google calendar service th
+    WarpGrep: CalendarCache fetchAvailabilityAndSetCache implementation that calls fetchAvaila
+    WarpGrep: CalendarCache fetchAvailabilityAndSetCache implementation that calls fetchAvaila
+  Final review call (tools used: grep_pattern=15, read_file=7, warpgrep_codebase_search=4)
+  Final review call (tools used: grep_pattern=15, read_file=7, warpgrep_codebase_search=4)
+  Pass 3/4: 0 issues
+  Pass 3/4: 0 issues
+    WarpGrep: Where is updateManyByCredentialId called in CalendarService or GoogleCalendarSer
+    WarpGrep: Where is updateManyByCredentialId called in CalendarService or GoogleCalendarSer
+  API error: Error code: 429 - {'type': 'error', 'error': {'type': 'rate_limit_error', 'message': "This request would exceed your organization's rate limit of 2,000,000 input tokens per minute (org: 0c1cbc13-3efa-412c-a200-4383e2b55935, model: claude-opus-4-6). For details, refer to: https://docs.claude.com/en/api/rate-limits. You can see the response headers for current usage. Please reduce the prompt length or the maximum tokens requested, or try again later. You may also contact sales at https://www.anthropic.com/contact-sales to discuss your options for a rate limit increase."}, 'request_id': 'req_011CYaGSY6uyyc9EArDydBAN'}, retrying...
+  API error: Error code: 429 - {'type': 'error', 'error': {'type': 'rate_limit_error', 'message': "This request would exceed your organization's rate limit of 2,000,000 input tokens per minute (org: 0c1cbc13-3efa-412c-a200-4383e2b55935, model: claude-opus-4-6). For details, refer to: https://docs.claude.com/en/api/rate-limits. You can see the response headers for current usage. Please reduce the prompt length or the maximum tokens requested, or try again later. You may also contact sales at https://www.anthropic.com/contact-sales to discuss your options for a rate limit increase."}, 'request_id': 'req_011CYaGSY6uyyc9EArDydBAN'}, retrying...
+    WarpGrep: setAvailabilityInCache method definition in calendar cache or google calendar se
+    WarpGrep: setAvailabilityInCache method definition in calendar cache or google calendar se
+    WarpGrep: handleGoogleCalendarWebhookTrigger or method that calls fetchAvailability and se
+    WarpGrep: handleGoogleCalendarWebhookTrigger or method that calls fetchAvailability and se
+  WarpGrep API error (turn 3): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 3): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  Final review call (tools used: grep_pattern=19, read_file=6, warpgrep_codebase_search=2)
+  Final review call (tools used: grep_pattern=19, read_file=6, warpgrep_codebase_search=2)
+  Pass 4/4: 0 issues
+  Pass 4/4: 0 issues
+    WarpGrep: CredentialActionsDropdown with integrationType and cacheUpdatedAt props - the ne
+    WarpGrep: CredentialActionsDropdown with integrationType and cacheUpdatedAt props - the ne
+  WarpGrep API error (turn 3): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 3): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+    WarpGrep: Where is updateManyByCredentialId called in the google calendar service, with th
+    WarpGrep: Where is updateManyByCredentialId called in the google calendar service, with th
+    WarpGrep: SelectedCalendarRepository.updateManyByCredentialId called in CalendarService
+    WarpGrep: SelectedCalendarRepository.updateManyByCredentialId called in CalendarService
+  WarpGrep API error (turn 4): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  WarpGrep API error (turn 4): 429 Client Error: Too Many Requests for url: https://api.morphllm.com/v1/chat/completions
+  Review complete (tools: grep_pattern=13, read_file=7, warpgrep_codebase_search=3)
+  Review complete (tools: grep_pattern=13, read_file=7, warpgrep_codebase_search=3)
+  Quick-wins pass: 3 issues
+  Quick-wins pass: 3 issues
+    WarpGrep: SelectedCalendar model definition in Prisma schema with updatedAt field
+    WarpGrep: SelectedCalendar model definition in Prisma schema with updatedAt field
+    WarpGrep: fetchAvailability and setAvailabilityInCache in GoogleCalendarService around lin
+    WarpGrep: fetchAvailability and setAvailabilityInCache in GoogleCalendarService around lin
+  Review complete (tools: read_file=12, grep_pattern=16, warpgrep_codebase_search=2)
+  Review complete (tools: read_file=12, grep_pattern=16, warpgrep_codebase_search=2)
+  Judge removed 1 FPs (3 -> 2)
+  Judge removed 1 FPs (3 -> 2)
+  2 raw -> 2 filtered
+  2 raw -> 2 filtered
+    [0.80] portability: `sed -i '' -E "s|...|...|"` uses BSD/macOS sed syntax. On GNU/Linux, `sed -i` does not acc
+    [0.80] portability: `sed -i '' -E "s|...|...|"` uses BSD/macOS sed syntax. On GNU/Linux, `sed -i` does not acc
+    [0.75] localization: `new Intl.DateTimeFormat("en-US", ...)` hardcodes the "en-US" locale for date formatting. 
+    [0.75] localization: `new Intl.DateTimeFormat("en-US", ...)` hardcodes the "en-US" locale for date formatting. 
+Wrote candidates to /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+Wrote candidates to /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+
+============================================================
+
+============================================================
+DONE: 5 reviewed, 18 raw -> 11 filtered
+Avg/PR: 2.2, Time: 10723s
+DONE: 5 reviewed, 18 raw -> 11 filtered
+Avg/PR: 2.2, Time: 10723s
+Candidates: /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+Benchmark data updated: /Users/tejas/personal/applymodel/zmisc/examples/code-review-benchmark/offline/results/benchmark_data.jsonCandidates: /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+Benchmark data updated: /Users/tejas/personal/applymodel/zmisc/examples/code-review-benchmark/offline/results/benchmark_data.json
+

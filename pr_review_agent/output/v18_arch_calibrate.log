@@ -1,0 +1,72 @@
+============================================================
+PR Review Agent - Benchmark Pipeline
+============================================================
+Loaded 50 PRs
+WarpGrep: ENABLED
+Calibration: 5 PRs (1 per repo)
+Reviewing 5 PRs
+
+Running 5 PRs with parallelism=5
+
+[1/5] keycloak PR#37429 (4 golden)
+[2/5] sentry PR#93824 (5 golden)
+[3/5] grafana PR#97529 (2 golden)
+[4/5] discourse-graphite PR#9 (2 golden)
+[5/5] cal.com PR#22532 (2 golden)
+  [4/5] discourse-graphite PR#9 6 files, 31 added lines
+  [5/5] cal.com PR#22532 17 files, 379 added lines
+  [2/5] sentry PR#93824 6 files, 199 added lines
+  [3/5] grafana PR#97529 5 files, 25 added lines
+  [1/5] keycloak PR#37429 48 files, 343 added lines
+    WarpGrep: updateManyByCredentialId in SelectedCalendarRepository - what does it do with em
+    WarpGrep: SpansBuffer constructor definition and assigned_shards parameter
+    WarpGrep: set_locale method definition in application_controller.rb
+    WarpGrep: Prisma updateMany with empty data object - what happens
+    WarpGrep: GoogleCalendarService fetchAvailability method and setAvailabilityInCache
+    WarpGrep: run_with_initialized_sentry definition and how it wraps functions
+    WarpGrep: NewResourceServer function definition and where it gets its context from
+    WarpGrep: GoogleCalendarService credential property definition
+    WarpGrep: set_locale method in application_controller that sets I18n.locale
+    WarpGrep: CredentialForCalendarServiceWithEmail type definition id field
+    WarpGrep: English source for totpStep1 and loginTotpStep1 messages
+    WarpGrep: Prisma @updatedAt behavior with updateMany - does it auto-update
+  WarpGrep connection error, retrying in 3s (attempt 1/3): SSLError
+    WarpGrep: BuildIndex callers in search.go - how is BuildIndex called, any singleflight or 
+    WarpGrep: SpansBuffer flush_segments method implementation using assigned_shards
+  Review complete (tools: read_file=9, grep_pattern=11, warpgrep_codebase_search=1, report_issue=3, list_directory=1)
+  Review complete: 3 issues
+  [1/5] keycloak PR#37429 3 raw -> 3 kept
+    [1/5] keycloak PR#37429 [0.98] localization: The `loginTotpStep1` value was replaced with Italian text ("Installa una delle seguenti ap
+    [1/5] keycloak PR#37429 [0.98] localization: The `totpStep1` value was replaced with Italian text ("Installa una delle seguenti applica
+    [1/5] keycloak PR#37429 [0.95] localization: The `totpStep1` replacement text "在您的手機上安裝以下應用程式之一：" uses Traditional Chinese characters (
+    WarpGrep: getConnectedDestinationCalendarsAndEnsureDefaultsInDb return type connectedCalen
+    WarpGrep: getConnectedCalendars return type - what does connectedCalendars array elements 
+    WarpGrep: UserWithCalendars type import usage in connectedCalendars handler
+    WarpGrep: searchSupport struct definition and its build method
+    WarpGrep: import UserWithCalendars from packages/lib/getConnectedDestinationCalendars
+    WarpGrep: searchSupport init function in old code, the goroutine before }() in search.go i
+    WarpGrep: iter_cluster_memory_usage definition
+    WarpGrep: how consumer click_options are passed to strategy factory constructor
+  Max tool rounds reached (tools: warpgrep_codebase_search=10, read_file=12, grep_pattern=32, list_directory=3)
+  Review complete: 0 issues
+  [5/5] cal.com PR#22532 0 raw -> 0 kept
+    WarpGrep: I18n::Backend::Fallbacks included or required for backend
+  Review complete (tools: read_file=19, warpgrep_codebase_search=5, grep_pattern=11, report_issue=1)
+  Review complete: 1 issues
+  [2/5] sentry PR#93824 1 raw -> 1 kept
+    [2/5] sentry PR#93824 [0.88] logic_error: The `isinstance(process, multiprocessing.Process)` check will always be False for spawn-co
+  Review complete (tools: read_file=10, warpgrep_codebase_search=4, grep_pattern=7)
+  Review complete: 0 issues
+  [3/5] grafana PR#97529 0 raw -> 0 kept
+  Review complete (tools: read_file=24, grep_pattern=15, warpgrep_codebase_search=3, list_directory=1, report_issue=2)
+  Review complete: 2 issues
+  [4/5] discourse-graphite PR#9 2 raw -> 2 kept
+    [4/5] discourse-graphite PR#9 [0.82] type_error: The `FallbackLocaleList#[]` method does not normalize `locale` to a symbol via `.to_sym`. 
+    [4/5] discourse-graphite PR#9 [0.75] type_error: The new `ensure_loaded!(locale)` method does not call `locale = locale.to_sym` before chec
+Wrote candidates to /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+
+============================================================
+DONE: 5 reviewed, 6 raw -> 6 filtered
+Avg/PR: 1.2, Time: 536s
+Candidates: /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+Benchmark data updated: /Users/tejas/personal/applymodel/zmisc/examples/code-review-benchmark/offline/results/benchmark_data.json

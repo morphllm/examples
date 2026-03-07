@@ -1,87 +1,51 @@
 {
   "pr_url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/4",
-  "total_issues": 9,
+  "total_issues": 5,
   "issues": [
-    {
-      "file_path": "app/assets/javascripts/embed.js",
-      "line_number": 16,
-      "category": "security",
-      "severity": "high",
-      "confidence": 0.9,
-      "comment": "Origin validation uses indexOf() which allows substring matches, causing security bypass. `discourseUrl.indexOf(e.origin) === -1` should be `e.origin !== discourseUrl` or proper origin comparison, as current code allows any origin containing the discourse URL as substring.",
-      "source_pass": "batched_review"
-    },
     {
       "file_path": "app/views/embed/best.html.erb",
       "line_number": 6,
-      "category": "incorrect_value",
+      "category": "logic_error",
       "severity": "critical",
-      "confidence": 1.0,
-      "comment": "ERB syntax error with `<%- end if %>` which should be `<% end %>`. The trailing `if` keyword is invalid syntax and will cause template compilation to fail.",
-      "source_pass": "batched_review"
+      "confidence": 0.95,
+      "comment": "ERB syntax error: `end if` instead of `end`. In Ruby, `end if` is a conditional modifier that requires a boolean expression after `if`. Here `end if` appears with no condition, making it a syntax error that will crash the template on every render. The correct code is `<% end %>`.",
+      "source_pass": "review"
     },
     {
-      "file_path": "app/views/embed/best.html.erb",
-      "line_number": 19,
+      "file_path": "app/assets/javascripts/embed.js",
+      "line_number": 17,
       "category": "security",
       "severity": "high",
-      "confidence": 0.9,
-      "comment": "XSS vulnerability using `raw post.cooked` without HTML escaping. User-generated content in post.cooked could contain malicious scripts that execute in the embedded context.",
-      "source_pass": "batched_review"
+      "confidence": 0.92,
+      "comment": "Origin validation bypass via `indexOf`. The check `discourseUrl.indexOf(e.origin) === -1` tests whether `e.origin` is a substring of `discourseUrl`, which is backwards and insecure. An attacker's origin like `http://example.co` would match as a prefix of `http://example.com/embed/`, bypassing the origin check. This allows an attacker on a prefix-matching domain to send arbitrary `postMessage` events. The correct approach is to compare the origin portion of `discourseUrl` strictly, e.g., `if (e.origin !== new URL(discourseUrl).origin) { return; }`.",
+      "source_pass": "review"
     },
     {
-      "file_path": "app/views/layouts/embed.html.erb",
-      "line_number": 11,
-      "category": "security",
-      "severity": "high",
-      "confidence": 0.8,
-      "comment": "JavaScript injection vulnerability by interpolating `request.referer` directly into JavaScript string. If referer contains single quotes or JavaScript code, it will break/execute in the script context.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "app/models/topic_embed.rb",
-      "line_number": 12,
-      "category": "security",
+      "file_path": "app/controllers/embed_controller.rb",
+      "line_number": 27,
+      "category": "incorrect_value",
       "severity": "medium",
-      "confidence": 0.7,
-      "comment": "XSS vulnerability by interpolating unescaped `url` parameter into HTML anchor tag. URL could contain malicious HTML/JavaScript that executes when the content is rendered.",
-      "source_pass": "batched_review"
+      "confidence": 0.85,
+      "comment": "`X-Frame-Options: ALLOWALL` is not a valid value per the HTTP spec. Valid values are `DENY`, `SAMEORIGIN`, and `ALLOW-FROM uri`. Browser behavior with `ALLOWALL` is undefined \u2014 some may ignore the header entirely (desired), others may treat it as `DENY` (breaking embedding). The fix is to delete the header entirely: `response.headers.delete(\"X-Frame-Options\")`.",
+      "source_pass": "review"
     },
     {
       "file_path": "app/jobs/scheduled/poll_feed.rb",
-      "line_number": 28,
-      "category": "security",
-      "severity": "high",
-      "confidence": 0.9,
-      "comment": "SSRF vulnerability using `open()` on user-controlled `SiteSetting.feed_polling_url`. Attacker could set URL to access internal services, file:// URLs, or other restricted resources.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "app/jobs/scheduled/poll_feed.rb",
-      "line_number": 35,
+      "line_number": 33,
       "category": "null_reference",
-      "severity": "medium",
-      "confidence": 0.8,
-      "comment": "NoMethodError if `i.content` is nil when calling `.scrub`. Should check `i.content.present?` or use safe navigation `i.content&.scrub` before processing.",
-      "source_pass": "batched_review"
+      "severity": "high",
+      "confidence": 0.88,
+      "comment": "`NoMethodError` when RSS item has no `content` field. Many RSS feeds use `<description>` rather than `<content>` elements. When an RSS item lacks a `content` field, `i.content` returns `nil` in SimpleRSS, and calling `.scrub` on `nil` raises `NoMethodError: undefined method 'scrub' for nil:NilClass`. This will crash the entire feed polling job. Should fall back to `i.description` or guard against nil, e.g., `i.content || i.description || \"\"`.",
+      "source_pass": "review"
     },
     {
       "file_path": "app/models/topic_embed.rb",
-      "line_number": 57,
-      "category": "missing_validation",
-      "severity": "medium",
-      "confidence": 0.7,
-      "comment": "URI parsing with `URI(url)` can raise URI::InvalidURIError for malformed URLs but exception is not caught in this method, causing method to crash on invalid URLs.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "spec/controllers/embed_controller_spec.rb",
-      "line_number": 40,
-      "category": "test_correctness",
-      "severity": "medium",
-      "confidence": 0.9,
-      "comment": "Test expects `TopicRetriever.new` to be called directly, but actual controller implementation calls `Jobs.enqueue(:retrieve_topic)` instead. Test doesn't match implementation behavior and will fail or pass for wrong reasons.",
-      "source_pass": "batched_review"
+      "line_number": 47,
+      "category": "security",
+      "severity": "critical",
+      "confidence": 0.75,
+      "comment": "SSRF via `open()` with user-controlled URL. `Kernel#open` (via `open-uri`) fetches arbitrary URLs including `file://` schemes in some Ruby versions and internal network addresses. In `import_remote`, the `url` comes from external content (e.g., Disqus link data), enabling SSRF to probe internal services. The same issue exists in `app/jobs/scheduled/poll_feed.rb` line 28. Should use a safe URL fetcher that validates URIs and blocks internal IPs.",
+      "source_pass": "review"
     }
   ]
 }

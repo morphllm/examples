@@ -1,51 +1,5 @@
 {
   "pr_url": "https://github.com/grafana/grafana/pull/106778",
-  "total_issues": 5,
-  "issues": [
-    {
-      "file_path": "public/app/features/alerting/unified/hooks/useAbilities.ts",
-      "line_number": 211,
-      "category": "type_error",
-      "severity": "high",
-      "confidence": 1.0,
-      "comment": "useRulerRuleAbility function called with rule parameter that can be undefined, but function signature expects RulerRuleDTO (not undefined), causing TypeScript error and potential runtime issues.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "public/app/features/alerting/unified/hooks/useAbilities.ts",
-      "line_number": 405,
-      "category": "api_misuse",
-      "severity": "critical",
-      "confidence": 1.0,
-      "comment": "ctx variable used in ctx.hasPermissionInMetadata() but ctx is not defined, imported, or declared anywhere in the file, causing ReferenceError at runtime.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "public/app/features/alerting/unified/hooks/useAbilities.ts",
-      "line_number": 406,
-      "category": "api_misuse",
-      "severity": "critical",
-      "confidence": 1.0,
-      "comment": "ctx variable used in ctx.hasPermissionInMetadata() but ctx is not defined, imported, or declared anywhere in the file, causing ReferenceError at runtime.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "public/app/features/alerting/unified/hooks/useAbilities.ts",
-      "line_number": 213,
-      "category": "logic_error",
-      "severity": "medium",
-      "confidence": 0.8,
-      "comment": "useMemo dependency array includes 'abilities' which is the computed result being memoized, creating circular dependency that prevents proper memoization and may cause infinite re-computation.",
-      "source_pass": "batched_review"
-    },
-    {
-      "file_path": "public/app/features/alerting/unified/hooks/useAbilities.ts",
-      "line_number": 430,
-      "category": "logic_error",
-      "severity": "medium",
-      "confidence": 0.8,
-      "comment": "useMemo dependency array includes 'abilities' which is the computed result being memoized, creating circular dependency that prevents proper memoization and may cause infinite re-computation.",
-      "source_pass": "batched_review"
-    }
-  ]
+  "total_issues": 0,
+  "issues": []
 }

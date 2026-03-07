@@ -1,0 +1,83 @@
+============================================================
+PR Review Agent - Benchmark Pipeline
+============================================================
+Loaded 50 PRs
+WarpGrep: ENABLED
+Calibration: 5 PRs (1 per repo)
+Reviewing 5 PRs
+
+Running 5 PRs with parallelism=5
+
+[1/5] keycloak PR#37429 (4 golden)
+[2/5] sentry PR#93824 (5 golden)
+[3/5] grafana PR#97529 (2 golden)
+[4/5] discourse-graphite PR#9 (2 golden)
+[5/5] cal.com PR#22532 (2 golden)
+  [4/5] discourse-graphite PR#9 6 files, 31 added lines
+  [3/5] grafana PR#97529 5 files, 25 added lines
+  [2/5] sentry PR#93824 6 files, 199 added lines
+  [5/5] cal.com PR#22532 17 files, 379 added lines
+  [1/5] keycloak PR#37429 48 files, 343 added lines
+    WarpGrep: updateManyByCredentialId in SelectedCalendarRepository
+    WarpGrep: SpansBuffer constructor definition __init__
+    WarpGrep: set_locale method definition in application_controller
+    WarpGrep: FallbackLocaleList class definition
+    WarpGrep: SelectedCalendarRepository import in GoogleCalendarService
+    WarpGrep: method that caches availability in GoogleCalendarService or CalendarService
+    WarpGrep: def set_locale method in application_controller setting I18n.locale
+    WarpGrep: who calls BuildIndex in bleveBackend and how is it called concurrently
+    WarpGrep: zh_CN account messages totpStep1
+    WarpGrep: cacheUpdatedAt property on connectedCalendar in SelectedCalendarsSettingsWebWrap
+    WarpGrep: before_action or around_action set_locale in application_controller
+    WarpGrep: run_with_initialized_sentry function definition
+    WarpGrep: Prisma updateMany with @updatedAt behavior - does updateMany trigger updatedAt
+    WarpGrep: getConnectedDestinationCalendarsAndEnsureDefaultsInDb function definition
+    WarpGrep: error-invalid-multivalued-size message usage in frontend JavaScript
+    WarpGrep: record_stored_segments method definition in SpansBuffer
+    WarpGrep: get_memory_info method definition in SpansBuffer
+    WarpGrep: connectedCalendar.integration.type values for google calendar
+    WarpGrep: integration type field for google calendar in cleanIntegrationKeys or getConnect
+    WarpGrep: i18next configuration in account-ui or admin-ui loading messages properties
+    WarpGrep: Prisma.SelectedCalendarUpdateManyMutationInput vs SelectedCalendarUpdateInput in
+    WarpGrep: How is @loaded_locales initialized and accessed in translate_accelerator
+  Review complete (tools: read_file=16, grep_pattern=22, warpgrep_codebase_search=3, report_issue=5, list_directory=2)
+  Review complete: 5 issues
+  [1/5] keycloak PR#37429 5 raw -> 5 kept
+    [1/5] keycloak PR#37429 [0.98] localization: The Lithuanian (lt) locale file has Italian text instead of Lithuanian. `loginTotpStep1=In
+    [1/5] keycloak PR#37429 [0.98] localization: The Lithuanian (lt) account locale file has Italian text instead of Lithuanian. `totpStep1
+    [1/5] keycloak PR#37429 [0.95] localization: The Simplified Chinese (zh_CN) locale file now has Traditional Chinese text for `totpStep1
+    [1/5] keycloak PR#37429 [0.92] logic_error: The PR changes `error-invalid-multivalued-size` from `{{0}}` (i18next double-curly-brace f
+    [1/5] keycloak PR#37429 [0.92] logic_error: Same issue as in account-ui: changing `error-invalid-multivalued-size` from `{{0}}` (i18ne
+    WarpGrep: multiprocessing.get_context("spawn").Process type inheritance
+    WarpGrep: DiscourseI18n class definition and inheritance
+    WarpGrep: I18n::Backend::Fallbacks translate method implementation with fallbacks lookup
+    WarpGrep: Python multiprocessing SpawnProcess class hierarchy and isinstance with multipro
+    WarpGrep: fetchAvailabilityAndSetCache method definition in google calendar service
+  Review complete (tools: read_file=9, warpgrep_codebase_search=7, grep_pattern=8, list_directory=2)
+  Review complete: 0 issues
+  [4/5] discourse-graphite PR#9 0 raw -> 0 kept
+    WarpGrep: fetchAvailabilityAndSetCache implementation in GoogleCalendarService
+    WarpGrep: multiprocessing.get_context spawn Process class hierarchy SpawnProcess isinstanc
+  Max tool rounds reached (tools: warpgrep_codebase_search=11, read_file=14, grep_pattern=30, list_directory=1)
+  Review complete: 0 issues
+  [5/5] cal.com PR#22532 0 raw -> 0 kept
+    WarpGrep: callers of sql.NewResourceServer that check the server for nil rather than check
+    WarpGrep: callers of resource.NewResourceServer that assign result to ResourceServer inter
+    WarpGrep: how flusher_processes click option is passed to ProcessSpansStrategyFactory in c
+    WarpGrep: how click_options from consumer config are passed to strategy_factory constructo
+  Review complete (tools: read_file=9, warpgrep_codebase_search=9, grep_pattern=8, report_issue=2)
+  Review complete: 2 issues
+  [2/5] sentry PR#93824 2 raw -> 2 kept
+    [2/5] sentry PR#93824 [0.92] incorrect_value: Inconsistent metric tag key: `"shards"` (plural) is used for the `wait_produce` timer at l
+    [2/5] sentry PR#93824 [0.82] api_misuse: `isinstance(process, multiprocessing.Process)` is always False for processes created via `
+  Review complete (tools: read_file=25, warpgrep_codebase_search=3, grep_pattern=18, report_issue=1)
+  Review complete: 1 issues
+  [3/5] grafana PR#97529 1 raw -> 1 kept
+    [3/5] grafana PR#97529 [0.82] race_condition: Goroutine leak when `Init()` partially succeeds in the constructor. The init order was cha
+Wrote candidates to /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+
+============================================================
+DONE: 5 reviewed, 8 raw -> 8 filtered
+Avg/PR: 1.6, Time: 827s
+Candidates: /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+Benchmark data updated: /Users/tejas/personal/applymodel/zmisc/examples/code-review-benchmark/offline/results/benchmark_data.json

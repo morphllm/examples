@@ -1,15 +1,33 @@
 {
   "pr_url": "https://github.com/ai-code-review-evaluation/sentry-greptile/pull/3",
-  "total_issues": 1,
+  "total_issues": 3,
   "issues": [
     {
-      "file_path": "src/sentry/testutils/factories.py",
-      "line_number": 356,
+      "file_path": "src/sentry/search/events/datasets/discover.py",
+      "line_number": 1,
+      "category": "null_reference",
+      "severity": "high",
+      "confidence": 0.95,
+      "comment": "The `upsampled_count` SnQL function uses `Function(\"sum\", [Column(\"sample_weight\")])` without wrapping `sample_weight` with `ifNull(..., 1)`. Every other implementation in the codebase uses `ifNull(sample_weight, 1)`. Without `ifNull`, SQL `sum()` silently ignores NULL values, so any event where `sample_weight` is NULL (events ingested before upsampling was configured, or events without this field populated) will be silently excluded from the count entirely \u2014 not counted as 1, but as 0. This causes undercounting. Additionally, the `Column(\"sample_weight\")` is missing the `entity=Entity(\"events\", alias=\"events\")` parameter that the correct production code includes, which can cause column resolution failures in multi-entity queries.",
+      "source_pass": "review"
+    },
+    {
+      "file_path": "src/sentry/api/helpers/error_upsampling.py",
+      "line_number": 1,
       "category": "logic_error",
       "severity": "high",
-      "confidence": 0.85,
-      "comment": "_set_sample_rate_from_error_sampling sets 'sample_rate' but upsampled_count() uses 'sample_weight', causing test to expect count==10 but code only provides sample_rate=0.1 instead of sample_weight=10.",
-      "source_pass": "batched_review"
+      "confidence": 0.9,
+      "comment": "The cache key uses Python's `hash()` on a tuple: `hash(tuple(sorted(snuba_params.project_ids)))`. Python's `hash()` on tuples is randomized per process (PYTHONHASHSEED, enabled by default since Python 3.3). Since the cache is backed by a shared cache (Redis/memcached), different worker processes generate different cache keys for the same org+projects combination. This makes the cache completely ineffective across workers, and stale entries from restarted workers become zombie entries never read or invalidated. The fix is to use a deterministic representation, e.g., `\",\".join(str(x) for x in sorted(project_ids))`.",
+      "source_pass": "review"
+    },
+    {
+      "file_path": "sentry-repo",
+      "line_number": 1,
+      "category": "logic_error",
+      "severity": "critical",
+      "confidence": 0.92,
+      "comment": "An accidental git submodule entry was added to the repository (mode 160000, subproject commit a5d290951def84afdcc4c88d2f1f20023fc36e2a). There is no `.gitmodules` file, confirming this is not intentional. This appears to be an accidental inclusion of a nested git repository. If merged, it would add a broken submodule reference that would cause `git clone --recursive` and other submodule-aware operations to fail.",
+      "source_pass": "review"
     }
   ]
 }

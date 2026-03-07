@@ -39,7 +39,7 @@ from pr_review_agent.evolver.evaluator import (
     prefetch_diffs,
 )
 from pr_review_agent.evolver.failure_case import CodeReviewFailureCase
-from pr_review_agent.evolver.mutator import CodeReviewMutator
+from pr_review_agent.evolver.mutator import CodeReviewMutator, CrossoverMutator
 from pr_review_agent.evolver.organism import CodeReviewOrganism, make_initial_organism
 
 
@@ -77,6 +77,9 @@ def load_organism_json(path: Path) -> CodeReviewOrganism:
 
 def run_evolution(args: argparse.Namespace) -> None:
     config = Config()
+    if args.no_warpgrep:
+        config.warpgrep_tool_enabled = False
+        config.warpgrep_validate_issues = False
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -114,6 +117,12 @@ def run_evolution(args: argparse.Namespace) -> None:
 
         train_urls = train_urls[:args.calibration_size]
         print(f"Using calibration subset: {len(train_urls)} train PRs", file=sys.stderr)
+
+        # Also reduce holdout proportionally to keep evaluation time reasonable
+        holdout_cap = max(2, args.calibration_size // 2)
+        if len(holdout_urls) > holdout_cap:
+            holdout_urls = holdout_urls[:holdout_cap]
+            print(f"Holdout capped at {len(holdout_urls)} PRs for calibration speed", file=sys.stderr)
     else:
         train_urls = all_train_urls
 
@@ -121,8 +130,12 @@ def run_evolution(args: argparse.Namespace) -> None:
     all_urls = train_urls + holdout_urls
     diff_cache = prefetch_diffs(benchmark_data, all_urls)
 
-    # Create problem components
-    initial_organism = make_initial_organism()
+    # Create initial organism (from seed file or default)
+    if args.seed_organism:
+        initial_organism = load_organism_json(Path(args.seed_organism))
+        print(f"Loaded seed organism from {args.seed_organism}", file=sys.stderr)
+    else:
+        initial_organism = make_initial_organism()
     evaluator = CodeReviewEvaluator(
         train_pr_urls=train_urls,
         holdout_pr_urls=holdout_urls,
@@ -130,12 +143,12 @@ def run_evolution(args: argparse.Namespace) -> None:
         config=config,
         diff_cache=diff_cache,
     )
-    mutator = CodeReviewMutator()
+    mutators = [CodeReviewMutator(), CrossoverMutator()]
 
     problem = Problem[CodeReviewOrganism, CodeReviewEvaluationResult, CodeReviewFailureCase](
         initial_organism=initial_organism,
         evaluator=evaluator,
-        mutators=[mutator],
+        mutators=mutators,
     )
 
     # Load snapshot for resumption if specified
@@ -276,6 +289,8 @@ def main():
     parser.add_argument("--output-dir", default="pr_review_agent/evolver/output",
                         help="Output directory for snapshots and best organism")
     parser.add_argument("--resume", help="Path to snapshot pickle to resume from")
+    parser.add_argument("--seed-organism", help="Path to seed organism JSON (improved starting point)")
+    parser.add_argument("--no-warpgrep", action="store_true", help="Disable WarpGrep for faster evaluation")
 
     # Inspection commands
     parser.add_argument("--show-best", action="store_true", help="Show best organism config")
