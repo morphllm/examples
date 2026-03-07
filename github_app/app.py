@@ -106,18 +106,20 @@ REVIEW_API_SECRET = os.environ.get("REVIEW_API_SECRET", "") or os.environ.get("G
 async def _run_review_from_api(req: ReviewRequest):
     """Run the review pipeline from an API request (not a webhook)."""
     import time
+    import uuid
     from github_app.telemetry import make_event_emitter
 
     config = _get_config()
     client = GitHubClient(req.github_token)
     clone_path = None
     full_name = f"{req.owner}/{req.repo}"
+    agent_run_id = req.agent_run_id or str(uuid.uuid4())
     t_start = time.monotonic()
     metrics = {}
     base_ctx = {
         "service": "morph-ghapp", "source": "api",
         "repo": full_name, "pr_number": req.pr_number,
-        "head_sha": req.head_sha, "agent_run_id": req.agent_run_id,
+        "head_sha": req.head_sha, "agent_run_id": agent_run_id,
         "personality": req.personality or "",
     }
     on_event = make_event_emitter(base_ctx)
@@ -131,7 +133,7 @@ async def _run_review_from_api(req: ReviewRequest):
                 "duration_total_s": round(time.monotonic() - t_start, 1),
             })
             if req.callback_url:
-                await _callback(req.callback_url, req.agent_run_id, "completed")
+                await _callback(req.callback_url, agent_run_id, "completed")
             return
 
         on_event("review.started", {
@@ -220,7 +222,7 @@ async def _run_review_from_api(req: ReviewRequest):
         })
 
         if req.callback_url:
-            await _callback(req.callback_url, req.agent_run_id, "completed")
+            await _callback(req.callback_url, agent_run_id, "completed")
 
     except Exception as exc:
         logger.exception("API review failed for %s PR #%d", full_name, req.pr_number)
@@ -231,7 +233,7 @@ async def _run_review_from_api(req: ReviewRequest):
             "error_type": type(exc).__name__,
         })
         if req.callback_url:
-            await _callback(req.callback_url, req.agent_run_id, "failed")
+            await _callback(req.callback_url, agent_run_id, "failed")
     finally:
         if clone_path:
             GitHubClient.cleanup_clone(clone_path)
@@ -261,7 +263,7 @@ async def review_api(req: ReviewRequest, request: Request):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     asyncio.create_task(_run_review_from_api(req))
-    return {"status": "accepted", "agent_run_id": req.agent_run_id}
+    return {"status": "accepted", "agent_run_id": req.agent_run_id or "generated-server-side"}
 
 
 @app.get("/health")

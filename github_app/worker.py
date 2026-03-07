@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
+import uuid
 
 from github_app.auth import get_installation_token
 from github_app.config import AppConfig
@@ -45,9 +46,11 @@ async def process_review(payload: dict, app_config: AppConfig):
 
         t_start = time.monotonic()
         metrics = {}
+        agent_run_id = str(uuid.uuid4())
         base_ctx = {
             "service": "morph-ghapp", "source": "webhook",
             "repo": full_name, "pr_number": pr_number, "head_sha": head_sha,
+            "agent_run_id": agent_run_id,
         }
         on_event = make_event_emitter(base_ctx)
 

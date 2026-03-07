@@ -17,7 +17,7 @@ from typing import Callable
 logger = logging.getLogger(__name__)
 
 _client = None
-_DATASET = os.environ.get("AXIOM_DATASET", "morph-errors")
+_DATASET = os.environ.get("AXIOM_DATASET", "morph-pr-review")
 
 # Log levels for different event types
 _EVENT_LEVELS = {
