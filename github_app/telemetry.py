@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 logger = logging.getLogger(__name__)
 
 _client = None
-_DATASET = "pr-review"
+_DATASET = os.environ.get("AXIOM_DATASET", "morph-errors")
 
 
 def _get_client():
@@ -29,14 +29,18 @@ def _get_client():
 
 def send_review_event(event: dict):
     """Send a structured review event to Axiom. Never raises."""
+    if "_time" not in event:
+        event["_time"] = datetime.now(timezone.utc).isoformat()
+    event.setdefault("event_type", "pr_review")
+
+    # Always log structured JSON for Fly.io log drain
+    import json
+    logger.info("REVIEW_EVENT %s", json.dumps(event, default=str))
+
     client = _get_client()
     if client is None:
-        logger.debug("Axiom not configured, skipping telemetry event")
         return
     try:
-        if "_time" not in event:
-            event["_time"] = datetime.now(timezone.utc).isoformat()
         client.ingest_events(dataset=_DATASET, events=[event])
-        logger.info("Sent telemetry event to Axiom (%s)", event.get("status", "?"))
     except Exception:
-        logger.warning("Failed to send event to Axiom", exc_info=True)
+        logger.warning("Failed to send event to Axiom (dataset=%s)", _DATASET, exc_info=True)
