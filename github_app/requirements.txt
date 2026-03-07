@@ -7,3 +7,4 @@ PyJWT[crypto]>=2.9.0
 cryptography>=44.0.0
 httpx>=0.28.0
 requests>=2.32.0
+axiom-py>=1.0.0

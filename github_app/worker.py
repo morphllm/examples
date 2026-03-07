@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 
 from github_app.auth import get_installation_token
 from github_app.config import AppConfig
 from github_app.github_client import GitHubClient
+from github_app.telemetry import send_review_event
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +43,8 @@ async def process_review(payload: dict, app_config: AppConfig):
         clone_path = None
         check_run_id = None
 
+        t_start = time.monotonic()
+        metrics = {}
         try:
             check_run_id = await client.create_check_run(owner, repo, head_sha)
 
@@ -51,12 +55,20 @@ async def process_review(payload: dict, app_config: AppConfig):
                     owner, repo, check_run_id,
                     "success", "No changes to review", "The PR diff is empty.",
                 )
+                send_review_event({
+                    "service": "morph-ghapp", "source": "webhook",
+                    "repo": full_name, "pr_number": pr_number, "head_sha": head_sha,
+                    "status": "empty_diff",
+                    "duration_total_s": round(time.monotonic() - t_start, 1),
+                })
                 return
 
             # Clone for agentic tool use
+            t_clone = time.monotonic()
             clone_path = await client.clone_repo(
                 owner, repo, pr_number, head_sha, app_config.clone_base_dir
             )
+            duration_clone = round(time.monotonic() - t_clone, 1)
 
             # Build pr_review_agent config
             from pr_review_agent.config import Config as ReviewConfig
@@ -69,6 +81,7 @@ async def process_review(payload: dict, app_config: AppConfig):
             )
 
             # Run review (sync call, runs in thread to avoid blocking event loop)
+            t_review = time.monotonic()
             comments = await asyncio.to_thread(
                 review_diff,
                 diff,
@@ -76,8 +89,11 @@ async def process_review(payload: dict, app_config: AppConfig):
                 config=review_config,
                 organism_path=app_config.organism_path or None,
                 max_issues=app_config.max_issues_per_pr,
+                metrics_out=metrics,
             )
+            duration_review = round(time.monotonic() - t_review, 1)
 
+            t_post = time.monotonic()
             if comments:
                 summary = f"Found {len(comments)} issue{'s' if len(comments) != 1 else ''}"
                 await client.post_review(
@@ -96,14 +112,39 @@ async def process_review(payload: dict, app_config: AppConfig):
                     "No issues found",
                     "PR Review Agent found no issues in this PR.",
                 )
+            duration_post = round(time.monotonic() - t_post, 1)
 
             logger.info(
                 "Completed review for %s PR #%d: %d comments",
                 full_name, pr_number, len(comments),
             )
 
-        except Exception:
+            send_review_event({
+                "service": "morph-ghapp", "source": "webhook",
+                "repo": full_name, "pr_number": pr_number, "head_sha": head_sha,
+                "duration_total_s": round(time.monotonic() - t_start, 1),
+                "duration_clone_s": duration_clone,
+                "duration_review_s": duration_review,
+                "duration_post_s": duration_post,
+                "issues_found": len(comments) if comments else 0,
+                "status": "success",
+                "diff_files": metrics.get("diff_files", 0),
+                "diff_size_chars": len(diff),
+                "tool_rounds": metrics.get("tool_rounds", 0),
+                "api_calls": metrics.get("api_calls", 0),
+                "api_calls_review": metrics.get("api_calls_review", 0),
+                "api_calls_extract": metrics.get("api_calls_extract", 0),
+                **{f"tool_{k}": v for k, v in metrics.get("tool_counts", {}).items()},
+            })
+
+        except Exception as exc:
             logger.exception("Review failed for %s PR #%d", full_name, pr_number)
+            send_review_event({
+                "service": "morph-ghapp", "source": "webhook",
+                "repo": full_name, "pr_number": pr_number, "head_sha": head_sha,
+                "duration_total_s": round(time.monotonic() - t_start, 1),
+                "status": "failure", "error": str(exc),
+            })
             if check_run_id:
                 try:
                     await client.complete_check_run(

@@ -25,6 +25,16 @@ from pr_review_agent.warpgrep.client import (
 )
 
 
+@dataclass
+class ReviewMetrics:
+    """Metrics collected during a single review run."""
+    tool_counts: dict[str, int] = field(default_factory=dict)
+    api_calls: int = 0
+    api_calls_review: int = 0
+    api_calls_extract: int = 0
+    tool_rounds: int = 0
+
+
 def _strict_schema(schema: dict) -> dict:
     """Add additionalProperties: false to all object types in a JSON schema."""
     schema = schema.copy()
@@ -160,6 +170,8 @@ class Reviewer:
         """
         import sys
 
+        self._metrics = ReviewMetrics()
+
         combined_diff = self._build_diff_text(file_diffs)
 
         # Gather language hints
@@ -233,6 +245,7 @@ Quality over quantity. 2 real bugs with evidence > 6 speculative ones."""
         # Extract structured issues from the freeform review
         issues = self._extract_issues(review_text, combined_diff)
         print(f"  Review complete: {len(issues)} issues", file=sys.stderr)
+        self.last_metrics = self._metrics
         return issues
 
     def _extract_issues(self, review_text: str, diff_text: str) -> list[ReviewIssue]:
@@ -265,6 +278,9 @@ Only extract issues the reviewer explicitly identified as bugs. Do not invent ne
                     "format": {"type": "json_schema", "schema": schema}
                 },
             )
+            if hasattr(self, '_metrics'):
+                self._metrics.api_calls += 1
+                self._metrics.api_calls_extract += 1
             text_block = next(b for b in result_text.content if b.type == "text")
             return self._parse_structured_issues(text_block.text, source_pass="review")
         except Exception:
@@ -460,7 +476,7 @@ Only extract issues the reviewer explicitly identified as bugs. Do not invent ne
 
         for attempt in range(max_retries):
             try:
-                return self.client.messages.create(
+                response = self.client.messages.create(
                     model=self.config.model,
                     max_tokens=self.config.max_tokens,
                     thinking={"type": "adaptive"},
@@ -469,6 +485,9 @@ Only extract issues the reviewer explicitly identified as bugs. Do not invent ne
                     tools=tools,
                     messages=messages,
                 )
+                if hasattr(self, '_metrics'):
+                    self._metrics.api_calls += 1
+                return response
             except anthropic.RateLimitError:
                 if attempt == max_retries - 1:
                     raise
@@ -535,10 +554,12 @@ Only extract issues the reviewer explicitly identified as bugs. Do not invent ne
         """
         import sys
 
-        tool_counts: dict[str, int] = {}
+        tool_counts = self._metrics.tool_counts
 
         for round_num in range(max_tool_rounds):
+            self._metrics.tool_rounds += 1
             response = self._call_api_with_retry(tools, messages)
+            self._metrics.api_calls_review += 1
 
             text_parts = []
             tool_use_blocks = []
@@ -568,6 +589,7 @@ Only extract issues the reviewer explicitly identified as bugs. Do not invent ne
         print(f"  Max tool rounds reached (tools: {summary})", file=sys.stderr)
 
         final_response = self._call_api_with_retry(tools, messages)
+        self._metrics.api_calls_review += 1
 
         text_parts = []
         for block in final_response.content:

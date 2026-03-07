@@ -30,10 +30,10 @@ class ReviewRequest(BaseModel):
     repo: str
     pr_number: int
     head_sha: str
-    personality: str
+    personality: str = ""  # Empty = generic code review
     github_token: str
     callback_url: str
-    github_username: str  # For attribution in the review comment
+    github_username: str = ""  # For attribution in the review comment
 
 
 @app.get("/health")
@@ -94,11 +94,17 @@ async def _process_review(req: ReviewRequest):
         # 4. Post review to GitHub
         if comments:
             summary_line = f"Found {len(comments)} issue{'s' if len(comments) != 1 else ''}"
-            review_body = (
-                f"@{req.github_username}'s review twin\n\n"
-                f"{summary_line}\n\n---\n"
-                f"*a2a-review based on @{req.github_username}'s coding preferences*"
-            )
+            if req.personality and req.github_username:
+                review_body = (
+                    f"@{req.github_username}'s review twin\n\n"
+                    f"{summary_line}\n\n---\n"
+                    f"*a2a-review based on @{req.github_username}'s coding preferences*"
+                )
+            else:
+                review_body = (
+                    f"## Morph Code Review\n\n"
+                    f"{summary_line}"
+                )
 
             await client.post_review(
                 req.owner, req.repo, req.pr_number, req.head_sha,

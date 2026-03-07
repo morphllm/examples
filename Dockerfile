@@ -12,8 +12,8 @@ RUN pip install --no-cache-dir -r github_app/requirements.txt
 COPY pr_review_agent/ pr_review_agent/
 COPY github_app/ github_app/
 
-# Bundle evolved organism for tuned prompts (optional, set ORGANISM_PATH env to use)
-COPY pr_review_agent/evolver/seed_organism_v2.json /app/organism.json
+# Organism file is optional (set ORGANISM_PATH env to use)
+# Created at runtime or via evolver/run.py
 
 EXPOSE 8080
 CMD ["uvicorn", "github_app.app:app", "--host", "0.0.0.0", "--port", "8080"]

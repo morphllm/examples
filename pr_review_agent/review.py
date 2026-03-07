@@ -42,6 +42,7 @@ def review_diff(
     max_issues: int = 8,
     config: Config | None = None,
     personality: str | None = None,
+    metrics_out: dict | None = None,
 ) -> list[ReviewComment]:
     """Review a unified diff and return comments.
 
@@ -80,6 +81,14 @@ def review_diff(
 
     # Run review pipeline
     issues = reviewer.review_pr(file_diffs, repo_path=repo_path)
+
+    if metrics_out is not None and hasattr(reviewer, 'last_metrics'):
+        m = reviewer.last_metrics
+        metrics_out["tool_counts"] = dict(m.tool_counts)
+        metrics_out["api_calls"] = m.api_calls
+        metrics_out["api_calls_review"] = m.api_calls_review
+        metrics_out["api_calls_extract"] = m.api_calls_extract
+        metrics_out["tool_rounds"] = m.tool_rounds
 
     # Cap and sort by confidence
     issues.sort(key=lambda x: x.confidence, reverse=True)
