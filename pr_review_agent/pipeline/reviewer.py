@@ -306,6 +306,8 @@ Valid categories: logic_error, incorrect_value, api_misuse, race_condition, null
 Valid severities: critical, high, medium, low
 Confidence: 0.0-1.0 based on how certain the reviewer was"""
 
+        schema = _strict_schema(ReviewResult.model_json_schema())
+
         try:
             t_extract = time.monotonic()
             response = self.provider.extract_json(
