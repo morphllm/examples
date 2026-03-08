@@ -98,6 +98,11 @@ class ReviewRequest(BaseModel):
     github_token: str
     callback_url: str = ""
     github_username: str = ""
+    # Multi-provider support
+    provider: str = "anthropic"  # "anthropic" | "openai" | "google"
+    model: str = ""  # Override model name (e.g. "gpt-5.4", "gemini-3.1-pro-preview")
+    openai_api_key: str = ""  # Override OpenAI API key (optional, falls back to env)
+    google_api_key: str = ""  # Override Google API key (optional, falls back to env)
 
 
 REVIEW_API_SECRET = os.environ.get("REVIEW_API_SECRET", "") or os.environ.get("GHAPP_INTERNAL_SECRET", "")
@@ -155,11 +160,16 @@ async def _run_review_from_api(req: ReviewRequest):
         from pr_review_agent.review import review_diff
 
         review_config = ReviewConfig(
+            provider=req.provider,
             anthropic_api_key=config.anthropic_api_key,
             morph_api_key=config.morph_api_key,
+            openai_api_key=req.openai_api_key or config.openai_api_key,
+            google_api_key=req.google_api_key or config.google_api_key,
             skip_dir_creation=True,
             personality=req.personality if req.personality else None,
         )
+        if req.model:
+            review_config.model = req.model
 
         t_review = time.monotonic()
         comments = await asyncio.to_thread(

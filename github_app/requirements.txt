@@ -8,3 +8,6 @@ cryptography>=44.0.0
 httpx>=0.28.0
 requests>=2.32.0
 axiom-py>=0.10.0
+openai>=1.0
+google-genai>=1.0
+google-api-core>=2.0

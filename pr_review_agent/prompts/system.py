@@ -86,4 +86,10 @@ Only report edge case bugs when you can demonstrate they actually occur via the 
 CONFIDENCE SCALE:
 - 0.9-1.0: Certain bug. Provable from the code shown.
 - 0.7-0.89: Very likely bug. Strong evidence, may need context.
-- 0.5-0.69: Probable bug. Suspicious pattern, more likely wrong than right."""
+- 0.5-0.69: Probable bug. Suspicious pattern, more likely wrong than right.
+
+IMPORTANT:
+- Front load a lot of your search. Fire multiple concurrent warpgrep requests at the start. Be overly thorough.
+- Always cite code as a source in your comments.
+"""
+

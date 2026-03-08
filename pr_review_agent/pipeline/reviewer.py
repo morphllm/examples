@@ -14,11 +14,16 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
-import anthropic
 from pydantic import BaseModel, Field
 
 from pr_review_agent.config import Config
 from pr_review_agent.pipeline.diff_parser import FileDiff
+from pr_review_agent.pipeline.providers import (
+    LLMProvider,
+    LLMResponse,
+    ToolCall as ProviderToolCall,
+    create_provider,
+)
 from pr_review_agent.prompts.review import get_language_hint
 from pr_review_agent.prompts.system import SYSTEM_PROMPT
 from pr_review_agent.warpgrep.client import (
@@ -111,11 +116,7 @@ class Reviewer:
     def __init__(self, config: Config, on_event: TelemetryCallback | None = None):
         self.config = config
         self._on_event = on_event
-        import httpx
-        self.client = anthropic.Anthropic(
-            api_key=config.anthropic_api_key,
-            timeout=httpx.Timeout(600.0, connect=30.0),
-        )
+        self.provider: LLMProvider = create_provider(config)
         # Prompt overrides (set via configure_from_organism)
         self._system_prompt: str | None = None
         self._review_instructions: str | None = None
@@ -306,31 +307,36 @@ Confidence: 0.0-1.0 based on how certain the reviewer was"""
 
         try:
             t_extract = time.monotonic()
-            result = self.client.messages.create(
-                model=self.config.model,
-                max_tokens=8000,
-                thinking={"type": "adaptive"},
-                temperature=1,
+            response = self.provider.extract_json(
                 messages=[{"role": "user", "content": extraction_prompt}],
+                json_schema=schema,
+                max_tokens=8000,
+                model=self.config.model,
             )
             extract_duration = round(time.monotonic() - t_extract, 2)
             if hasattr(self, '_metrics'):
                 self._metrics.api_calls += 1
                 self._metrics.api_calls_extract += 1
-                self._metrics.total_input_tokens += result.usage.input_tokens
-                self._metrics.total_output_tokens += result.usage.output_tokens
-            text_block = next(b for b in result.content if b.type == "text")
-            issues = self._parse_xml_issues(text_block.text)
+                self._metrics.total_input_tokens += response.usage.input_tokens
+                self._metrics.total_output_tokens += response.usage.output_tokens
+            text = response.text_parts[0] if response.text_parts else ""
+            issues = self._parse_structured_issues(text, source_pass="review")
             self._emit("review.extraction", {
                 "review_text_length": len(review_text),
                 "issues_extracted": len(issues),
                 "duration_s": extract_duration,
                 "success": True,
-                "input_tokens": result.usage.input_tokens,
-                "output_tokens": result.usage.output_tokens,
+                "input_tokens": response.usage.input_tokens,
+                "output_tokens": response.usage.output_tokens,
             })
             return issues
-        except Exception:
+        except Exception as exc:
+            print(f"  Extraction failed: {type(exc).__name__}: {exc}", file=sys.stderr)
+            self._emit("review.extraction_error", {
+                "review_text_length": len(review_text),
+                "error": str(exc),
+                "error_type": type(exc).__name__,
+            })
             return []
 
     @staticmethod
@@ -562,8 +568,8 @@ Confidence: 0.0-1.0 based on how certain the reviewer was"""
 
         return tools, warpgrep_tool_def
 
-    def _execute_tool(self, tool_block, repo_path: str, warpgrep_tool_def: dict | None) -> dict:
-        """Execute a single tool call and return the tool_result."""
+    def _execute_tool(self, tool_call: ProviderToolCall, repo_path: str, warpgrep_tool_def: dict | None) -> dict:
+        """Execute a single tool call and return the provider-formatted tool result."""
         import subprocess
         import sys
         from pathlib import Path
@@ -571,16 +577,12 @@ Confidence: 0.0-1.0 based on how certain the reviewer was"""
             _execute_grep, _execute_read, _execute_list_directory,
         )
 
-        name = tool_block.name
-        inp = tool_block.input
+        name = tool_call.name
+        inp = tool_call.input
 
         if name == "read_file":
             result_text = _execute_read(repo_path, inp.get("path", ""), inp.get("lines"))
-            return {
-                "type": "tool_result",
-                "tool_use_id": tool_block.id,
-                "content": result_text,
-            }
+            return self.provider.format_tool_result(tool_call, result_text)
 
         elif name == "grep":
             sub_dir = inp.get("path", ".")
@@ -590,11 +592,7 @@ Confidence: 0.0-1.0 based on how certain the reviewer was"""
                 sub_dir,
                 inp.get("glob"),
             )
-            return {
-                "type": "tool_result",
-                "tool_use_id": tool_block.id,
-                "content": result_text,
-            }
+            return self.provider.format_tool_result(tool_call, result_text)
 
         elif name == "glob":
             pattern = inp.get("pattern", "")
@@ -612,11 +610,7 @@ Confidence: 0.0-1.0 based on how certain the reviewer was"""
                     result_text = "No files matched."
             except Exception as e:
                 result_text = f"Error: {e}"
-            return {
-                "type": "tool_result",
-                "tool_use_id": tool_block.id,
-                "content": result_text,
-            }
+            return self.provider.format_tool_result(tool_call, result_text)
 
         elif name == "list_directory":
             result_text = _execute_list_directory(
@@ -624,11 +618,7 @@ Confidence: 0.0-1.0 based on how certain the reviewer was"""
                 inp.get("path", "."),
                 None,
             )
-            return {
-                "type": "tool_result",
-                "tool_use_id": tool_block.id,
-                "content": result_text,
-            }
+            return self.provider.format_tool_result(tool_call, result_text)
 
         elif name == "bash":
             command = inp.get("command", "")
@@ -647,47 +637,36 @@ Confidence: 0.0-1.0 based on how certain the reviewer was"""
                 result_text = "Error: command timed out (30s limit)"
             except Exception as e:
                 result_text = f"Error: {e}"
-            return {
-                "type": "tool_result",
-                "tool_use_id": tool_block.id,
-                "content": result_text[:50000],  # cap output
-            }
+            return self.provider.format_tool_result(tool_call, result_text[:50000])
 
         elif name == WARPGREP_TOOL_NAME and warpgrep_tool_def:
             query = inp.get("search_string", "")
             print(f"    WarpGrep: {query[:80]}", file=sys.stderr)
             result_text = execute_warpgrep_tool(inp, warpgrep_tool_def)
-            return {
-                "type": "tool_result",
-                "tool_use_id": tool_block.id,
-                "content": result_text if result_text else "No results found.",
-            }
+            return self.provider.format_tool_result(
+                tool_call, result_text if result_text else "No results found."
+            )
 
         else:
-            return {
-                "type": "tool_result",
-                "tool_use_id": tool_block.id,
-                "content": f"Unknown tool: {name}",
-                "is_error": True,
-            }
+            return self.provider.format_tool_result(
+                tool_call, f"Unknown tool: {name}", is_error=True
+            )
 
     # ---------- API call with retry ----------
 
-    def _call_api_with_retry(self, tools, messages, max_retries=5, call_type: str = "review"):
-        """Call Claude API with exponential backoff on rate limit errors."""
+    def _call_api_with_retry(self, tools, messages, max_retries=5, call_type: str = "review") -> LLMResponse:
+        """Call LLM provider with exponential backoff on rate limit errors."""
         import sys
 
         for attempt in range(max_retries):
             try:
                 t_api_start = time.monotonic()
-                response = self.client.messages.create(
-                    model=self.config.model,
-                    max_tokens=self.config.max_tokens,
-                    thinking={"type": "adaptive"},
-                    temperature=1,
+                response = self.provider.chat(
+                    messages=messages,
                     system=self.active_system_prompt,
                     tools=tools,
-                    messages=messages,
+                    max_tokens=self.config.max_tokens,
+                    model=self.config.model,
                 )
                 api_duration = round(time.monotonic() - t_api_start, 2)
                 if hasattr(self, '_metrics'):
@@ -699,12 +678,12 @@ Confidence: 0.0-1.0 based on how certain the reviewer was"""
                     "model": str(self.config.model),
                     "input_tokens": response.usage.input_tokens,
                     "output_tokens": response.usage.output_tokens,
-                    "cache_read_tokens": getattr(response.usage, 'cache_read_input_tokens', 0) or 0,
+                    "cache_read_tokens": response.usage.cache_read_tokens,
                     "stop_reason": response.stop_reason,
                     "duration_s": api_duration,
                 })
                 return response
-            except anthropic.RateLimitError:
+            except self.provider.rate_limit_exception:
                 if attempt == max_retries - 1:
                     raise
                 wait = 2 ** attempt * 10  # 10s, 20s, 40s, 80s, 160s
@@ -714,27 +693,20 @@ Confidence: 0.0-1.0 based on how certain the reviewer was"""
     # ---------- LLM calls ----------
 
     def _call_opus(self, prompt: str, thinking_budget: int = 10000) -> str:
-        """Call Claude without tools (fallback when no repo_path)."""
+        """Call LLM without tools (fallback when no repo_path)."""
         import sys
 
         for attempt in range(2):
             messages = [{"role": "user", "content": prompt}]
             try:
-                response = self.client.messages.create(
-                    model=self.config.model,
-                    max_tokens=self.config.max_tokens,
-                    thinking={"type": "adaptive"},
-                    temperature=1,
-                    system=self.active_system_prompt,
+                response = self.provider.chat(
                     messages=messages,
+                    system=self.active_system_prompt,
+                    max_tokens=self.config.max_tokens,
+                    model=self.config.model,
                 )
 
-                text_parts = []
-                for block in response.content:
-                    if block.type == "text":
-                        text_parts.append(block.text)
-
-                result = "\n".join(text_parts)
+                result = "\n".join(response.text_parts)
                 if result.strip():
                     return result
 
@@ -761,9 +733,9 @@ Confidence: 0.0-1.0 based on how certain the reviewer was"""
         repo_path: str,
         warpgrep_tool_def: dict | None,
         thinking_budget: int,
-        max_tool_rounds: int = 25,
+        max_tool_rounds: int = 50,
     ) -> tuple[str, list[dict]]:
-        """Run Claude with tools in an agentic loop.
+        """Run the LLM with tools in an agentic loop.
 
         Returns (review_text, trace) where trace is a list of tool call records.
         """
@@ -777,58 +749,67 @@ Confidence: 0.0-1.0 based on how certain the reviewer was"""
             response = self._call_api_with_retry(tools, messages)
             self._metrics.api_calls_review += 1
 
-            text_parts = []
-            tool_use_blocks = []
-            for block in response.content:
-                if block.type == "text":
-                    text_parts.append(block.text)
-                elif block.type == "tool_use":
-                    tool_use_blocks.append(block)
-
             self._emit("review.agentic_round", {
                 "round_num": round_num,
-                "tool_calls_this_round": len(tool_use_blocks),
-                "tools_used": [tb.name for tb in tool_use_blocks],
+                "tool_calls_this_round": len(response.tool_calls),
+                "tools_used": [tc.name for tc in response.tool_calls],
                 "stop_reason": response.stop_reason,
                 "input_tokens": response.usage.input_tokens,
                 "output_tokens": response.usage.output_tokens,
                 "cumulative_tool_counts": dict(self._metrics.tool_counts),
             })
 
-            if not tool_use_blocks:
-                result = "\n".join(text_parts)
+            if not response.tool_calls:
+                result = "\n".join(response.text_parts)
+                # If model stopped tool-calling but produced no review text,
+                # prompt it to write the review based on its investigation.
+                if not result.strip() and round_num > 0:
+                    print(f"  Empty response after {round_num+1} rounds, prompting for review...", file=sys.stderr)
+                    messages.append(self.provider.format_assistant_message(response))
+                    messages.append({"role": "user", "content": (
+                        "You've finished investigating. Now write your code review. "
+                        "For each bug you found, name the exact code, explain what's wrong, "
+                        "and describe the runtime consequence. If you found no bugs, say so."
+                    )})
+                    followup = self._call_api_with_retry(tools, messages)
+                    self._metrics.api_calls_review += 1
+                    result = "\n".join(followup.text_parts)
                 summary = ", ".join(f"{n}={c}" for n, c in tool_counts.items())
                 print(f"  Loop done round={round_num} (tools: {summary or 'none'})", file=sys.stderr)
                 return result, trace
 
             # Execute all tool calls
-            messages.append({"role": "assistant", "content": response.content})
+            messages.append(self.provider.format_assistant_message(response))
             tool_results = []
-            for tool_block in tool_use_blocks:
-                tool_counts[tool_block.name] = tool_counts.get(tool_block.name, 0) + 1
+            for tc in response.tool_calls:
+                tool_counts[tc.name] = tool_counts.get(tc.name, 0) + 1
 
                 t_tool = time.monotonic()
-                result = self._execute_tool(tool_block, repo_path, warpgrep_tool_def)
+                result = self._execute_tool(tc, repo_path, warpgrep_tool_def)
                 tool_duration = round(time.monotonic() - t_tool, 2)
 
-                result_text = result.get("content", "") if isinstance(result, dict) else str(result)
+                # Extract text for telemetry (provider-specific result format)
+                if isinstance(result, dict):
+                    result_text = result.get("content", "") or result.get("response", {}).get("result", "")
+                else:
+                    result_text = str(result)
 
                 # Record trace
                 trace.append({
                     "round": round_num,
-                    "tool": tool_block.name,
-                    "input": tool_block.input,
+                    "tool": tc.name,
+                    "input": tc.input,
                     "output_len": len(result_text) if isinstance(result_text, str) else 0,
                     "is_error": result.get("is_error", False),
                 })
 
                 tool_input_preview = ""
-                if tool_block.input:
-                    tool_input_preview = str(tool_block.input)[:300]
+                if tc.input:
+                    tool_input_preview = str(tc.input)[:300]
 
-                is_warpgrep = tool_block.name == "warpgrep_codebase_search"
+                is_warpgrep = tc.name == "warpgrep_codebase_search"
                 event_data = {
-                    "tool_name": tool_block.name,
+                    "tool_name": tc.name,
                     "tool_input_preview": tool_input_preview,
                     "success": "Error:" not in result_text[:100],
                     "duration_s": tool_duration,
@@ -837,7 +818,7 @@ Confidence: 0.0-1.0 based on how certain the reviewer was"""
                     "round_num": round_num,
                 }
                 if is_warpgrep:
-                    event_data["warpgrep_query"] = tool_block.input.get("search_string", "") if isinstance(tool_block.input, dict) else ""
+                    event_data["warpgrep_query"] = tc.input.get("search_string", "") if isinstance(tc.input, dict) else ""
                     event_data["warpgrep_result_count"] = result_text.count("--- ")
                 self._emit("review.tool_call", event_data)
 
@@ -853,19 +834,19 @@ Confidence: 0.0-1.0 based on how certain the reviewer was"""
                 tool_results.append(result)
             messages.append({"role": "user", "content": tool_results})
 
-        # Hit max rounds — get final text
+        # Hit max rounds -- prompt for final review text
         summary = ", ".join(f"{n}={c}" for n, c in tool_counts.items())
         print(f"  Max tool rounds reached (tools: {summary})", file=sys.stderr)
 
+        messages.append({"role": "user", "content": (
+            "You've finished investigating. Now write your code review. "
+            "For each bug you found, name the exact code, explain what's wrong, "
+            "and describe the runtime consequence. If you found no bugs, say so."
+        )})
         final_response = self._call_api_with_retry(tools, messages)
         self._metrics.api_calls_review += 1
 
-        text_parts = []
-        for block in final_response.content:
-            if block.type == "text":
-                text_parts.append(block.text)
-
-        return ("\n".join(text_parts) if text_parts else ""), trace
+        return ("\n".join(final_response.text_parts) if final_response.text_parts else ""), trace
 
     # ---------- Judge (passthrough, kept for evolver compatibility) ----------
 

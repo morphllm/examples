@@ -19,6 +19,8 @@ class AppConfig:
     github_webhook_secret: str = ""
     anthropic_api_key: str = ""
     morph_api_key: str = ""
+    openai_api_key: str = ""
+    google_api_key: str = ""
     clone_base_dir: str = "/tmp/pr-review-clones"
     max_concurrent_reviews: int = 3
     max_issues_per_pr: int = 8
@@ -34,6 +36,8 @@ class AppConfig:
             "ANTHROPIC_API_KEY", ""
         )
         self.morph_api_key = self.morph_api_key or os.environ.get("MORPH_API_KEY", "")
+        self.openai_api_key = self.openai_api_key or os.environ.get("OPENAI_API_KEY", "")
+        self.google_api_key = self.google_api_key or os.environ.get("GOOGLE_API_KEY", "")
 
         # Load private key: direct env var, base64-encoded env var, or file path
         if not self.github_private_key:

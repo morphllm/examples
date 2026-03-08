@@ -16,9 +16,14 @@ load_dotenv(Path(__file__).parent / ".env")
 class Config:
     """Central configuration for the review pipeline."""
 
+    # Provider selection: "anthropic" | "openai" | "google"
+    provider: str = "anthropic"
+
     # API keys
     anthropic_api_key: str = ""
     morph_api_key: str = ""
+    openai_api_key: str = ""
+    google_api_key: str = ""
 
     # Paths
     benchmark_dir: Path = Path("")
@@ -83,6 +88,12 @@ class Config:
         )
         self.morph_api_key = self.morph_api_key or os.environ.get(
             "MORPH_API_KEY", ""
+        )
+        self.openai_api_key = self.openai_api_key or os.environ.get(
+            "OPENAI_API_KEY", ""
+        )
+        self.google_api_key = self.google_api_key or os.environ.get(
+            "GOOGLE_API_KEY", ""
         )
 
         if not self.skip_dir_creation:
