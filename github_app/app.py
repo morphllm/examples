@@ -99,7 +99,7 @@ class ReviewRequest(BaseModel):
     callback_url: str = ""
     github_username: str = ""
     # Multi-provider support
-    provider: str = "anthropic"  # "anthropic" | "openai" | "google"
+    provider: str = "google"  # "anthropic" | "openai" | "google"
     model: str = ""  # Override model name (e.g. "gpt-5.4", "gemini-3.1-pro-preview")
     openai_api_key: str = ""  # Override OpenAI API key (optional, falls back to env)
     google_api_key: str = ""  # Override Google API key (optional, falls back to env)
