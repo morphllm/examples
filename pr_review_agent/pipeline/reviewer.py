@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import random
+import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
