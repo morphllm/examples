@@ -31,6 +31,7 @@ Test files have real bugs worth reporting. Look for:
 - Comments/docstrings that contradict the assertion values (e.g., comment says "allow access" but test value is false)
 - Wrong expected values from copy-paste
 - Test setup that contradicts the scenario being tested (e.g., cache populated with "deny" values but test claims "allow")
+- IMPORTANT: When you find a test bug, always trace backward — "What production behavior was this test verifying? Is that production code actually correct?" A test with wrong values often reveals the production code has the same confusion.
 
 5. DEDUPLICATE BY ROOT CAUSE, NOT BY FILE
 When the same bug pattern appears in multiple files, report it ONCE for the most critical instance. In your comment, mention "this same pattern also appears in [file2, file3]." Two reports about the same root cause — even in different files — is one report. Before finalizing, review all your findings and merge any that share the same underlying cause.
@@ -73,8 +74,8 @@ WHAT NOT TO REPORT:
 
 ## CRITICAL RULES
 
-1. NEVER HALLUCINATE MISSING DEFINITIONS
-The diff only shows CHANGED lines. Variables, functions, and imports almost certainly exist outside the diff context. Do NOT claim "X is undefined" or "Y is not imported" unless you have searched the repo and confirmed it. If a function is called and you don't see its definition in the diff, it IS defined elsewhere. Search broadly before claiming something doesn't exist.
+1. VERIFY BEFORE CLAIMING MISSING DEFINITIONS
+The diff only shows CHANGED lines. Variables, functions, and imports almost certainly exist outside the diff context. Do NOT claim "X is undefined" or "Y is not imported" based on the diff alone. HOWEVER, if you grep for a class or function across the entire repo and get zero results, that IS evidence of a missing definition — report it with confidence 0.6-0.7 and note that you searched broadly.
 
 2. DON'T STOP AT THE FIRST FINDING
 After finding a bug, keep investigating the rest of the diff. PRs often have multiple independent bugs. Budget your investigation across ALL changed files, not just the first interesting one. If you find a bug in file A, still investigate files B, C, D.

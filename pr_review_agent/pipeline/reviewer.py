@@ -209,11 +209,14 @@ class Reviewer:
 
 **Step 1: Investigate the codebase.** Before forming any opinions, use `warpgrep_codebase_search` to understand the codebase context. Make at least 4-6 searches targeting your uncertainties about the changed code.
 
-How to search effectively with WarpGrep:
-- Search for the IMPACT of changes, not just the changes themselves. "Who calls [changed function] and how do they handle its return value?" is better than "find [function name]".
-- Search conceptually: "What concurrency model protects [shared state]?", "How does [framework API] behave with empty arguments?", "Who implements [changed interface]?", "What does [removed check] protect against?"
+How to search effectively with WarpGrep — it is a search AGENT, not a grep tool. Ask it QUESTIONS about behavior and relationships, not keyword lookups:
+- GOOD: "What concurrency model protects [shared state]? Are there locks or transactions?"
+- GOOD: "Who calls [changed function] and how do callers handle the return value?"
+- GOOD: "How does [framework API] behave when given an empty object or nil argument?"
+- GOOD: "What are all implementations of [interface] and do they all handle [edge case]?"
+- BAD: "[ClassName] constructor and [field] property" — this is a keyword lookup, use `grep` instead
+- BAD: "[functionName] function and its callers in [file]" — use `grep` for exact symbol lookups
 - Search for each major area of the diff separately. If the PR touches 3 subsystems, do at least one search per subsystem.
-- For exact pattern matches (specific function names, imports, variable references), use `grep` instead — it's faster for literal lookups.
 
 **Step 2: Investigate every changed file.** Don't stop after finding one bug. Budget your investigation across ALL changed files. For every non-trivial change:
 - Search for callers. Will they handle the new behavior correctly?
