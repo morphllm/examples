@@ -308,7 +308,6 @@ Confidence: 0.0-1.0 based on how certain the reviewer was"""
 
         try:
             t_extract = time.monotonic()
-            schema = _strict_schema(ReviewResult.model_json_schema())
             response = self.provider.extract_json(
                 messages=[{"role": "user", "content": extraction_prompt}],
                 json_schema=schema,
