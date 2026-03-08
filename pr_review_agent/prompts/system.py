@@ -18,8 +18,9 @@ When a function signature, interface, or return type changes, search for ALL cal
 For every piece of mutable shared state being read AND written (counters, caches, shared objects, database records), ask: "What happens if two requests execute this code simultaneously?" Look for:
 - Non-atomic read-modify-write: `x = x + 1` or `retryCount + 1` without a lock
 - Check-then-act without locks: `if count < limit then add` (TOCTOU)
-- Reduced lock scope compared to the original code
+- Reduced lock scope compared to the original code — if a mutex/lock previously protected a larger block and now only protects a subset, the unprotected portion is likely a new race window
 - In-memory mutation of data that gets written back to storage (decrypt, modify, re-encrypt)
+- Asymmetric cache trust: if cached grants are trusted but cached denials trigger fresh lookups (or vice versa), stale data can persist for one path but not the other
 
 4. TREAT TEST FILES AS FIRST-CLASS TARGETS
 Test files have real bugs worth reporting. Look for:
@@ -27,8 +28,9 @@ Test files have real bugs worth reporting. Look for:
 - Assertions that pass vacuously (expect(promise).toBeTruthy() without await)
 - Monkeypatched functions that invalidate the test's mechanism (sleep patched to no-op but test uses sleep to wait)
 - Wrong HTTP methods (test uses PUT but route expects DELETE)
-- Comments/docstrings that contradict the assertion values
+- Comments/docstrings that contradict the assertion values (e.g., comment says "allow access" but test value is false)
 - Wrong expected values from copy-paste
+- Test setup that contradicts the scenario being tested (e.g., cache populated with "deny" values but test claims "allow")
 
 5. DEDUPLICATE BY ROOT CAUSE, NOT BY FILE
 When the same bug pattern appears in multiple files, report it ONCE for the most critical instance. In your comment, mention "this same pattern also appears in [file2, file3]." Two reports about the same root cause — even in different files — is one report. Before finalizing, review all your findings and merge any that share the same underlying cause.
@@ -46,8 +48,8 @@ What to look for (the WHAT):
 7. **Type mismatch**: Operations on wrong types (math on datetime), negative slicing on unsupported collections, object reference comparison instead of value comparison
 8. **Security**: SSRF, auth bypass, weakened protections, injection, clickjacking misconfiguration
 9. **Broken tests**: Name typos, wrong assertions, HTTP method mismatches, monkeypatch invalidation
-10. **Framework pitfalls**: Class-level evaluation (datetime.now() at definition time), method redefinition overwrites, regex suffix matching vs full-domain matching
-11. **Contract violations**: Return type changes that break callers, behavioral regressions, wrong deletion scope, empty data preventing updates
+10. **Framework pitfalls**: Class-level evaluation (datetime.now() at definition time), method redefinition overwrites, regex suffix matching vs full-domain matching, ORM update/save with empty data object (skips auto-updated timestamps like @updatedAt), dict ordering assumptions (zip with dict.values() loses key alignment)
+11. **Contract violations**: Return type changes that break callers, behavioral regressions, wrong deletion scope, breaking changes in API response format that callers depend on
 12. **CSS / styling**: Wrong color values, invalid vendor prefixes (-ms-align-items doesn't exist), incompatible layout modes
 13. **Naming bugs**: Property/method name typos that affect runtime behavior, inconsistent metric tags, wrong alias strings
 

@@ -32,8 +32,10 @@ Candidate Issue (from the tool's review):
 
 Instructions:
 - Determine if the candidate identifies the SAME underlying issue as the golden comment
-- Accept semantic matches - different wording is fine if it's the same problem
-- Focus on whether they point to the same bug, concern, or code issue
+- Accept semantic matches — different wording, different level of detail, or different framing of the same problem all count as matches
+- Focus on whether they point to the same bug, concern, or code location. If both describe the same root cause or the same code defect, it's a match.
+- Match liberally: if the candidate describes the same buggy behavior even using completely different terminology, that's still a match
+- The candidate does NOT need to propose the same fix — only identify the same problem
 
 Respond with ONLY a JSON object:
 {{"reasoning": "brief explanation", "match": true/false, "confidence": 0.0-1.0}}"""

@@ -147,7 +147,7 @@ def run_benchmark(config: Config, args: argparse.Namespace) -> None:
 
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
-    parallel = min(5, len(pr_urls))  # up to 5 PRs at a time (avoids 2M tok/min rate limit)
+    parallel = len(pr_urls)  # all PRs in parallel
 
     def _review_one(idx_and_url):
         i, pr_url = idx_and_url
@@ -195,6 +195,16 @@ def run_benchmark(config: Config, args: argparse.Namespace) -> None:
             return ("error", pr_url, None, 0, 0)
 
         raw_count = len(issues)
+
+        # Store trace
+        trace = getattr(thread_reviewer, '_last_trace', [])
+        if trace:
+            trace_dir = config.output_dir / "traces"
+            trace_dir.mkdir(parents=True, exist_ok=True)
+            repo_name = repo.replace("/", "_").replace("-", "_")
+            trace_file = trace_dir / f"{repo_name}_pr{pr_num}_trace.json"
+            with open(trace_file, "w") as tf:
+                json.dump(trace, tf, indent=2)
 
         # Cap by confidence
         if len(issues) > max_issues_per_pr:

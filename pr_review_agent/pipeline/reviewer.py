@@ -232,6 +232,18 @@ Important investigation rules:
 - Don't over-extrapolate edge cases. Only report bugs you can demonstrate via actual code paths, not theoretical "what if" scenarios.
 - Check for naming bugs: method name typos, property name typos, error messages that contradict the operation.
 
+BUDGET YOUR INVESTIGATION: You have a limited number of tool rounds. Do NOT spend more than 2-3 searches on the same question. If a symbol, class, or file doesn't appear after 2 searches, it either doesn't exist or isn't relevant — move on. Spread your investigation across ALL areas of the diff rather than deep-diving into one area. A common failure mode is spending 15+ rounds chasing one question while ignoring the rest of the PR.
+
+FREQUENTLY MISSED PATTERNS (check these explicitly for every PR):
+- Method/variable name typos (missing letters, wrong suffixes)
+- Inconsistent string constants: metric tags, error codes, or keys that use slightly different names in different places (e.g., "shard" vs "shards")
+- Test setup that contradicts the test's intent (e.g., cache values set to "deny" but test claims "allow")
+- API/response format changes that break existing consumers or callers
+- Reduced mutex/lock scope compared to original code (creates race windows)
+- ORM updates with empty data objects (skip auto-updated fields like @updatedAt)
+- Dictionary/map ordering assumptions (e.g., zip(keys, dict.values()) loses alignment)
+- Shell commands with platform-specific syntax (e.g., macOS sed -i vs Linux)
+
 IMPORTANT: Report every bug you find that you believe is real. It is better to report a borderline bug than to miss a real one. Even if you only have moderate confidence (0.5-0.7), report it — the confidence score communicates your uncertainty. Do NOT hold back findings.
 
 After your investigation, go through EVERY changed file in the diff and ask: "Did I check this file for bugs?" If you skipped any files, review them now."""
@@ -241,7 +253,7 @@ After your investigation, go through EVERY changed file in the diff and ask: "Di
             try:
                 review_text, trace = self._agentic_loop(
                     messages, tools, repo_path, warpgrep_tool_def,
-                    thinking_budget=10000, max_tool_rounds=40,
+                    thinking_budget=10000, max_tool_rounds=30,
                 )
             except Exception as e:
                 print(f"  Review failed: {e}", file=sys.stderr)
