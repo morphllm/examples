@@ -26,8 +26,10 @@ API_URL = "https://api.morphllm.com/v1/chat/completions"
 MODEL = "morph-warp-grep-v1"
 MAX_TURNS = 4
 MAX_GREP_LINES = 500
+MAX_GREP_CHARS = 30_000  # Hard cap on grep output size (chars)
 MAX_LIST_LINES = 500
 MAX_READ_LINES = 2000
+MAX_CONTEXT_CHARS = 400_000  # ~100K tokens, stay under 163K token limit
 
 # Retry config for transient API errors (429, SSL, timeouts)
 MAX_RETRIES = 3
@@ -170,6 +172,10 @@ def _call_api_inner(messages: list, api_key: str, api_url: str = API_URL) -> str
                 time.sleep(delay)
                 last_exc = requests.HTTPError(f"{resp.status_code}", response=resp)
                 continue
+            if resp.status_code == 400:
+                body_preview = resp.text[:500] if resp.text else "(empty)"
+                total_chars = sum(len(m.get("content", "")) for m in messages)
+                print(f"  WarpGrep 400 Bad Request (context={total_chars} chars): {body_preview}", file=sys.stderr)
             resp.raise_for_status()
             return resp.json()["choices"][0]["message"]["content"]
         except (requests.exceptions.SSLError, requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
@@ -225,10 +231,23 @@ def _execute_grep(repo: str, pattern: str, sub_dir: str = ".", glob: str | None 
 
     try:
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=10, cwd=repo)
-        lines = r.stdout.strip().split("\n") if r.stdout.strip() else []
+        output = r.stdout.strip()
+        if not output:
+            return "no matches"
+        lines = output.split("\n")
         if len(lines) > MAX_GREP_LINES:
-            return "query not specific enough, tool called tried to return too much context and failed"
-        return r.stdout.strip() or "no matches"
+            return "query not specific enough, tool called tried to return too much context and failed. Truncated! In the future, try more specific, targeted queries."
+        if len(output) > MAX_GREP_CHARS:
+            # Truncate by lines until under char limit
+            truncated = []
+            total = 0
+            for line in lines:
+                if total + len(line) > MAX_GREP_CHARS:
+                    break
+                truncated.append(line)
+                total += len(line) + 1
+            return "\n".join(truncated) + f"\n\n... truncated ({len(output)} chars total, limit {MAX_GREP_CHARS}). Truncated! In the future, try more specific, targeted queries."
+        return output
     except subprocess.TimeoutExpired:
         return "Error: search timed out"
     except Exception as e:
@@ -255,10 +274,13 @@ def _execute_read(repo: str, path: str, lines: str | None = None) -> str:
         selected = []
         for part in lines.split(","):
             part = part.strip()
-            if "-" in part:
-                s, e = map(int, part.split("-"))
-            else:
-                s = e = int(part)
+            try:
+                if "-" in part:
+                    s, e = map(int, part.split("-", 1))
+                else:
+                    s = e = int(part)
+            except ValueError:
+                continue
             selected.extend(range(max(0, s - 1), min(e, len(all_lines))))
 
         out, prev = [], -2
@@ -446,7 +468,19 @@ def search_codebase(
 
         remaining = max_turns - turn - 1
         turn_msg = f"\nYou have used {turn + 1} turns and have {remaining} remaining.\n"
-        messages.append({"role": "user", "content": "\n\n".join(results) + turn_msg})
+        user_content = "\n\n".join(results) + turn_msg
+
+        # Guard: truncate if total context would exceed model limit
+        total_chars = sum(len(m.get("content", "")) for m in messages) + len(user_content)
+        if total_chars > MAX_CONTEXT_CHARS:
+            # Truncate the tool results to fit
+            budget = MAX_CONTEXT_CHARS - sum(len(m.get("content", "")) for m in messages) - len(turn_msg) - 200
+            if budget > 0:
+                user_content = user_content[:budget] + f"\n\n... context truncated to fit model limit ({total_chars} -> {MAX_CONTEXT_CHARS} chars). Truncated! In the future, try more specific, targeted queries.\n"
+            else:
+                user_content = "Tool results too large, skipped. Truncated! In the future, try more specific, targeted queries." + turn_msg
+
+        messages.append({"role": "user", "content": user_content})
 
     return []
 
@@ -472,14 +506,20 @@ def search_codebase_text(
 
 WARPGREP_TOOL_NAME = "warpgrep_codebase_search"
 WARPGREP_TOOL_DESCRIPTION = (
-    "Your primary investigation tool. Search the codebase using WarpGrep, a code search "
-    "subagent that understands code semantics. Use it to answer questions during investigation: "
-    "'Who calls this function and how do they handle the return value?', "
-    "'How is this shared state accessed across threads?', "
-    "'What does this framework API do with empty/nil arguments?', "
-    "'Are there other places this pattern is used?'. "
-    "For exact string matches (specific variable names, imports), use grep_pattern. "
-    "For everything else, use WarpGrep. Investigate aggressively — deeper search finds more real bugs."
+    "IMPORTANT: If you need to explore the codebase to gather context, and the task does not "
+    "involve a single file or function which is provided by name, you should ALWAYS use the "
+    "warpgrep codebase search tool first instead of running search commands. "
+    "When the task requires exploration beyond a single known file, invoke warpgrep first with "
+    "a natural-language query describing the target functionality, bug, or architectural concern. "
+    "Warp Grep is a fast and accurate tool that can search for all relevant context in a codebase. "
+    "Keep queries action-oriented (e.g., 'Find where billing invoices are generated and emailed'), "
+    "and after reviewing the summarized results, you may verify important findings with other "
+    "search tools or direct file reads to ensure completeness. "
+    "Warp Grep can be used for query types like: find function responsible for <small feature>; "
+    "find code that does <description>; find code path for <big feature>; Where does <minimal "
+    "error message> come from?; or any query of that type. "
+    "When a task requires exploration beyond a single known file, ALWAYS default to warpgrep "
+    "codebase search before other search mechanisms."
 )
 
 
