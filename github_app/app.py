@@ -186,20 +186,26 @@ async def _run_review_from_api(req: ReviewRequest):
         duration_review = round(time.monotonic() - t_review, 1)
 
         t_post = time.monotonic()
-        if comments:
-            summary_line = f"Found {len(comments)} issue{'s' if len(comments) != 1 else ''}"
-            if req.personality and req.github_username:
-                review_body = (
-                    f"@{req.github_username}'s review twin\n\n"
-                    f"{summary_line}\n\n---\n"
-                    f"*a2a-review based on @{req.github_username}'s coding preferences*"
-                )
-            else:
-                review_body = f"## Morph Code Review\n\n{summary_line}"
+        num_issues = len(comments) if comments else 0
+        summary_line = f"Found {num_issues} issue{'s' if num_issues != 1 else ''}"
+        if req.personality and req.github_username:
+            review_body = (
+                f"@{req.github_username}'s review twin\n\n"
+                f"{summary_line}\n\n---\n"
+                f"*a2a-review based on @{req.github_username}'s coding preferences*"
+            )
+        else:
+            review_body = f"## Morph Code Review\n\n{summary_line}"
 
+        if comments:
             await client.post_review(
                 req.owner, req.repo, req.pr_number, req.head_sha,
                 comments, diff, review_body,
+            )
+        else:
+            # Post summary even with 0 issues so callers can detect completion
+            await client.post_issue_comment(
+                req.owner, req.repo, req.pr_number, review_body,
             )
         duration_post = round(time.monotonic() - t_post, 1)
         on_event("review.post", {

@@ -206,6 +206,17 @@ class GitHubClient:
             owner, repo, pr_number, len(review_comments), len(skipped),
         )
 
+    async def post_issue_comment(
+        self, owner: str, repo: str, pr_number: int, body: str
+    ):
+        """Post a simple issue comment on a PR."""
+        resp = await self._client.post(
+            f"/repos/{owner}/{repo}/issues/{pr_number}/comments",
+            json={"body": body},
+        )
+        resp.raise_for_status()
+        logger.info("Posted issue comment on %s/%s PR #%d", owner, repo, pr_number)
+
     @staticmethod
     def cleanup_clone(path: Path):
         """Remove a cloned repo directory."""
