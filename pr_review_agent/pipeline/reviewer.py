@@ -281,30 +281,22 @@ After your investigation, go through EVERY changed file in the diff and ask: "Di
         return issues
 
     def _extract_issues(self, review_text: str, diff_text: str) -> list[ReviewIssue]:
-        """Extract structured issues from freeform review text using XML output."""
-        extraction_prompt = f"""Extract the bugs from this code review into XML format.
+        """Extract structured issues from freeform review text using structured JSON output."""
+        extraction_prompt = f"""Extract the bugs from this code review into structured JSON format.
 
 <review>
 {review_text[:20000]}
 </review>
 
-For each bug the reviewer identified, output an <issue> element. Only extract issues the reviewer explicitly identified as bugs. Do not invent new ones. If the review found no bugs, output <issues></issues>.
+For each bug the reviewer identified, output an issue object. Only extract issues the reviewer explicitly identified as bugs. Do not invent new ones. If the review found no bugs, output an empty issues list.
 
-Output format:
-<issues>
-<issue>
-<file_path>path/to/file.py</file_path>
-<line_number>42</line_number>
-<category>logic_error</category>
-<severity>high</severity>
-<confidence>0.85</confidence>
-<comment>Description of the bug: what code is wrong, what it should be, and the runtime consequence</comment>
-</issue>
-</issues>
-
-Valid categories: logic_error, incorrect_value, api_misuse, race_condition, null_reference, type_error, security, localization, test_correctness, portability
-Valid severities: critical, high, medium, low
-Confidence: 0.0-1.0 based on how certain the reviewer was"""
+Each issue must have these fields:
+- file_path: path to the file (string)
+- line_number: line number where the issue occurs (integer)
+- category: one of logic_error, incorrect_value, api_misuse, race_condition, null_reference, type_error, security, localization, test_correctness, portability
+- severity: one of critical, high, medium, low
+- confidence: 0.0-1.0 based on how certain the reviewer was (number)
+- comment: description of the bug — what code is wrong, what it should be, and the runtime consequence (string)"""
 
         schema = _strict_schema(ReviewResult.model_json_schema())
 
@@ -326,17 +318,21 @@ Confidence: 0.0-1.0 based on how certain the reviewer was"""
             issues = self._parse_structured_issues(text, source_pass="review")
             self._emit("review.extraction", {
                 "review_text_length": len(review_text),
+                "review_text_preview": review_text[:2000],
                 "issues_extracted": len(issues),
                 "duration_s": extract_duration,
                 "success": True,
                 "input_tokens": response.usage.input_tokens,
                 "output_tokens": response.usage.output_tokens,
+                "extraction_response_text": text[:2000],
+                "extraction_response_text_length": len(text),
             })
             return issues
         except Exception as exc:
             print(f"  Extraction failed: {type(exc).__name__}: {exc}", file=sys.stderr)
             self._emit("review.extraction_error", {
                 "review_text_length": len(review_text),
+                "review_text_preview": review_text[:500],
                 "error": str(exc),
                 "error_type": type(exc).__name__,
             })
@@ -752,6 +748,7 @@ Confidence: 0.0-1.0 based on how certain the reviewer was"""
             response = self._call_api_with_retry(tools, messages)
             self._metrics.api_calls_review += 1
 
+            _raw_text = "\n".join(response.text_parts)
             self._emit("review.agentic_round", {
                 "round_num": round_num,
                 "tool_calls_this_round": len(response.tool_calls),
@@ -760,6 +757,8 @@ Confidence: 0.0-1.0 based on how certain the reviewer was"""
                 "input_tokens": response.usage.input_tokens,
                 "output_tokens": response.usage.output_tokens,
                 "cumulative_tool_counts": dict(self._metrics.tool_counts),
+                "response_text": _raw_text[:2000],
+                "response_text_length": len(_raw_text),
             })
 
             if not response.tool_calls:
@@ -777,6 +776,11 @@ Confidence: 0.0-1.0 based on how certain the reviewer was"""
                     followup = self._call_api_with_retry(tools, messages)
                     self._metrics.api_calls_review += 1
                     result = "\n".join(followup.text_parts)
+                    self._emit("review.empty_response_followup", {
+                        "round_num": round_num,
+                        "followup_text": result[:2000],
+                        "followup_text_length": len(result),
+                    })
                 summary = ", ".join(f"{n}={c}" for n, c in tool_counts.items())
                 print(f"  Loop done round={round_num} (tools: {summary or 'none'})", file=sys.stderr)
                 return result, trace

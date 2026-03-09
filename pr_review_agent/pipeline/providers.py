@@ -462,9 +462,15 @@ class GeminiProvider:
 
     def format_assistant_message(self, response: LLMResponse) -> dict:
         """Store raw Gemini parts so we can reconstruct Content objects later."""
+        parts = []
+        if response.raw and response.raw.candidates:
+            candidate = response.raw.candidates[0]
+            content = getattr(candidate, "content", None)
+            if content is not None:
+                parts = getattr(content, "parts", None) or []
         return {
             "role": "assistant",
-            "_gemini_raw_parts": response.raw.candidates[0].content.parts if response.raw.candidates else [],
+            "_gemini_raw_parts": parts,
         }
 
     def convert_tools(self, tools: list[dict]) -> list[dict]:
@@ -546,14 +552,32 @@ class GeminiProvider:
         return [types.Tool(function_declarations=declarations)]
 
     @staticmethod
-    def _convert_schema_for_gemini(schema: dict) -> dict:
+    def _convert_schema_for_gemini(schema: dict, _defs: dict | None = None) -> dict:
         """Convert JSON Schema to Gemini-compatible schema.
 
         Gemini expects uppercase type names (STRING, OBJECT, ARRAY, etc.)
-        and uses a slightly different format.
+        and does NOT support $ref / $defs. We must resolve all references
+        inline before passing the schema to Gemini.
         """
         if not schema:
             return schema
+
+        # Collect top-level $defs on the first call so nested calls can resolve $ref
+        if _defs is None:
+            _defs = schema.get("$defs") or schema.get("definitions") or {}
+
+        # Resolve $ref inline
+        if "$ref" in schema:
+            ref_path = schema["$ref"]  # e.g. "#/$defs/ReviewIssueSchema"
+            parts = ref_path.lstrip("#/").split("/")
+            resolved = None
+            # Walk from top-level defs
+            if len(parts) == 2 and parts[0] in ("$defs", "definitions"):
+                resolved = _defs.get(parts[1])
+            if resolved:
+                return GeminiProvider._convert_schema_for_gemini(resolved, _defs)
+            # Fallback: return empty dict (shouldn't happen with valid schemas)
+            return {}
 
         result = {}
         type_map = {
@@ -573,7 +597,7 @@ class GeminiProvider:
 
         if "properties" in schema:
             result["properties"] = {
-                k: GeminiProvider._convert_schema_for_gemini(v)
+                k: GeminiProvider._convert_schema_for_gemini(v, _defs)
                 for k, v in schema["properties"].items()
             }
 
@@ -581,10 +605,13 @@ class GeminiProvider:
             result["required"] = schema["required"]
 
         if "items" in schema:
-            result["items"] = GeminiProvider._convert_schema_for_gemini(schema["items"])
+            result["items"] = GeminiProvider._convert_schema_for_gemini(schema["items"], _defs)
 
         if "enum" in schema:
             result["enum"] = schema["enum"]
+
+        # Note: we deliberately skip 'title', 'additionalProperties', 'minItems',
+        # 'maxItems' — Gemini does not support these schema keywords.
 
         return result
 
@@ -597,7 +624,17 @@ class GeminiProvider:
         if not raw.candidates:
             return LLMResponse(usage=self._extract_usage(raw), raw=raw)
 
-        for part in raw.candidates[0].content.parts:
+        candidate = raw.candidates[0]
+        parts = getattr(candidate, "content", None)
+        parts = getattr(parts, "parts", None) if parts is not None else None
+        if not parts:
+            return LLMResponse(
+                usage=self._extract_usage(raw),
+                stop_reason=str(candidate.finish_reason) if candidate.finish_reason else "",
+                raw=raw,
+            )
+
+        for part in parts:
             if part.text is not None:
                 text_parts.append(part.text)
             elif part.function_call is not None:
