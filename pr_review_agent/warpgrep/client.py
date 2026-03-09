@@ -413,7 +413,7 @@ def search_codebase_text(
 
 # --- Anthropic Tool Integration ---
 
-WARPGREP_TOOL_NAME = "warpgrep_codebase_search"
+WARPGREP_TOOL_NAME = "codebase_search"
 WARPGREP_TOOL_DESCRIPTION = (
     "A code search exploration subagent (not a grep tool) that runs parallel grep and file read calls over multiple turns to locate relevant files and line ranges. "
     "The search term should be a targeted natural-language query describing what you are trying to find or accomplish, e.g. "

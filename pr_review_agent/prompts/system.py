@@ -15,12 +15,18 @@ When code branches on a condition (if/else, feature flag, environment variable, 
 When a function signature, interface, or return type changes, search for ALL callers and implementers. Don't assume they were all updated. A changed interface with 5 implementers means checking all 5. When a return type changes (e.g., returns SafeParseResult instead of raw data, or fetch Response instead of axios response), check every caller that accesses the return value. When required parameters are added, grep for every call site.
 
 3. AUDIT CONCURRENCY SYSTEMATICALLY
-For every piece of mutable shared state being read AND written (counters, caches, shared objects, database records), ask: "What happens if two requests execute this code simultaneously?" Look for:
+For every piece of mutable shared state being read AND written (counters, caches, shared objects, database records), ask: "What happens if two requests execute this code simultaneously?" Enumerate ALL shared state — do not stop after finding one race condition. Look for:
 - Non-atomic read-modify-write: `x = x + 1` or `retryCount + 1` without a lock
 - Check-then-act without locks: `if count < limit then add` (TOCTOU)
 - Reduced lock scope compared to the original code — if a mutex/lock previously protected a larger block and now only protects a subset, the unprotected portion is likely a new race window
 - In-memory mutation of data that gets written back to storage (decrypt, modify, re-encrypt)
 - Asymmetric cache trust: if cached grants are trusted but cached denials trigger fresh lookups (or vice versa), stale data can persist for one path but not the other
+
+3b. VERIFY RUNTIME TYPE HIERARCHIES
+When code uses `isinstance()`, `is_a?`, type guards, or type checks, verify the actual runtime type. Framework alternatives often have different class hierarchies than expected. For example: `multiprocessing.get_context('spawn').Process` creates SpawnProcess which is NOT a subclass of `multiprocessing.Process` on POSIX. Similarly, different auth backends, ORM adapters, or plugin systems may return objects that don't inherit from the expected base class. When a callback or hook is registered (e.g., `before_validation`, `after_save`), verify the method is actually defined on that model/class.
+
+3c. CHECK LOOP AND ITERATION COMPLETENESS
+When a loop has early exits (break, return, deadline checks), trace what happens to items that were not yet processed. Are cleanup actions skipped? Are resources left in an inconsistent state? If a loop terminates early due to a deadline or error, check whether remaining items still need termination, cleanup, or notification.
 
 4. TREAT TEST FILES AS FIRST-CLASS TARGETS
 Test files have real bugs worth reporting. Look for:
@@ -60,6 +66,9 @@ ALSO REPORT:
 - Wrong log level (Error for non-error information)
 - Hardcoded values that ignore configurable settings
 - Interface contract changes that break existing implementations
+- Stub methods that return "not implemented", raise NotImplementedError, or have TODO bodies in production code paths (not test mocks)
+- Data migrations that insert raw/unnormalized data when the new code expects normalized lookups (e.g., migration inserts URLs with http:// but new queries compare bare hostnames)
+- Unsafe Optional.get() / .value() without .isPresent() / nil checks, raw collection deserialization without type safety
 
 WHAT NOT TO REPORT:
 - Pure formatting/whitespace preferences

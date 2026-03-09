@@ -1,8 +1,8 @@
 """Opus 4.6 agentic code reviewer.
 
-Single agentic loop: the model investigates the codebase (WarpGrep 4-6+ times),
-reviews the diff, and writes findings — all in one continuous flow.
-A separate structured output call extracts issues as XML.
+Single agentic loop: the model investigates the codebase (WarpGrep 8+ times),
+reviews the diff, and writes findings with inline <issue> XML tags — all in
+one continuous flow. Issues are parsed directly from the model's output.
 """
 
 from __future__ import annotations
@@ -180,9 +180,9 @@ class Reviewer:
     ) -> list[ReviewIssue]:
         """Single-loop agentic review.
 
-        The model investigates the codebase (WarpGrep 4-6+ times first),
-        then reviews the diff and writes findings — all in one continuous
-        agentic loop. A separate call extracts issues as XML.
+        The model investigates the codebase (WarpGrep 8+ times first),
+        then reviews the diff and writes findings with inline <issue> XML
+        tags. Issues are parsed directly from accumulated text output.
         """
         import sys
 
@@ -209,7 +209,7 @@ class Reviewer:
 
 ## How to Review
 
-**Step 1: Investigate the codebase.** Before forming any opinions, use `warpgrep_codebase_search` to understand the codebase context. Make at least 4-6 searches targeting your uncertainties about the changed code.
+**Step 1: Investigate the codebase.** Before forming any opinions, use `codebase_search` to understand the codebase context. Make at least 8 searches targeting your uncertainties about the changed code.
 
 How to search effectively with WarpGrep — it is a search AGENT, not a grep tool. Ask it QUESTIONS about behavior and relationships, not keyword lookups:
 - GOOD: "What concurrency model protects [shared state]? Are there locks or transactions?"
@@ -228,7 +228,24 @@ How to search effectively with WarpGrep — it is a search AGENT, not a grep too
 - If code branches on environment variables or feature flags, analyze BOTH paths. Bugs hide in less-tested paths.
 - If a framework API is used, verify its behavior with the specific arguments used. Edge cases like empty objects, nil values, or platform differences are where bugs hide.
 
-**Step 3: Write your review.** For each confirmed bug, name the exact code, explain what's wrong, and describe the runtime consequence. Every issue must be backed by evidence from your tool calls.
+**Step 3: Write your review.** For each confirmed bug, output an `<issue>` XML tag with the details. Every issue must be backed by evidence from your tool calls.
+
+Use this EXACT format for each bug you find:
+
+<issue>
+<file_path>path/to/file.ext</file_path>
+<line_number>42</line_number>
+<category>logic_error</category>
+<severity>high</severity>
+<confidence>0.85</confidence>
+<comment>Description of the bug: what code is wrong, what it should be, and the runtime consequence. Cite code as evidence.</comment>
+</issue>
+
+Valid categories: logic_error, incorrect_value, api_misuse, race_condition, null_reference, type_error, security, localization, test_correctness, portability
+Valid severities: critical, high, medium, low
+Confidence: 0.5-1.0 (0.9+ = certain, 0.7-0.89 = very likely, 0.5-0.69 = probable)
+
+You can output `<issue>` tags at ANY point during your investigation — as soon as you confirm a bug, report it. Don't wait until the end.
 
 Important investigation rules:
 - Don't stop at the first finding. Keep investigating ALL changed files.
@@ -240,7 +257,9 @@ Important investigation rules:
 BUDGET YOUR INVESTIGATION: You have a limited number of tool rounds. Do NOT spend more than 2-3 searches on the same question. If a symbol, class, or file doesn't appear after 2 searches, it either doesn't exist or isn't relevant — move on. Spread your investigation across ALL areas of the diff rather than deep-diving into one area. A common failure mode is spending 15+ rounds chasing one question while ignoring the rest of the PR.
 
 FREQUENTLY MISSED PATTERNS (check these explicitly for every PR):
+- Spelling errors in new/changed identifiers: 'santize' vs 'sanitize', 'reciever' vs 'receiver', 'inalid' vs 'invalid'. Spell-check every new method, variable, and constant name.
 - Method/variable name typos (missing letters, wrong suffixes)
+- Callbacks/hooks (before_validation, after_save, on_event, etc.) that reference methods NOT defined on the target class. Grep for the method name to verify it exists.
 - Inconsistent string constants: metric tags, error codes, or keys that use slightly different names in different places (e.g., "shard" vs "shards")
 - Test setup that contradicts the test's intent (e.g., cache values set to "deny" but test claims "allow")
 - API/response format changes that break existing consumers or callers
@@ -248,8 +267,12 @@ FREQUENTLY MISSED PATTERNS (check these explicitly for every PR):
 - ORM updates with empty data objects (skip auto-updated fields like @updatedAt)
 - Dictionary/map ordering assumptions (e.g., zip(keys, dict.values()) loses alignment)
 - Shell commands with platform-specific syntax (e.g., macOS sed -i vs Linux)
+- Database lookups (find, where, get) where nil/null result is used without checking
+- Read-modify-write without locks on shared state (e.g., `retryCount + 1` without atomicity)
 
-IMPORTANT: Report every bug you find that you believe is real. It is better to report a borderline bug than to miss a real one. Even if you only have moderate confidence (0.5-0.7), report it — the confidence score communicates your uncertainty. Do NOT hold back findings.
+CORE LOGIC FIRST: A common failure mode is spending investigation time on peripheral files (helpers, adapters, serializers, fabricators) while missing bugs in core model/controller/service logic. Prioritize investigating the main business logic changes — the files where the PR's primary feature or fix lives. Then check secondary files.
+
+IMPORTANT: Report every bug you find that you believe is real. It is better to report a borderline bug than to miss a real one. Even if you only have moderate confidence (0.5-0.7), report it — the confidence score communicates your uncertainty. Do NOT hold back findings. A well-reviewed PR with significant changes typically has 2-4 real bugs — if you've found fewer than 2, you may have missed something.
 
 After your investigation, go through EVERY changed file in the diff and ask: "Did I check this file for bugs?" If you skipped any files, review them now."""
 
@@ -270,8 +293,8 @@ After your investigation, go through EVERY changed file in the diff and ask: "Di
         # Store trace for debugging
         self._last_trace = trace
 
-        # Extract structured issues from the freeform review
-        issues = self._extract_issues(review_text, combined_diff)
+        # Parse <issue> XML tags directly from the model's output
+        issues = self._parse_xml_issues(review_text)
 
         # Post-processing dedup: merge issues with same category and overlapping descriptions
         issues = self._dedup_issues(issues)
@@ -285,7 +308,7 @@ After your investigation, go through EVERY changed file in the diff and ask: "Di
         extraction_prompt = f"""Extract the bugs from this code review into structured JSON format.
 
 <review>
-{review_text[:20000]}
+{review_text[:30000]}
 </review>
 
 For each bug the reviewer identified, output an issue object. Only extract issues the reviewer explicitly identified as bugs. Do not invent new ones. If the review found no bugs, output an empty issues list.
@@ -340,30 +363,50 @@ Each issue must have these fields:
 
     @staticmethod
     def _parse_xml_issues(text: str) -> list[ReviewIssue]:
-        """Parse XML-formatted issues from extraction response."""
+        """Parse <issue> XML tags from the model's output text.
+
+        Robust to:
+        - Tags split across multiple lines
+        - Extra whitespace around tag contents
+        - Missing optional fields (defaults applied)
+        - Nested code snippets containing < or > characters
+        - Greedy comment content with XML-like fragments
+        """
         import re
         issues = []
-        for match in re.finditer(r"<issue>(.*?)</issue>", text, re.DOTALL):
+
+        # Match <issue>...</issue> blocks, allowing nested content
+        for match in re.finditer(r"<issue\b[^>]*>(.*?)</issue>", text, re.DOTALL):
             block = match.group(1)
 
             def extract(tag: str) -> str:
-                m = re.search(rf"<{tag}>(.*?)</{tag}>", block, re.DOTALL)
+                # Use greedy match for comment (may contain code with angle brackets)
+                if tag == "comment":
+                    m = re.search(rf"<{tag}>(.*)</{tag}>", block, re.DOTALL)
+                else:
+                    m = re.search(rf"<{tag}>(.*?)</{tag}>", block, re.DOTALL)
                 return m.group(1).strip() if m else ""
 
             file_path = extract("file_path")
             line_str = extract("line_number")
-            if not file_path or not line_str:
+            if not file_path:
                 continue
+
+            # Parse line number, default to 1
             try:
-                line_number = int(line_str)
-            except ValueError:
-                continue
+                line_number = int(line_str.split()[0]) if line_str else 1
+            except (ValueError, IndexError):
+                line_number = 1
 
             confidence_str = extract("confidence")
             try:
                 confidence = float(confidence_str)
             except ValueError:
-                confidence = 0.5
+                confidence = 0.7
+
+            comment = extract("comment")
+            if not comment:
+                continue  # Skip issues with no description
 
             issues.append(ReviewIssue(
                 file_path=file_path,
@@ -371,7 +414,7 @@ Each issue must have these fields:
                 category=extract("category") or "logic_error",
                 severity=extract("severity") or "medium",
                 confidence=confidence,
-                comment=extract("comment"),
+                comment=comment,
                 source_pass="review",
             ))
         return issues
@@ -404,11 +447,13 @@ Each issue must have these fields:
         for issue in sorted_issues:
             is_dup = False
             for existing in kept:
-                if issue.category == existing.category:
-                    sim = _similarity(issue.comment, existing.comment)
-                    if sim > 0.35:
-                        is_dup = True
-                        break
+                sim = _similarity(issue.comment, existing.comment)
+                # Same category: lower threshold to catch paraphrases
+                # Different category: higher threshold for true dupes only
+                threshold = 0.25 if issue.category == existing.category else 0.40
+                if sim > threshold:
+                    is_dup = True
+                    break
             if not is_dup:
                 kept.append(issue)
 
@@ -486,7 +531,7 @@ Each issue must have these fields:
                     "Returns matching lines with file paths and line numbers. "
                     "Supports full regex syntax. Filter files with the glob parameter. "
                     "For semantic code search (understanding how APIs work, finding related patterns), "
-                    "use warpgrep_codebase_search instead."
+                    "use codebase_search instead."
                 ),
                 "input_schema": {
                     "type": "object",
@@ -736,12 +781,15 @@ Each issue must have these fields:
     ) -> tuple[str, list[dict]]:
         """Run the LLM with tools in an agentic loop.
 
-        Returns (review_text, trace) where trace is a list of tool call records.
+        Returns (all_text, trace) where all_text is accumulated text from ALL
+        rounds (so <issue> tags emitted mid-investigation are captured) and
+        trace is a list of tool call records.
         """
         import sys
 
         tool_counts = self._metrics.tool_counts
         trace: list[dict] = []
+        all_text_parts: list[str] = []  # Accumulate text across ALL rounds
 
         for round_num in range(max_tool_rounds):
             self._metrics.tool_rounds += 1
@@ -749,6 +797,7 @@ Each issue must have these fields:
             self._metrics.api_calls_review += 1
 
             _raw_text = "\n".join(response.text_parts)
+            all_text_parts.append(_raw_text)
             self._emit("review.agentic_round", {
                 "round_num": round_num,
                 "tool_calls_this_round": len(response.tool_calls),
@@ -762,28 +811,27 @@ Each issue must have these fields:
             })
 
             if not response.tool_calls:
-                result = "\n".join(response.text_parts)
-                # Retry when the model produced nothing useful (malformed tool call,
-                # empty response, etc.) — applies to all providers.
-                if not result.strip() and round_num > 0:
+                # If model stopped tool-calling but produced no review text,
+                # prompt it to write the review based on its investigation.
+                if not _raw_text.strip() and round_num > 0:
                     print(f"  Empty response after {round_num+1} rounds, prompting for review...", file=sys.stderr)
                     messages.append(self.provider.format_assistant_message(response))
                     messages.append({"role": "user", "content": (
-                        "You've finished investigating. Now write your code review. "
-                        "For each bug you found, name the exact code, explain what's wrong, "
-                        "and describe the runtime consequence. If you found no bugs, say so."
+                        "You've finished investigating. Now write your code review "
+                        "using <issue> XML tags for each bug. If you found no bugs, say so."
                     )})
                     followup = self._call_api_with_retry(tools, messages)
                     self._metrics.api_calls_review += 1
-                    result = "\n".join(followup.text_parts)
+                    followup_text = "\n".join(followup.text_parts)
+                    all_text_parts.append(followup_text)
                     self._emit("review.empty_response_followup", {
                         "round_num": round_num,
-                        "followup_text": result[:2000],
-                        "followup_text_length": len(result),
+                        "followup_text": followup_text[:2000],
+                        "followup_text_length": len(followup_text),
                     })
                 summary = ", ".join(f"{n}={c}" for n, c in tool_counts.items())
                 print(f"  Loop done round={round_num} (tools: {summary or 'none'})", file=sys.stderr)
-                return result, trace
+                return "\n".join(all_text_parts), trace
 
             # Execute all tool calls
             messages.append(self.provider.format_assistant_message(response))
@@ -814,7 +862,7 @@ Each issue must have these fields:
                 if tc.input:
                     tool_input_preview = str(tc.input)[:300]
 
-                is_warpgrep = tc.name == "warpgrep_codebase_search"
+                is_warpgrep = tc.name == "codebase_search"
                 event_data = {
                     "tool_name": tc.name,
                     "tool_input_preview": tool_input_preview,
@@ -846,14 +894,15 @@ Each issue must have these fields:
         print(f"  Max tool rounds reached (tools: {summary})", file=sys.stderr)
 
         messages.append({"role": "user", "content": (
-            "You've finished investigating. Now write your code review. "
-            "For each bug you found, name the exact code, explain what's wrong, "
-            "and describe the runtime consequence. If you found no bugs, say so."
+            "You've finished investigating. Now write your code review "
+            "using <issue> XML tags for each bug. If you found no bugs, say so."
         )})
         final_response = self._call_api_with_retry(tools, messages)
         self._metrics.api_calls_review += 1
+        if final_response.text_parts:
+            all_text_parts.append("\n".join(final_response.text_parts))
 
-        return ("\n".join(final_response.text_parts) if final_response.text_parts else ""), trace
+        return "\n".join(all_text_parts), trace
 
     # ---------- Judge (passthrough, kept for evolver compatibility) ----------
 
