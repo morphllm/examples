@@ -23,7 +23,7 @@ import requests
 MORPH_API_KEY = os.environ.get("MORPH_API_KEY", "")
 API_URL = "https://api.morphllm.com/v1/chat/completions"
 MODEL = "morph-warp-grep-v2"
-MAX_TURNS = 4
+MAX_TURNS = 6
 MAX_GREP_LINES = 200
 MAX_READ_LINES = 800
 MAX_CONTEXT_CHARS = 540_000
