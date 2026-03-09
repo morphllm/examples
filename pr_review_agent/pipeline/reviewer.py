@@ -276,7 +276,7 @@ BUDGET YOUR INVESTIGATION: You have a limited number of tool rounds. Do NOT spen
 
 FREQUENTLY MISSED PATTERNS — check each one explicitly:
 1. CONCURRENCY: If lock scope was REDUCED (lock used to cover reads+writes, now only covers writes), trace what happens when thread A reads the unlocked data while thread B writes. If a shared map/cache is iterated by one goroutine while another modifies it, that's a crash. Not just "could race" — trace the specific interleaving. When you find one concurrency issue, keep looking — PRs with concurrency changes often have MULTIPLE independent race conditions on different shared state.
-2. COPY-PASTE ERRORS: In null checks, conditionals, and update operations, verify the correct variable is being checked. Common bug: `if (x == null)` when the code should check `y` (variable name was copy-pasted from a nearby line). Also check: is the correct dict key used when accessing/updating values?
+2. NEAR-DUPLICATE LINES: When multiple similar statements appear together (null checks, validation calls, string literals, filter predicates, metric tags), verify EACH ONE independently. The differentiating detail — the variable name, string key, filter condition, or scope — is where bugs hide. Read each line as if the others don't exist. Common patterns: wrong variable in a null/validation check, wrong filter predicate in a bulk delete/update (handler for type A accidentally filters on type B), inconsistent string literals that should match (metric tags, error codes, config keys).
 3. TEST MOCKING: If a test patches/mocks a function (time.sleep, network calls), verify the test doesn't DEPEND on that function for its correctness. Patching sleep then using sleep for timing = broken test.
 4. DATA FORMAT MISMATCH: If PR adds a DB migration or bulk insert, verify the stored data format matches how the application queries it. Data stored in one representation but queried in another (different normalization, different casing, different structure) causes silent lookup failures. Focus on data correctness, not just SQL injection.
 5. COLLECTION ORDERING: When zip(), positional indexing, or iteration order is used with results from a batch/cache lookup, verify ordering is guaranteed. Results from batch fetches, caches, or database multi-gets may return in arbitrary order — iterating `.values()` and zipping with input keys can silently pair the wrong items.
@@ -862,8 +862,9 @@ Each issue must have these fields:
                     messages.append({"role": "user", "content": (
                         "Good investigation. Now do ONE targeted sweep — check these specific patterns "
                         "that are easy to miss. Use tools if needed to verify, then report any new bugs:\n\n"
-                        "1. COPY-PASTE: In null checks and conditionals, is the RIGHT variable/key being checked? "
-                        "Look for lines where a variable name or dict key was copied from a nearby line but not updated.\n"
+                        "1. NEAR-DUPLICATE LINES: Where similar statements appear together (null checks, filters, "
+                        "string literals, metric tags), read EACH independently. Is the variable, predicate, or string "
+                        "correct for THAT specific line, not just copy-pasted from its neighbor?\n"
                         "2. CONCURRENCY: If the diff changes lock scope or has shared mutable state, did you find ALL "
                         "race conditions? Check every piece of shared state independently, not just the first one.\n"
                         "3. DICT ORDERING: If zip() or positional access is used with dict.values() or get_multi() "
