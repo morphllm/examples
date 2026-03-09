@@ -165,7 +165,7 @@ def run_benchmark(config: Config, args: argparse.Namespace) -> None:
 
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
-    parallel = len(pr_urls)  # all PRs in parallel
+    parallel = min(10, len(pr_urls))  # cap at 10 concurrent
 
     def _review_one(idx_and_url):
         i, pr_url = idx_and_url
@@ -321,6 +321,8 @@ def main():
     parser.add_argument("--random", action="store_true", help="13 PRs, 2 per source_repo, seed=42")
     parser.add_argument("--threshold", type=float, help="Override confidence threshold")
     parser.add_argument("--no-warpgrep", action="store_true", help="Skip WarpGrep")
+    parser.add_argument("--provider", help="LLM provider (anthropic, openai, google)")
+    parser.add_argument("--model", help="Model name override")
     parser.add_argument("--organism", help="Path to organism JSON (evolved prompts)")
     parser.add_argument("--evolve", action="store_true", help="Run darwinian evolution")
     args = parser.parse_args()
@@ -332,6 +334,10 @@ def main():
         return
 
     config = Config()
+    if args.provider:
+        config.provider = args.provider
+    if args.model:
+        config.model = args.model
     if args.threshold:
         config.base_confidence_threshold = args.threshold
     if args.no_warpgrep:

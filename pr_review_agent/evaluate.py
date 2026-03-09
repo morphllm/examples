@@ -83,90 +83,118 @@ def judge_match(client: anthropic.Anthropic, golden: str, candidate: str) -> dic
     return {"match": False, "confidence": 0}
 
 
+def _evaluate_pr(client: anthropic.Anthropic, pr_url: str, entry: dict) -> dict:
+    """Evaluate a single PR: match goldens against candidates. Returns metrics."""
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    repo = entry.get("source_repo", "?")
+    golden_comments = entry.get("golden_comments", [])
+
+    our_review = None
+    for review in entry.get("reviews", []):
+        if review["tool"] == TOOL_NAME:
+            our_review = review
+            break
+
+    if not our_review:
+        return None  # Skip unreviewed PRs
+
+    candidates = [c["body"] for c in our_review.get("review_comments", []) if c.get("body")]
+    if not candidates:
+        return {"tp": 0, "fp": 0, "fn": len(golden_comments),
+                "golden": len(golden_comments), "candidates": 0,
+                "repo": repo, "pr_url": pr_url, "tp_details": [], "fn_details": golden_comments}
+
+    pr_num = pr_url.split("/pull/")[-1] if "/pull/" in pr_url else "?"
+
+    # Fire all golden×candidate judge calls in parallel
+    judge_results = {}  # (gi, ci) -> result
+    with ThreadPoolExecutor(max_workers=20) as pool:
+        futures = {}
+        for gi, gc in enumerate(golden_comments):
+            for ci, cand in enumerate(candidates):
+                fut = pool.submit(judge_match, client, gc["comment"], cand)
+                futures[fut] = (gi, ci)
+        for fut in as_completed(futures):
+            gi, ci = futures[fut]
+            judge_results[(gi, ci)] = fut.result()
+
+    # Greedy match: for each golden, find best matching candidate
+    golden_matched = {}
+    candidate_matched = set()
+    for gi, gc in enumerate(golden_comments):
+        best_match = None
+        best_confidence = 0
+        for ci in range(len(candidates)):
+            result = judge_results.get((gi, ci), {})
+            if result.get("match") and result.get("confidence", 0) > best_confidence:
+                best_match = ci
+                best_confidence = result["confidence"]
+        if best_match is not None:
+            golden_matched[gi] = best_match
+            candidate_matched.add(best_match)
+
+    tp = len(golden_matched)
+    fp = len(candidates) - len(candidate_matched)
+    fn = len(golden_comments) - tp
+
+    tp_details = [gc for i, gc in enumerate(golden_comments) if i in golden_matched]
+    fn_details = [gc for i, gc in enumerate(golden_comments) if i not in golden_matched]
+
+    print(f"  {repo} PR#{pr_num}: {tp} TP, {fp} FP, {fn} FN ({len(golden_comments)} golden, {len(candidates)} cand)", flush=True)
+    for gc in tp_details:
+        print(f"    TP: [{gc['severity']}] {gc['comment'][:80]}...", flush=True)
+    for gc in fn_details:
+        print(f"    FN: [{gc['severity']}] {gc['comment'][:80]}...", flush=True)
+
+    return {"tp": tp, "fp": fp, "fn": fn,
+            "golden": len(golden_comments), "candidates": len(candidates),
+            "repo": repo, "pr_url": pr_url, "tp_details": tp_details, "fn_details": fn_details}
+
+
 def evaluate(config: Config, repo_filter: str | None = None):
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
     benchmark_data = load_data(config)
     client = anthropic.Anthropic(api_key=config.anthropic_api_key)
 
-    total_tp = 0
-    total_fp = 0
-    total_fn = 0
-    total_golden = 0
-    total_candidates = 0
-    repo_metrics = {}
-
+    # Collect PRs to evaluate
+    pr_tasks = []
     for pr_url, entry in benchmark_data.items():
         repo = entry.get("source_repo", "?")
         if repo_filter and repo_filter.lower() not in repo.lower():
             continue
-
         golden_comments = entry.get("golden_comments", [])
         if not golden_comments:
             continue
+        pr_tasks.append((pr_url, entry))
 
-        # Find our review
-        our_review = None
-        for review in entry.get("reviews", []):
-            if review["tool"] == TOOL_NAME:
-                our_review = review
-                break
+    print(f"Evaluating {len(pr_tasks)} PRs in parallel...\n", flush=True)
 
-        if not our_review:
-            # Skip PRs we didn't review (don't count as FN)
-            continue
+    # Evaluate all PRs in parallel (each PR internally parallelizes judge calls)
+    results = []
+    with ThreadPoolExecutor(max_workers=10) as pool:
+        futures = {pool.submit(_evaluate_pr, client, url, entry): url for url, entry in pr_tasks}
+        for fut in as_completed(futures):
+            result = fut.result()
+            if result is not None:
+                results.append(result)
 
-        candidates = [c["body"] for c in our_review.get("review_comments", []) if c.get("body")]
-        if not candidates:
-            total_fn += len(golden_comments)
-            total_golden += len(golden_comments)
-            continue
-
-        pr_num = pr_url.split("/pull/")[-1] if "/pull/" in pr_url else "?"
-        print(f"\n{repo} PR#{pr_num}: {len(golden_comments)} golden, {len(candidates)} candidates")
-
-        # Match each golden against each candidate
-        golden_matched = {}
-        candidate_matched = set()
-
-        for gi, gc in enumerate(golden_comments):
-            golden_text = gc["comment"]
-            best_match = None
-            best_confidence = 0
-
-            for ci, cand in enumerate(candidates):
-                result = judge_match(client, golden_text, cand)
-                if result.get("match") and result.get("confidence", 0) > best_confidence:
-                    best_match = ci
-                    best_confidence = result["confidence"]
-
-            if best_match is not None:
-                golden_matched[gi] = best_match
-                candidate_matched.add(best_match)
-                print(f"  TP: [{gc['severity']}] {golden_text[:80]}...")
-
-        tp = len(golden_matched)
-        fp = len(candidates) - len(candidate_matched)
-        fn = len(golden_comments) - tp
-
-        total_tp += tp
-        total_fp += fp
-        total_fn += fn
-        total_golden += len(golden_comments)
-        total_candidates += len(candidates)
-
-        # Per-repo tracking
-        base_repo = repo.split("-")[0]
+    total_tp = sum(r["tp"] for r in results)
+    total_fp = sum(r["fp"] for r in results)
+    total_fn = sum(r["fn"] for r in results)
+    total_golden = sum(r["golden"] for r in results)
+    total_candidates = sum(r["candidates"] for r in results)
+    repo_metrics = {}
+    for r in results:
+        base_repo = r["repo"].split("-")[0]
         if base_repo not in repo_metrics:
             repo_metrics[base_repo] = {"tp": 0, "fp": 0, "fn": 0, "golden": 0, "candidates": 0}
-        repo_metrics[base_repo]["tp"] += tp
-        repo_metrics[base_repo]["fp"] += fp
-        repo_metrics[base_repo]["fn"] += fn
-        repo_metrics[base_repo]["golden"] += len(golden_comments)
-        repo_metrics[base_repo]["candidates"] += len(candidates)
-
-        if fn > 0:
-            missed = [gc for i, gc in enumerate(golden_comments) if i not in golden_matched]
-            for gc in missed:
-                print(f"  FN: [{gc['severity']}] {gc['comment'][:80]}...")
+        repo_metrics[base_repo]["tp"] += r["tp"]
+        repo_metrics[base_repo]["fp"] += r["fp"]
+        repo_metrics[base_repo]["fn"] += r["fn"]
+        repo_metrics[base_repo]["golden"] += r["golden"]
+        repo_metrics[base_repo]["candidates"] += r["candidates"]
 
     # Summary
     precision = total_tp / total_candidates if total_candidates > 0 else 0

@@ -763,8 +763,8 @@ Each issue must have these fields:
 
             if not response.tool_calls:
                 result = "\n".join(response.text_parts)
-                # If model stopped tool-calling but produced no review text,
-                # prompt it to write the review based on its investigation.
+                # Retry when the model produced nothing useful (malformed tool call,
+                # empty response, etc.) — applies to all providers.
                 if not result.strip() and round_num > 0:
                     print(f"  Empty response after {round_num+1} rounds, prompting for review...", file=sys.stderr)
                     messages.append(self.provider.format_assistant_message(response))

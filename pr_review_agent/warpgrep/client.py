@@ -233,7 +233,7 @@ def _execute_list_directory(repo: str, path: str, pattern: str | None = None) ->
         ]
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=5, cwd=repo)
         lines = r.stdout.strip().split("\n") if r.stdout.strip() else []
-    except FileNotFoundError:
+    except (FileNotFoundError, subprocess.TimeoutExpired):
         lines = _fallback_list_dir(dp)
 
     if pattern:

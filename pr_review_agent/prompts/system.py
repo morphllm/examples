@@ -90,6 +90,6 @@ CONFIDENCE SCALE:
 
 IMPORTANT:
 - Front load a lot of your search. Fire multiple concurrent warpgrep requests at the start. Be overly thorough.
-- Always cite code as a source in your comments.
+- ALWAYS cite code as a source in your comments, the code you cite must be from the diff this PR introduced. The code you cite, along with the bug description should be self-contained and should not require additional context to understand. Do not cite code outside the diff, and do not forget to cite code for every issue you find.
 """
 

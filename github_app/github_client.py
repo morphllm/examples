@@ -138,21 +138,17 @@ class GitHubClient:
     ):
         """Post a PR review with inline comments.
 
-        Comments with invalid line numbers (not in the diff) are filtered out
-        to prevent GitHub from rejecting the entire review with a 422 error.
+        Comments whose line numbers aren't in the diff can't be posted as
+        inline annotations (GitHub rejects them with 422). These are instead
+        included in the review body so no findings are lost.
         """
-        # Build a set of valid (file_path, line_number) from the diff
         valid_lines = _extract_valid_diff_lines(diff)
 
         review_comments = []
-        skipped = []
+        non_inline = []
         for c in comments:
-            # Skip comments with invalid line numbers
-            if c.line_number <= 0:
-                skipped.append(c)
-                continue
-            if (c.file_path, c.line_number) not in valid_lines:
-                skipped.append(c)
+            if c.line_number <= 0 or (c.file_path, c.line_number) not in valid_lines:
+                non_inline.append(c)
                 continue
 
             review_comments.append({
@@ -165,46 +161,47 @@ class GitHubClient:
                 ),
             })
 
-        if skipped:
-            logger.warning(
-                "Skipped %d comments with invalid line numbers for %s/%s PR #%d",
-                len(skipped), owner, repo, pr_number,
+        # Build the review body — include non-inline comments so they aren't lost
+        body = summary
+        if non_inline:
+            body += "\n\n---\n\n**Additional findings** (referenced lines are outside the diff):\n"
+            for c in non_inline:
+                body += (
+                    f"\n**{c.severity}** | `{c.category}` | "
+                    f"`{c.file_path}:{c.line_number}` | "
+                    f"confidence: {c.confidence:.0%}\n\n{c.body}\n\n---\n"
+                )
+            logger.info(
+                "%d comments outside diff for %s/%s PR #%d — included in review body",
+                len(non_inline), owner, repo, pr_number,
             )
 
-        if not review_comments:
-            # All comments had invalid lines; post as a plain PR comment instead
-            body = summary + "\n\n"
-            for c in comments:
-                body += (
-                    f"**{c.severity}** | `{c.category}` | "
-                    f"`{c.file_path}:{c.line_number}` | "
-                    f"confidence: {c.confidence:.0%}\n\n{c.body}\n\n---\n\n"
-                )
+        if review_comments:
+            resp = await self._client.post(
+                f"/repos/{owner}/{repo}/pulls/{pr_number}/reviews",
+                json={
+                    "commit_id": commit_id,
+                    "event": "COMMENT",
+                    "body": body,
+                    "comments": review_comments,
+                },
+            )
+            resp.raise_for_status()
+            logger.info(
+                "Posted review on %s/%s PR #%d with %d inline + %d non-inline comments",
+                owner, repo, pr_number, len(review_comments), len(non_inline),
+            )
+        else:
+            # No inline comments at all — post everything as an issue comment
             resp = await self._client.post(
                 f"/repos/{owner}/{repo}/issues/{pr_number}/comments",
                 json={"body": body},
             )
             resp.raise_for_status()
             logger.info(
-                "Posted fallback comment on %s/%s PR #%d (%d comments as text)",
-                owner, repo, pr_number, len(comments),
+                "Posted issue comment on %s/%s PR #%d (%d non-inline comments)",
+                owner, repo, pr_number, len(non_inline),
             )
-            return
-
-        resp = await self._client.post(
-            f"/repos/{owner}/{repo}/pulls/{pr_number}/reviews",
-            json={
-                "commit_id": commit_id,
-                "event": "COMMENT",
-                "body": summary,
-                "comments": review_comments,
-            },
-        )
-        resp.raise_for_status()
-        logger.info(
-            "Posted review on %s/%s PR #%d with %d inline comments (%d skipped)",
-            owner, repo, pr_number, len(review_comments), len(skipped),
-        )
 
     async def post_issue_comment(
         self, owner: str, repo: str, pr_number: int, body: str
