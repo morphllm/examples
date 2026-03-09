@@ -415,20 +415,11 @@ def search_codebase_text(
 
 WARPGREP_TOOL_NAME = "warpgrep_codebase_search"
 WARPGREP_TOOL_DESCRIPTION = (
-    "IMPORTANT: If you need to explore the codebase to gather context, and the task does not "
-    "involve a single file or function which is provided by name, you should ALWAYS use the "
-    "warpgrep codebase search tool first instead of running search commands. "
-    "When the task requires exploration beyond a single known file, invoke warpgrep first with "
-    "a natural-language query describing the target functionality, bug, or architectural concern. "
-    "Warp Grep is a fast and accurate tool that can search for all relevant context in a codebase. "
-    "Keep queries action-oriented (e.g., 'Find where billing invoices are generated and emailed'), "
-    "and after reviewing the summarized results, you may verify important findings with other "
-    "search tools or direct file reads to ensure completeness. "
-    "Warp Grep can be used for query types like: find function responsible for <small feature>; "
-    "find code that does <description>; find code path for <big feature>; Where does <minimal "
-    "error message> come from?; or any query of that type. "
-    "When a task requires exploration beyond a single known file, ALWAYS default to warpgrep "
-    "codebase search before other search mechanisms."
+    "A code search exploration subagent (not a grep tool) that runs parallel grep and file read calls over multiple turns to locate relevant files and line ranges. "
+    "The search term should be a targeted natural-language query describing what you are trying to find or accomplish, e.g. "
+    '"Find where authentication requests are handled in the Express routes" or "How do callers of processOrder handle the error case?". '
+    "Fill in extra context you can infer to make the query specific. Do not pass bare keywords or symbol names — use grep directly for exact symbol lookups. "
+    "Use this tool first when exploring unfamiliar code. The results may be partial — verify with classical search tools or direct file reads if needed."
 )
 
 

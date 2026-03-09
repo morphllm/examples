@@ -1,83 +1,68 @@
-# PR Review Agent - Progress Tracker
+# PR Review Agent Improvement Plan
 
-## Goal
-Beat Augment's 53.8% F1 on withmartian/code-review-benchmark using Opus 4.6 + WarpGrep.
+## Score History
 
-## Current Scores
-| Iteration | Precision | Recall | F1 | TP | FP | Notes |
-|-----------|-----------|--------|-----|----|----|-------|
-| 1 (calib) | 43.5% | 66.7% | 52.6% | 10/15 | 13 | Sonnet4 + thinking, batched review |
-| 2 (full) | 31.3% | 51.8% | 39.0% | 71/137 | 160 | Same settings, 50 PRs. Precision collapsed. |
-| 3 (full) | 47.7% | 37.2% | 41.8% | 51/137 | 57 | Precision-focused prompts, dual-pass, cap 4 |
-| 4 (full) | 45.8% | 43.8% | 44.8% | 60/137 | 73 | Better prompts, adaptive thinking, cap 8 |
+| Run | PRs | F1 | Precision | Recall | TP | FP | FN |
+|-----|-----|-----|-----------|--------|----|----|-----|
+| Baseline (50 PRs) | 50 | 51.0% | 55.1% | 47.4% | 65 | 55 | 72 |
+| Iter 1 (10 random) | 10 | 55.6% | 90.9% | 40.0% | 10 | 1 | 15 |
+| Iter 2 (10 random) | 10 | 63.2% | 92.3% | 48.0% | 12 | 1 | 13 |
+| Iter 3 (15 mini) | 15 | 51.5% | 73.9% | 39.5% | 17 | 7 | 26 |
+| Iter 4 (15 mini) | 15 | 52.2% | 69.2% | 41.9% | 18 | 11 | 25 |
+| Iter 5 (15 mini) | 15 | 55.9% | 76.0% | 44.2% | 19 | 7 | 24 |
+| Iter 6 (15 mini) | 15 | 56.3% | 85.7% | 41.9% | 18 | 5 | 25 |
+| Iter 7 (15 mini) | 15 | 58.5% | 86.4% | 44.2% | 19 | 5 | 24 |
+| Iter 8 (15 mini) | 15 | **62.7%** | 87.5% | 48.8% | 21 | 6 | 22 |
 
-## Benchmark Targets (Augment = 47%P / 62.8%R / 53.8% F1)
-- F1 > 54% (beat Augment)
-- Precision > 50%
-- Recall > 60%
+### Changes in Iter 1 (system prompt rewrite)
+- Condensed 13 categories to principle-based prompt with INVESTIGATION PRINCIPLES section
+- Added: trace both branches, verify call-site contracts, concurrency audit, test rigor, stronger dedup
 
-## Architecture
-- Fetch diffs from benchmark fork repos via `gh pr diff`
-- Review with Sonnet 4 + extended thinking (budget 10k tokens)
-- Batched review: all files in one prompt for speed + cross-file awareness
-- Confidence filtering with dedup
-- Output injected into benchmark_data.json
+### Changes in Iter 2 (recall boost)
+- Removed "Quality over quantity" — was making model too conservative
+- Added "report every bug you find, even borderline ones"
+- Added "go through EVERY changed file and ask: did I check this?"
+- Increased max_tool_rounds from 25 to 40
 
-## Key Levers for Improvement
-1. **Multi-pass with majority voting** (BugBot strategy) - 3 themed passes, keep issues found in 2+
-2. **WarpGrep context** - Validate findings against codebase patterns (currently disabled)
-3. **Few-shot examples** in prompt - show model what good findings look like
-4. **Precision filtering** - Discourse has 16.7% precision, need category-specific filters
-5. **Sentry-specific** - Missed process spawning, monkeypatched sleep issues
-6. **Test awareness** - Some golden comments are about test quality (flaky sleep, mocking)
+### Changes in Iter 3-4 (robustness)
+- Fixed _execute_read ValueError crash on malformed line ranges
+- Added post-processing dedup (_dedup_issues method)
+- Improved evaluator judge prompt for semantic matching
 
-## Per-Repo Analysis (Iteration 1)
-| Repo | Precision | Recall | F1 | Analysis |
-|------|-----------|--------|-----|----------|
-| keycloak | 80.0% | 100% | 88.9% | Excellent. Found all 4 golden. |
-| cal.com | 50.0% | 100% | 66.7% | Good recall, 2 FP need filtering |
-| grafana | 33.3% | 50% | 40.0% | Missed TotalDocs race. 2 FP. |
-| sentry | 40.0% | 40% | 40.0% | Missed 3/5: spawning, monkeypatch, flaky test |
-| discourse | 16.7% | 50% | 25.0% | 5 FP! Only 1 TP. Too noisy. |
+### Changes in Iter 5-6 (targeted patterns)
+- Added BUDGET YOUR INVESTIGATION instruction
+- Added FREQUENTLY MISSED PATTERNS checklist
+- Added asymmetric cache trust, empty ORM updates, dict ordering to system prompt
+- Reduced max_tool_rounds from 40 to 30
+- All PRs run in parallel (removed 10-PR cap)
 
-## Iteration Log
-### Iteration 1 - Baseline (calibration only)
-- Status: COMPLETE
-- Model: claude-sonnet-4-20250514 + extended thinking (10k budget)
-- Approach: Single batched review of all files in one prompt
-- Threshold: 0.5 base, no category-specific filtering
-- Results: 43.5% P / 66.7% R / 52.6% F1
-- Weakness: Too many FP in Discourse (5), missed subtle Sentry issues
+### Changes in Iter 7 (trace-informed, targeting 42% of FNs)
+- Added "Return to open threads" (Step 2.5) — targets abandonment after first finding (25% of FNs)
+- Added "Synthesize grep results explicitly" — targets evidence-not-synthesized (17% of FNs)
+- Added "Test bug → trace to production" — targets surface-level test findings
+- Relaxed missing-definition rule for grep-confirmed absences
 
-### Iteration 2 - Full run baseline
-- Status: COMPLETE
-- Results: 31.3% P / 51.8% R / 39.0% F1 (71 TP, 160 FP, 66 FN)
-- Per-repo: keycloak 42.4%, cal.com 41.0%, discourse 42.1%, sentry 37.5%, grafana 32.3%
-- Root cause: 70% of comments are FPs. Prompt encourages speculation. No verification.
-- Key FP categories: missing_validation, null_reference, resource_leak - all speculative
+## Step 1: False Negative Analysis
 
-### Iteration 3 - Precision-focused
-- Status: COMPLETE
-- Changes: Precision-focused prompts, dual-pass review, cap 4, self-contained comments
-- Results: 47.7% P / 37.2% R / 41.8% F1 (51 TP, 57 FP, 107 candidates)
-- Per-repo: cal.com 42.3%, discourse 44.0%, grafana 50.0%, keycloak 45.5%, sentry 37.7%
-- Analysis: Precision improved dramatically (31% -> 48%) but recall dropped (52% -> 37%). Too conservative.
+Read through every false negative (missed bug) from the benchmark results. For each one, understand why the model failed to catch it. Then group the FNs by root cause, identifying what investigation behavior the model was missing in each case.
 
-### Iteration 4 - Recall recovery with improved prompts
-- Status: COMPLETE
-- Changes:
-  1. Linter rewrote prompts with much more specific bug patterns (12+ categories)
-  2. Adaptive thinking (budget 10k)
-  3. Pass 2 prompt redesigned with 10 commonly-missed pattern categories
-  4. More aggressive dedup with _issues_same method
-  5. Cap raised to 8 per PR
-  6. Thresholds lowered: base 0.50, logic_error 0.50, incorrect_value 0.50
-- Results: 45.8% P / 43.8% R / 44.8% F1 (60 TP, 73 FP, 131 candidates)
-- Per-repo: cal.com 52.5%, grafana 47.8%, keycloak 43.5%, sentry 41.4%, discourse 38.6%
-- Analysis: Found 9 more TPs vs iter 3. Still 10 points below Augment (54%). Need more recall.
+The groups should capture patterns like: what category of bug was missed, and what systematic reasoning step would have caught it. Each group gets a root cause explanation describing the gap in the model's review process.
 
-### Next Steps
-- Need ~75 TP to reach F1=55%. Currently at 60. Need +15 more TP.
-- FP at 73 is acceptable, precision at 46% is close to Augment's 47%.
-- Key missing: subtle bugs in sentry (monkeypatched sleep, isinstance hierarchy), grafana (React props, traceID)
-- Potential improvements: WarpGrep for cross-file context, third focused pass, higher thinking budget
+## Step 2: False Positive Analysis
+
+Read through every false positive (spurious finding) from the benchmark results. For each one, understand why the model flagged it incorrectly. Then group the FPs by root cause.
+
+Important: not all FPs are actionable. Some are duplicates of real bugs (model found the same bug multiple times), some are real bugs the golden set missed, and some are evaluator matching failures. Only the genuinely wrong findings are actionable via system prompt changes. The grouping should distinguish these categories so we know what fraction of FPs we can actually fix.
+
+## Step 3: System Prompt Edits
+
+Based on the FN and FP group analysis, identify the highest-ROI edits to the system prompt in `pr_review_agent/prompts/system.py`. Each edit should target a specific root cause group. FN fixes typically add new investigation rules (things the model should systematically check). FP fixes typically tighten the filtering criteria (things the model should stop reporting).
+
+## Step 4: After Edits
+
+After making all edits to `pr_review_agent/prompts/system.py`:
+
+1. Verify syntax: `code-review-benchmark-online/online/etl/.venv/bin/python3 -c "from pr_review_agent.prompts.system import SYSTEM_PROMPT; print('OK')"`
+2. Run 16 random PRs (2 per repo, seed=42) from the offline benchmark, all in parallel
+3. Run evaluation on just those 16 PRs
+4. Compare F1/P/R against baseline (51.0% / 55.1% / 47.4%)

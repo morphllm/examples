@@ -1,41 +1,32 @@
 {
   "pr_url": "https://github.com/calcom/cal.com/pull/8087",
-  "total_issues": 4,
+  "total_issues": 3,
   "issues": [
     {
-      "file_path": "packages/trpc/server/routers/viewer/bookings.tsx",
-      "line_number": 553,
-      "category": "api_misuse",
-      "severity": "critical",
-      "confidence": 0.95,
-      "comment": "forEach with async callback \u2014 promises silently discarded. Array.prototype.forEach ignores the return value of callbacks, so when the callback is async, the returned Promise is silently discarded. The await getCalendar(...) and subsequent deleteEvent/deleteMeeting calls inside the callback will not be awaited by the calling code. The function proceeds to the next statements (sending emails, etc.) before the calendar/video deletion operations even start. Errors are uncatchable as rejected promises become unhandled promise rejections. This is a regression from the old code. Correct fix: Use Promise.all(bookingRefsFiltered.map(async (bookingRef) => { ... })) or a for...of loop instead of forEach.",
-      "source_pass": "review"
-    },
-    {
       "file_path": "packages/app-store/vital/lib/reschedule.ts",
-      "line_number": 125,
+      "line_number": 0,
       "category": "api_misuse",
       "severity": "critical",
       "confidence": 0.95,
-      "comment": "forEach with async callback \u2014 promises silently discarded. Array.prototype.forEach ignores the return value of callbacks, so when the callback is async, the returned Promise is silently discarded. The await getCalendar(...) and subsequent deleteEvent/deleteMeeting calls inside the callback will not be awaited. The forEach is wrapped in a try/catch block, but since forEach doesn't await the async callbacks, rejected promises will become unhandled promise rejections instead of being caught. This is a regression from the old code. Correct fix: Use Promise.all(bookingRefsFiltered.map(async (bookingRef) => { ... })) or a for...of loop instead of forEach.",
+      "comment": "Using `forEach` with an `async` callback causes fire-and-forget behavior. `Array.prototype.forEach()` does not await async callbacks \u2014 it ignores the returned Promises and returns immediately. This means: (1) calendar/video deletions may not complete or execute at all, (2) the surrounding `try/catch` is dead code since no rejection from async callbacks can be caught, and (3) subsequent code runs before deletions complete, creating a race condition. Should use `await Promise.all(array.map(async ...))` or `for...of` instead.",
       "source_pass": "review"
     },
     {
       "file_path": "packages/app-store/wipemycalother/lib/reschedule.ts",
-      "line_number": 125,
+      "line_number": 0,
       "category": "api_misuse",
       "severity": "critical",
       "confidence": 0.95,
-      "comment": "forEach with async callback \u2014 promises silently discarded. Array.prototype.forEach ignores the return value of callbacks, so when the callback is async, the returned Promise is silently discarded. The await getCalendar(...) and subsequent deleteEvent/deleteMeeting calls inside the callback will not be awaited. The forEach is wrapped in a try/catch block, but since forEach doesn't await the async callbacks, rejected promises will become unhandled promise rejections instead of being caught. This is a regression from the old code. Correct fix: Use Promise.all(bookingRefsFiltered.map(async (bookingRef) => { ... })) or a for...of loop instead of forEach.",
+      "comment": "Same pattern as vital/lib/reschedule.ts: `forEach` with `async` callback does not await the promises, making the `try/catch` dead code and causing calendar/video deletions to be fire-and-forget. Should use `await Promise.all(array.map(async ...))` or `for...of`.",
       "source_pass": "review"
     },
     {
-      "file_path": "packages/core/CalendarManager.ts",
-      "line_number": 28,
-      "category": "type_error",
-      "severity": "medium",
-      "confidence": 0.6,
-      "comment": "getCalendarCredentials stores unawaited Promise, breaking the type contract. getCalendarCredentials remains a synchronous function but calls getCalendar(credential) which is now async (returns Promise<Calendar | null>). The calendar field stored in the returned objects is now a Promise<Calendar | null> instead of Calendar | null. While getConnectedCalendars handles this by awaiting the stored promise, other consumers of getCalendarCredentials may access the calendar property expecting a resolved value without await, leading to type errors or incorrect behavior.",
+      "file_path": "packages/trpc/server/routers/viewer/bookings.tsx",
+      "line_number": 0,
+      "category": "api_misuse",
+      "severity": "critical",
+      "confidence": 0.95,
+      "comment": "Same pattern: `forEach` with `async` callback does not await the promises, making the `try/catch` dead code and causing calendar/video deletions to be fire-and-forget with potential race conditions. Should use `await Promise.all(array.map(async ...))` or `for...of`.",
       "source_pass": "review"
     }
   ]

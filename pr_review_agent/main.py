@@ -95,6 +95,21 @@ def select_mini_prs(benchmark_data: dict) -> list[str]:
     return selected
 
 
+def select_random_prs(benchmark_data: dict, per_repo: int = 2, seed: int = 42) -> list[str]:
+    """Pick N random PRs per source_repo with deterministic seed."""
+    import random as rng
+    repo_prs: dict[str, list[str]] = {}
+    for url, entry in benchmark_data.items():
+        repo = entry.get("source_repo", "unknown")
+        repo_prs.setdefault(repo, []).append(url)
+    rng.seed(seed)
+    selected = []
+    for repo in sorted(repo_prs):
+        urls = repo_prs[repo]
+        selected.extend(rng.sample(urls, min(per_repo, len(urls))))
+    return selected
+
+
 def run_benchmark(config: Config, args: argparse.Namespace) -> None:
     print("=" * 60)
     print("PR Review Agent - Benchmark Pipeline")
@@ -123,6 +138,9 @@ def run_benchmark(config: Config, args: argparse.Namespace) -> None:
     # Select PRs
     if args.pr_url:
         pr_urls = [u for u in benchmark_data if args.pr_url in u]
+    elif args.random:
+        pr_urls = select_random_prs(benchmark_data, per_repo=2, seed=42)
+        print(f"Random eval: {len(pr_urls)} PRs (2 per source_repo, seed=42)")
     elif args.mini:
         pr_urls = select_mini_prs(benchmark_data)
         print(f"Mini eval: {len(pr_urls)} PRs (3 per repo)")
@@ -300,6 +318,7 @@ def main():
     parser.add_argument("--limit", type=int, help="Max PRs to review")
     parser.add_argument("--calibrate", action="store_true", help="5 PRs, 1 per repo")
     parser.add_argument("--mini", action="store_true", help="15 PRs, 3 per repo (fast eval)")
+    parser.add_argument("--random", action="store_true", help="13 PRs, 2 per source_repo, seed=42")
     parser.add_argument("--threshold", type=float, help="Override confidence threshold")
     parser.add_argument("--no-warpgrep", action="store_true", help="Skip WarpGrep")
     parser.add_argument("--organism", help="Path to organism JSON (evolved prompts)")

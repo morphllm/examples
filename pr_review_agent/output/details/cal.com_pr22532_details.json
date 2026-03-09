@@ -1,14 +1,23 @@
 {
   "pr_url": "https://github.com/calcom/cal.com/pull/22532",
-  "total_issues": 1,
+  "total_issues": 2,
   "issues": [
     {
       "file_path": "packages/app-store/googlecalendar/lib/CalendarService.ts",
       "line_number": 0,
       "category": "api_misuse",
       "severity": "high",
-      "confidence": 0.92,
-      "comment": "The comment explicitly states the intent is to \"Update SelectedCalendar.updatedAt\", but this passes an empty `data: {}` object to `prisma.selectedCalendar.updateMany()`. Prisma's `updateMany` does not automatically trigger `@updatedAt` \u2014 only `update()` and `upsert()` do. With `updateMany`, you must explicitly set the timestamp in the `data` argument. Passing `data: {}` will generate a SQL query with an empty `SET` clause \u2014 either a no-op or invalid. The `updatedAt` field will never be updated. Fix: Pass the timestamp explicitly: `await SelectedCalendarRepository.updateManyByCredentialId(this.credential.id, { updatedAt: new Date() });`. Impact: The feature relies on `SelectedCalendar.updatedAt` being refreshed when availability cache is rebuilt. Since it's never actually updated, the \"Last updated\" timestamp shown in the `CredentialActionsDropdown` UI will be stale/incorrect.",
+      "confidence": 0.8,
+      "comment": "Prisma's `updateMany` with an empty `data: {}` object is a no-op \u2014 no SQL UPDATE is generated, and the `@updatedAt` directive does not fire because there are no actual field changes to apply. The intent is to update `SelectedCalendar.updatedAt` for all calendars under the credential, but this will never happen. Fix: pass an explicit timestamp, e.g. `{ updatedAt: new Date() }`.",
+      "source_pass": "review"
+    },
+    {
+      "file_path": "scripts/test-gcal-webhooks.sh",
+      "line_number": 68,
+      "category": "portability",
+      "severity": "medium",
+      "confidence": 0.7,
+      "comment": "`sed -i ''` syntax is macOS/BSD-only. On GNU/Linux, `sed -i` does not take a separate backup extension argument \u2014 the `''` would be interpreted as a filename, causing the command to fail with an error. The script will fail on Linux, which is the typical CI/server environment.",
       "source_pass": "review"
     }
   ]

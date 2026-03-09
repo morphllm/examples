@@ -8,7 +8,7 @@
       "category": "test_correctness",
       "severity": "medium",
       "confidence": 0.65,
-      "comment": "TestLogger.FromContext returns a brand-new TestLogger that is not connected to the receiver `f`. Since LoggerMiddleware.logRequest now logs through m.logger.FromContext(ctx).Info(...), any test that creates a TestLogger, passes it to LoggerMiddleware, and then asserts on testLogger.InfoLogs.Calls or testLogger.ErrorLogs.Calls will see zero calls \u2014 the log writes silently go to the throwaway logger returned by FromContext. The correct implementation should return the receiver (`f`) so that log output remains observable in tests: `func (f *TestLogger) FromContext(_ context.Context) Logger { return f }`.",
+      "comment": "TestLogger.FromContext returns a brand new, disconnected TestLogger instead of the receiver. Since LoggerMiddleware.logRequest now calls m.logger.FromContext(ctx).Info(...), all log output goes to a throwaway logger that no test code holds a reference to. Any test checking testLogger.InfoLogs.Calls or testLogger.ErrorLogs.Calls will see zero calls. Fix: return `f` instead of `NewTestLogger()`.",
       "source_pass": "review"
     }
   ]

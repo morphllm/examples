@@ -3,12 +3,12 @@
   "total_issues": 1,
   "issues": [
     {
-      "file_path": "config/initializers/i18n.rb",
-      "line_number": 14,
+      "file_path": "lib/freedom_patches/translate_accelerator.rb",
+      "line_number": 0,
       "category": "type_error",
       "severity": "medium",
-      "confidence": 0.7,
-      "comment": "FallbackLocaleList#[] does not convert `locale` to a symbol. When called with a string locale like \"fr\" (from SiteSetting.default_locale), the returned fallback list is [\"fr\", :fr, :en] because `.uniq` does not deduplicate \"fr\" (string) and :fr (symbol). This causes a wasted lookup + exception throw/catch on every translation call with a string locale, since the Simple backend stores translations under symbol keys (:fr) but first tries the string key \"fr\" which returns nil. The fix is to add `locale = locale.to_sym` as the first line of the method, which the evolved version of this code does but this PR omits. While the translation is ultimately found via the symbol fallback, this represents an unnecessary performance penalty on a hot path.",
+      "confidence": 0.5,
+      "comment": "The `ensure_loaded!` method does not convert its `locale` argument to a symbol before checking `@loaded_locales.include?(locale)`. Since `@loaded_locales` stores symbols exclusively (via `load_locale` which calls `locale.to_sym`), passing a string locale (e.g. `\"en\"`) will cause the `.include?` check to always return `false` (since `\"en\" != :en` in Ruby), resulting in redundant `load_locale` calls on every request. The fix is to add `locale = locale.to_sym` as the first line of `ensure_loaded!`.",
       "source_pass": "review"
     }
   ]

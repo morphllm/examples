@@ -1,32 +1,23 @@
 {
   "pr_url": "https://github.com/calcom/cal.com/pull/14740",
-  "total_issues": 3,
+  "total_issues": 2,
   "issues": [
     {
       "file_path": "packages/trpc/server/routers/viewer/bookings/addGuests.handler.ts",
-      "line_number": 49,
+      "line_number": 0,
       "category": "logic_error",
       "severity": "high",
       "confidence": 0.95,
-      "comment": "`&&` is used instead of `||` in the permission check, making `isTeamAdminOrOwner` true only for owners (since any owner passes `isTeamAdmin`, but only owners pass `isTeamOwner`). Team admins who are not owners will be incorrectly denied permission. The variable name `isTeamAdminOrOwner` clearly indicates `||` was intended. Should be: `(await isTeamAdmin(...)) || (await isTeamOwner(...))`.",
+      "comment": "Wrong logical operator `&&` instead of `||` in authorization check. The variable `isTeamAdminOrOwner` uses `&&` (AND) instead of `||` (OR), meaning both conditions must be true. Since `isTeamAdmin` already covers admin or owner, and `isTeamOwner` checks owner only, using `&&` collapses the check to owner-only, incorrectly denying team admins the ability to add guests. Should use `||` or just `isTeamAdmin` alone.",
       "source_pass": "review"
     },
     {
       "file_path": "packages/trpc/server/routers/viewer/bookings/addGuests.handler.ts",
-      "line_number": 170,
+      "line_number": 0,
       "category": "incorrect_value",
       "severity": "high",
-      "confidence": 0.9,
-      "comment": "`guests` (raw user input) is passed to `sendAddGuestsEmails` instead of `uniqueGuests` (the filtered list). In the email manager, this parameter is used to distinguish new guests (who get `AttendeeScheduledEmail`) from existing attendees (who get `AttendeeAddGuestsEmail`). If a user submits an email that's already an attendee, that email is in `guests` but filtered out of `uniqueGuests`, causing the existing attendee to incorrectly receive a full booking confirmation email instead of a \"new guests added\" notification. Should be `await sendAddGuestsEmails(evt, uniqueGuests)`.",
-      "source_pass": "review"
-    },
-    {
-      "file_path": "packages/trpc/server/routers/viewer/bookings/addGuests.handler.ts",
-      "line_number": 82,
-      "category": "security",
-      "severity": "medium",
-      "confidence": 0.92,
-      "comment": "The blacklisted emails are lowercased via `.toLowerCase()`, but the user-provided `guest` string is not lowercased before the `.includes()` check. A user can bypass the blacklist by using different casing, e.g., submitting `Blocked@Example.com` when `blocked@example.com` is blacklisted. Should be `!blacklistedGuestEmails.includes(guest.toLowerCase())`.",
+      "confidence": 0.95,
+      "comment": "Unfiltered `guests` passed to `sendAddGuestsEmails` instead of `uniqueGuests`. The raw input `guests` includes emails of already-existing attendees that were filtered out during processing. This causes existing attendees to incorrectly receive `AttendeeScheduledEmail` (full booking confirmation) instead of `AttendeeAddGuestsEmail` (guest-added notification). Should pass `uniqueGuests` instead of `guests`.",
       "source_pass": "review"
     }
   ]

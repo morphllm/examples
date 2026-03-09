@@ -1,59 +1,32 @@
 {
   "pr_url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/10",
-  "total_issues": 6,
+  "total_issues": 3,
   "issues": [
     {
       "file_path": "spec/fabricators/category_fabricator.rb",
       "line_number": 1,
-      "category": "logic_error",
+      "category": "test_correctness",
       "severity": "medium",
       "confidence": 0.95,
-      "comment": "The file contents of category_fabricator.rb and embeddable_host_fabricator.rb are swapped. category_fabricator.rb has category fabricators removed and replaced with Fabricator(:embeddable_host), while embeddable_host_fabricator.rb (new file) contains the Fabricator(:category), Fabricator(:diff_category), Fabricator(:happy_category), and Fabricator(:private_category) definitions. The embeddable_host fabricator should be in embeddable_host_fabricator.rb, and the category fabricators should remain in category_fabricator.rb. Because Ruby's Fabrication gem loads all files by name (not file name), tests still pass \u2014 but the files are definitively swapped.",
+      "comment": "The contents of category_fabricator.rb and embeddable_host_fabricator.rb have been swapped. category_fabricator.rb now defines Fabricator(:embeddable_host) and embeddable_host_fabricator.rb defines the category fabricators. While Fabrication loads by symbol name so tests won't immediately break, the files contain the wrong fabricators, causing maintenance confusion.",
       "source_pass": "review"
     },
     {
       "file_path": "db/migrate/20150818190757_create_embeddable_hosts.rb",
       "line_number": 9,
       "category": "null_reference",
-      "severity": "critical",
-      "confidence": 0.93,
-      "comment": "If the `embed_category` site setting was never configured (the default was ''), or its value doesn't match any category name, the query returns zero rows. `[0]` on an empty PG::Result returns nil, and nil['id'] raises NoMethodError: undefined method '[]' for nil:NilClass. The migration crashes before reaching the `if category_id == 0` fallback on line 14. This would break any Discourse instance that never configured embedding.",
-      "source_pass": "review"
-    },
-    {
-      "file_path": "db/migrate/20150818190757_create_embeddable_hosts.rb",
-      "line_number": 25,
-      "category": "security",
       "severity": "high",
-      "confidence": 0.85,
-      "comment": "The host value `h` is directly interpolated into the SQL string without escaping. If an admin had set an `embeddable_hosts` value containing a single quote (e.g., `it's-a-host.com`), the migration crashes with a SQL syntax error. Should use parameterized queries or at minimum `connection.quote(h)`.",
+      "confidence": 0.92,
+      "comment": "When the 'embed_category' site setting doesn't exist (e.g., fresh installs), the SQL query returns zero rows. Accessing [0] on an empty PG::Result returns nil, and then nil['id'] raises NoMethodError. The fallback check (if category_id == 0) is never reached. Should guard against empty results, e.g., check cmd_tuples > 0 before accessing [0]['id'].",
       "source_pass": "review"
     },
     {
-      "file_path": "app/models/embeddable_host.rb",
-      "line_number": 5,
-      "category": "null_reference",
-      "severity": "medium",
-      "confidence": 0.75,
-      "comment": "If `host` is nil (e.g., EmbeddableHost.new.valid? or a missing param), `self.host.sub!` raises NoMethodError: undefined method 'sub!' for nil:NilClass. The before_validation callback runs before validates_format_of, so the validation never gets a chance to return a proper error. Should guard with `self.host&.sub!` or `return if host.blank?`.",
-      "source_pass": "review"
-    },
-    {
-      "file_path": "app/controllers/admin/embedding_controller.rb",
-      "line_number": 9,
+      "file_path": "app/assets/javascripts/discourse/models/store.js.es6",
+      "line_number": 0,
       "category": "logic_error",
-      "severity": "critical",
-      "confidence": 0.85,
-      "comment": "The `update` action simply re-renders the current state without applying any changes. The `@embedding` is a fresh OpenStruct built by `fetch_embedding` from the database \u2014 no incoming params are read or saved. The `saveChanges` action in the JS controller sends a PUT to this endpoint, but it silently succeeds without persisting anything. The update action is a complete no-op.",
-      "source_pass": "review"
-    },
-    {
-      "file_path": "app/assets/javascripts/discourse/adapters/rest.js.es6",
-      "line_number": 22,
-      "category": "api_misuse",
-      "severity": "low",
-      "confidence": 0.7,
-      "comment": "JavaScript's String.replace() with a string first argument only replaces the first occurrence. For `embeddable_host` (one underscore) this works, but for any future admin model type with multiple underscores (e.g., `web_hook_event`), only the first underscore would be replaced (`web-hook_event`), failing to match the hyphenated entry in ADMIN_MODELS. Should use `type.replace(/_/g, '-')` with a regex global flag.",
+      "severity": "medium",
+      "confidence": 0.8,
+      "comment": "In the plural ID branch of _hydrateEmbedded, _lookupSubType returns undefined when it can't find a record, and .map() preserves these undefined values in the resulting array. The `hydrated || []` fallback is dead code since .map() always returns an array (even an empty one is truthy), so arrays of undefined values are stored. Additionally, `delete obj[k]` unconditionally removes the original _ids key even when no lookups succeeded, permanently losing the raw IDs.",
       "source_pass": "review"
     }
   ]

@@ -4,20 +4,20 @@
   "issues": [
     {
       "file_path": "services/src/main/java/org/keycloak/authentication/authenticators/browser/UsernameForm.java",
-      "line_number": 1,
+      "line_number": 47,
       "category": "api_misuse",
       "severity": "critical",
       "confidence": 0.95,
-      "comment": "isConditionalPasskeysEnabled() is called with zero arguments, but the only definition of this method (in parent class UsernamePasswordForm) requires a UserModel parameter: `protected boolean isConditionalPasskeysEnabled(UserModel user)`. No zero-arg overload exists, so this is a compilation error. The likely intention was `isConditionalPasskeysEnabled(context.getUser())`.",
+      "comment": "`isConditionalPasskeysEnabled()` is called with no arguments, but the only definition in the parent class `UsernamePasswordForm` requires a `UserModel` parameter: `isConditionalPasskeysEnabled(UserModel user)`. There is no zero-argument overload, so this will fail to compile. The call should be `isConditionalPasskeysEnabled(context.getUser())`.",
       "source_pass": "review"
     },
     {
       "file_path": "services/src/main/java/org/keycloak/authentication/authenticators/browser/UsernamePasswordForm.java",
-      "line_number": 1,
+      "line_number": 160,
       "category": "logic_error",
       "severity": "high",
       "confidence": 0.92,
-      "comment": "The `user != null` condition in isConditionalPasskeysEnabled(UserModel user) is inverted relative to the old behavior. The old code filled passkeys context specifically when user was null (initial login \u2014 the else branch of `if (context.getUser() != null)`). The new code gates it on isConditionalPasskeysEnabled(context.getUser()), which returns false when user is null. This means the initial login page (before any user is identified) will not have the passkeys conditional UI set up \u2014 the autocomplete=\"username webauthn\" form won't get the WebAuthn challenge, rpId, etc. Similarly, the old challenge(context, error, field) method filled passkeys data when context.getUser() == null, but the new version fills only when user is not null. The fix should change the condition to something like `(currentUser == null || currentUser.credentialManager().isConfiguredFor(...))`.",
+      "comment": "`isConditionalPasskeysEnabled(UserModel user)` requires `user != null`, which inverts the passkey display logic from the old code. The old code set up passkeys when `user == null` (initial login page), but the new code via `isConditionalPasskeysEnabled(context.getUser())` only sets them up when `user != null`. This breaks the initial login flow: passkeys won't be shown on the initial login page. The condition should allow passkeys when user is null (or when user has passkey credentials configured).",
       "source_pass": "review"
     }
   ]

@@ -1,14 +1,14 @@
 {
   "pr_url": "https://github.com/getsentry/sentry/pull/93824",
-  "total_issues": 2,
+  "total_issues": 3,
   "issues": [
     {
       "file_path": "src/sentry/spans/consumers/process/flusher.py",
-      "line_number": 309,
-      "category": "incorrect_value",
-      "severity": "medium",
+      "line_number": 0,
+      "category": "logic_error",
+      "severity": "critical",
       "confidence": 0.95,
-      "comment": "Inconsistent metric tag name `\"shards\"` vs `\"shard\"`. The `wait_produce` timer uses `\"shards\"` (plural) while all other metrics in the same function use the tag key `\"shard\"` (singular). This is a copy-paste typo that will cause this metric to be tagged under a different key than all sibling metrics, making dashboards and queries that filter on `shard` miss the `wait_produce` timer data (or vice versa).",
+      "comment": "Missing `slice_id` when creating per-shard `SpansBuffer` instances in `_create_process_for_shards`. The original buffer's `slice_id` is never preserved, so new buffers are created with `SpansBuffer(shards)` (slice_id=None) instead of including the slice_id. When `kafka_slice_id` is configured, spans are written to Redis keys like `span-buf:q:2-0` but the flusher looks for `span-buf:q:0`, causing silent data loss.",
       "source_pass": "review"
     },
     {
@@ -16,8 +16,17 @@
       "line_number": 0,
       "category": "test_correctness",
       "severity": "medium",
+      "confidence": 0.93,
+      "comment": "`time.sleep(0.1)` intended to give flusher threads time to process is a no-op because `time.sleep` was monkeypatched to `lambda _: None` earlier in the test. No actual waiting occurs, making the test potentially flaky.",
+      "source_pass": "review"
+    },
+    {
+      "file_path": "src/sentry/spans/consumers/process/flusher.py",
+      "line_number": 0,
+      "category": "incorrect_value",
+      "severity": "medium",
       "confidence": 0.92,
-      "comment": "`time.sleep(0.1)` is a no-op in test due to monkeypatch. The test calls `time.sleep(0.1)` with the comment \"Give flusher threads time to process after drift change,\" but `time.sleep` was already monkeypatched to `lambda _: None` earlier in the same test function. The sleep call does nothing, so the test does not actually wait for the flusher thread, defeating the stated purpose of the change. This will make the test flaky \u2014 sometimes the flusher won't have processed yet by the time `step.join()` is called.",
+      "comment": "Inconsistent metric tag key `\"shard\"` vs `\"shards\"` in `SpanFlusher.main`. The `wait_produce` timer uses tag key `\"shards\"` (plural) while all other metrics use `\"shard\"` (singular), causing dashboards/alerts filtering on one tag key to miss the other metric.",
       "source_pass": "review"
     }
   ]

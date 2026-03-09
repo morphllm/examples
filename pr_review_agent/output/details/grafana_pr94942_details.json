@@ -4,11 +4,11 @@
   "issues": [
     {
       "file_path": "pkg/expr/reader.go",
-      "line_number": 1,
+      "line_number": 193,
       "category": "logic_error",
       "severity": "critical",
-      "confidence": 0.97,
-      "comment": "enableSqlExpressions always returns false due to two compounding bugs: (1) Inverted logic \u2014 `enabled := !h.features.IsEnabledGlobally(...)` uses negation, so `enabled` is true when the feature flag is OFF. (2) Both branches return false \u2014 `if enabled { return false }` and the fallthrough `return false` both return the same value. Since the caller rejects SQL expressions when `enableSqlExpressions` returns false, SQL expression queries are always rejected with \"sqlExpressions is not implemented\", even when the FlagSqlExpressions feature flag is enabled. The correct implementation should simply be `return h.features.IsEnabledGlobally(featuremgmt.FlagSqlExpressions)`.",
+      "confidence": 0.95,
+      "comment": "The function `enableSqlExpressions` always returns `false` on every code path, making SQL expressions permanently disabled. Two compounding errors: (1) the feature flag check is inverted with `!h.features.IsEnabledGlobally(...)`, and (2) both the `if` branch and the fallthrough return `false`. The function should simply be `return h.features.IsEnabledGlobally(featuremgmt.FlagSqlExpressions)`. This causes all SQL expression queries to be rejected with \"sqlExpressions is not implemented\" even when the feature flag is enabled.",
       "source_pass": "review"
     }
   ]

@@ -7,8 +7,8 @@
       "line_number": 114,
       "category": "null_reference",
       "severity": "high",
-      "confidence": 0.95,
-      "comment": "The second `Objects.requireNonNull` checks `grantType` a second time instead of checking `rawTokenId`. This is a classic copy-paste bug. The error message says \"Null rawTokenId not allowed\" but it's actually validating `grantType` again. As a result, a `null` value for `rawTokenId` will not be caught by the constructor's validation, and will instead cause a NullPointerException later when `rawTokenId` is used. Fix: Change to `Objects.requireNonNull(rawTokenId, \"Null rawTokenId not allowed\");`",
+      "confidence": 0.97,
+      "comment": "Copy-paste error: line 114 checks `grantType` a second time instead of `rawTokenId`. `Objects.requireNonNull(grantType, \"Null rawTokenId not allowed\")` should be `Objects.requireNonNull(rawTokenId, \"Null rawTokenId not allowed\")`. This allows a null `rawTokenId` to pass constructor validation, leading to a NullPointerException later when `rawTokenId` is used (e.g., in `encodeTokenId()` or `equals()`/`hashCode()`).",
       "source_pass": "review"
     },
     {
@@ -16,8 +16,8 @@
       "line_number": 553,
       "category": "test_correctness",
       "severity": "high",
-      "confidence": 0.95,
-      "comment": "This line has two bugs: 1) Wrong substring indices: The encoded token format is SS(0-1) + TT(2-3) + GG(4-5) + ':' + rawId. The grant type shortcut occupies indices 4 and 5, so the correct call is `substring(4, 6)`. Using `substring(3, 5)` extracts one char of the token type and one char of the grant type. 2) Inverted logic: The condition returns `false` when the shortcut matches, which is backwards. It should return `false` when the shortcut does not match (i.e., `!equals`). The current logic means: \"if the grant type is correct, the token ID is invalid\" \u2014 the exact opposite of the intent. The combined effect is that the matcher never actually validates the grant shortcut, making all tests that use `isAccessTokenId(...)` pass regardless of which grant type is in the token ID. Fix: `if (!items[0].substring(4, 6).equals(expectedGrantShortcut)) return false;`",
+      "confidence": 0.97,
+      "comment": "Two independent bugs in `isAccessTokenId` matcher: (1) Wrong substring indices \u2014 `substring(3, 5)` extracts positions 3-4, but the grant type shortcut occupies indices 4-5, so it should be `substring(4, 6)`. (2) Inverted condition logic \u2014 `if (items[0].substring(3, 5).equals(expectedGrantShortcut)) return false;` returns false when the substring matches, but it should return false when it does NOT match. The fix is: `if (!items[0].substring(4, 6).equals(expectedGrantShortcut)) return false;`. Combined effect: the matcher always passes regardless of actual grant type, rendering all grant-type assertions useless.",
       "source_pass": "review"
     }
   ]

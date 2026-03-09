@@ -6,9 +6,9 @@
       "file_path": "pkg/services/authz/rbac/service_test.go",
       "line_number": 1387,
       "category": "test_correctness",
-      "severity": "medium",
-      "confidence": 0.95,
-      "comment": "Test sets wrong value \u2014 doesn't test what it claims. The comment says \"Allow access to the dashboard to prove this is not checked,\" but the value is `false`. In the scope map, `false` means the scope check in `checkPermission` evaluates to `false` \u2014 i.e., access is denied, not allowed. Every other test in this file uses `true` as the map value to indicate a granted permission. The intent is to prove that the denial cache takes priority over the permission cache. But since the permission cache also effectively denies here (value is `false`), the test would produce the same `Allowed: false` result even if the denial cache check were removed entirely. The value should be `true`: `map[string]bool{\"dashboards:uid:dash1\": true}`. Additionally, a fake store should be set up so that if the denial cache is ever bypassed, the test correctly distinguishes \"allowed by perm cache\" from \"denied by denial cache\" rather than panicking on a nil store.",
+      "severity": "high",
+      "confidence": 0.92,
+      "comment": "The test \"Should deny on explicit cache deny entry\" uses `false` in the permission cache map (`\"dashboards:uid:dash1\": false`), which means the permission cache itself would not grant access. The test passes regardless of whether the denial cache is checked, making it vacuous. The value should be `true` so that the permission cache would grant access, thereby proving the denial cache takes priority. Without this fix, the test gives false confidence and would fail to catch a regression if the denial cache check were accidentally removed or reordered.",
       "source_pass": "review"
     }
   ]

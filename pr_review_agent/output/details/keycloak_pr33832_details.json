@@ -7,8 +7,8 @@
       "line_number": 115,
       "category": "logic_error",
       "severity": "low",
-      "confidence": 0.92,
-      "comment": "Dead code: Lines 115-116 each create a new ASN1Encoder instance, call write() on it, and then the returned encoder is simply discarded. The actual DER encoding is done correctly in the return statement on lines 118-122, which creates completely independent new encoder instances. Comparing with the Bouncy Castle reference implementation (BCECDSACryptoProvider.concatenatedRSToASN1DER), those two extra lines don't exist. These lines are clearly leftover from development/debugging. While the method does produce the correct output, this is dead code where encoder results are computed but thrown away.",
+      "confidence": 0.93,
+      "comment": "Dead code: Lines 115-116 create two ASN1Encoder instances, write rBigInteger and sBigInteger into them, and immediately discard the results. The actual encoding is done by fresh encoders on lines 118-122. These are leftover debug/development lines that perform wasted computation (creating two ASN1Encoder objects, two ByteArrayOutputStream objects, and encoding two BigInteger values) on every ECDSA signature conversion.",
       "source_pass": "review"
     }
   ]

@@ -1,707 +1,10 @@
 {
-  "https://github.com/keycloak/keycloak/pull/37634": {
+  "https://github.com/calcom/cal.com/pull/14943": {
     "opus_warpgrep": [
       {
-        "text": "The fourth `Objects.requireNonNull` checks `grantType` instead of `rawTokenId`. This is a copy-paste error from the line above. As a result, passing `null` for `rawTokenId` will not throw an error, and `this.rawTokenId` will be set to `null`, which will cause a NullPointerException later (e.g., when `encodeTokenId` concatenates `rawTokenId`, or when `equals`/`hashCode` is called). Should be: `Objects.requireNonNull(rawTokenId, \"Null rawTokenId not allowed\");`",
-        "path": "services/src/main/java/org/keycloak/protocol/oidc/encode/AccessTokenContext.java",
-        "line": 114,
-        "source": "extracted"
-      },
-      {
-        "text": "Two bugs in one line: (1) Wrong substring indices: The encoded token prefix is 6 characters: [0-1]=sessionType, [2-3]=tokenType, [4-5]=grantType. To extract the grant type, it should be `substring(4, 6)`, not `substring(3, 5)`. Using (3, 5) extracts the 2nd char of tokenType + 1st char of grantType \u2014 the wrong characters. (2) Inverted condition: When `.equals()` returns `true` (the grant shortcut matches what we expect), the method returns `false` (no match). This is backwards. It should return `false` when the grant shortcut does not match. The correct line should be: `if (!items[0].substring(4, 6).equals(expectedGrantShortcut)) return false;`. Because both bugs are present simultaneously, the matcher will essentially never correctly validate the grant type in the token ID, making the test assertions on TOKEN_ID meaningless.",
-        "path": "testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/AssertEvents.java",
-        "line": 553,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/keycloak/keycloak/pull/37429": {
-    "opus_warpgrep": [
-      {
-        "text": "The `totpStep1` key was replaced with Italian text instead of Lithuanian text. The value 'Installa una delle seguenti applicazioni sul tuo cellulare:' is Italian ('Install one of the following applications on your cellphone'). The Lithuanian file should contain Lithuanian text, not Italian. This will display Italian to Lithuanian-speaking users.",
-        "path": "themes/src/main/resources-community/theme/base/account/messages/messages_lt.properties",
-        "line": 101,
-        "source": "extracted"
-      },
-      {
-        "text": "The `loginTotpStep1` key was replaced with Italian text instead of Lithuanian text. The value is Italian ('Installa una delle seguenti applicazioni sul tuo cellulare:'). The Lithuanian file should contain Lithuanian text. This will display Italian to Lithuanian-speaking users.",
-        "path": "themes/src/main/resources-community/theme/base/login/messages/messages_lt.properties",
-        "line": 71,
-        "source": "extracted"
-      },
-      {
-        "text": "The new `totpStep1` text uses Traditional Chinese characters in the zh_CN (Simplified Chinese) locale. Characters like \u624b\u6a5f (Traditional) should be \u624b\u673a (Simplified), \u5b89\u88dd should be \u5b89\u88c5, \u61c9\u7528\u7a0b\u5f0f should be \u5e94\u7528\u7a0b\u5e8f. The character forms match Traditional Chinese (zh_Hant) rather than Simplified Chinese.",
-        "path": "themes/src/main/resources-community/theme/base/account/messages/messages_zh_CN.properties",
-        "line": 101,
-        "source": "extracted"
-      },
-      {
-        "text": "The `error-invalid-multivalued-size` message was changed from i18next-compatible `{{0}}` interpolation format to Java MessageFormat `{0}` format. These frontend theme files are consumed by i18next (React i18n library), which uses `{{variable}}` for interpolation. i18next does NOT understand `{0}`, and `{2,choice,0#values|1#value|1<values}` is Java-only syntax. This will cause the frontend to display the literal placeholders and choice syntax instead of actual values.",
-        "path": "js/apps/admin-ui/maven-resources/theme/keycloak.v2/admin/messages/messages_en.properties",
-        "line": 3232,
-        "source": "extracted"
-      },
-      {
-        "text": "The `error-invalid-multivalued-size` message was changed from i18next-compatible `{{0}}` interpolation format to Java MessageFormat `{0}` format. These frontend theme files are consumed by i18next, which only understands `{{variable}}` syntax. The Java-only `{2,choice,...}` syntax will not be processed by i18next, causing literal placeholder text to be displayed to users.",
-        "path": "js/apps/account-ui/maven-resources/theme/keycloak.v3/account/messages/messages_en.properties",
-        "line": 189,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/keycloak/keycloak/pull/36882": {
-    "opus_warpgrep": []
-  },
-  "https://github.com/keycloak/keycloak/pull/37038": {
-    "opus_warpgrep": [
-      {
-        "text": "canManage() incorrectly grants manage access for VIEW permission. The method checks for both VIEW and MANAGE scopes via hasPermission(null, AdminPermissionsSchema.VIEW, AdminPermissionsSchema.MANAGE), meaning a user with only VIEW permission on groups will be granted manage access (privilege escalation). Compare with canManage(GroupModel group) which correctly only checks MANAGE. This is a copy-paste error from canView(). The fix should be: return hasPermission(null, AdminPermissionsSchema.MANAGE);",
-        "path": "services/src/main/java/org/keycloak/services/resources/admin/permissions/GroupPermissionsV2.java",
-        "line": 68,
-        "source": "extracted"
-      },
-      {
-        "text": "getGroupIdsWithViewPermission() uses groupResource.getId() which returns the Resource entity's internal UUID (authorization store primary key), not the group model's ID. The resource's name (groupResource.getName()) is set to the group model's ID when created. This causes two problems: (1) Permission check fails because hasPermission() searches by name with an internal UUID that won't match, (2) Wrong IDs are returned in the Set<String> \u2014 resource entity UUIDs instead of actual group IDs, so callers filtering users by group membership will find no matches. Both occurrences of groupResource.getId() should be replaced with groupResource.getName().",
-        "path": "services/src/main/java/org/keycloak/services/resources/admin/permissions/GroupPermissionsV2.java",
-        "line": 128,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/keycloak/keycloak/pull/40940": {
-    "opus_warpgrep": [
-      {
-        "text": "Contract violation \u2014 `getSubGroupsCount()` can return `null` violating \"Never returns null\" contract. The interface `GroupModel.getSubGroupsCount()` has an explicit Javadoc contract that it never returns null, but the new implementation returns `null` when the model is not found: `return model == null ? null : model.getSubGroupsCount();`. This should return `0L` instead of `null` to maintain the interface contract. Any future caller relying on the documented non-null guarantee\u2014or any auto-unboxing to `long`\u2014will get a `NullPointerException`.",
-        "path": "model/infinispan/src/main/java/org/keycloak/models/cache/infinispan/GroupAdapter.java",
-        "line": 277,
-        "source": "extracted"
-      },
-      {
-        "text": "Test race condition \u2014 reader thread never joined before assertion. The reader thread is started with `new Thread(() -> { ... }).start()` but the thread reference is never saved and never joined. After `deletedAll.set(true)`, the assertion runs immediately, but the reader thread could still be in the middle of its HTTP request. If that request fails, the exception gets added to `caughtExceptions` after the assertion has already passed. This makes the test unreliable \u2014 it can pass even when the concurrent read operation throws exceptions. The thread reference should be stored and `thread.join()` should be called before the assertion.",
-        "path": "tests/base/src/test/java/org/keycloak/tests/admin/group/GroupTest.java",
-        "line": 143,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/keycloak/keycloak/pull/38446": {
-    "opus_warpgrep": [
-      {
-        "text": "In getCredentials(), the model is built via RecoveryAuthnCodesCredentialModel.createFromValues(...), which does not set the credential's ID on the model. The stored myUser.recoveryCodes has a valid ID (set in updateCredential at line 196), but the ID is lost. model.getId() will be null. This model is returned through getFederatedCredentialsStream() \u2192 RecoveryAuthnCodesUtils.getCredential() \u2192 consumed by RecoveryAuthnCodesFormAuthenticator.isRecoveryAuthnCodeInputValid(). If allCodesUsed() returns true, it calls authenticatedUser.credentialManager().removeStoredCredentialById(recoveryCodeCredentialModel.getId()) with a null ID, which will either throw a NullPointerException or fail to remove the credential. Fix: add model.setId(myUser.recoveryCodes.getId()) after creating the model.",
-        "path": "testsuite/integration-arquillian/servers/auth-server/services/testsuite-providers/src/main/java/org/keycloak/testsuite/federation/BackwardsCompatibilityUserStorage.java",
-        "line": 238,
-        "source": "extracted"
-      },
-      {
-        "text": "Uses a hardcoded string \"keycloak-recovery-authn-codes\" instead of the constant RecoveryAuthnCodesCredentialProviderFactory.PROVIDER_ID. While the values currently match, this creates a fragile dependency \u2014 if the provider ID constant ever changes, this code will silently get a null provider and fail with NPE at line 130.",
-        "path": "server-spi-private/src/main/java/org/keycloak/utils/CredentialHelper.java",
-        "line": 117,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/keycloak/keycloak/pull/36880": {
-    "opus_warpgrep": [
-      {
-        "text": "getResourceTypeResource can return null (if supportsAuthorizationSchema is false, or if findByName returns null because the resource-type resource hasn't been created in the DB). When resource is null: 1) findByResource(server, null) violates the contract (@param resource \"Cannot be null\") and will likely NPE inside the JPA query. 2) Even if it didn't, the code below does resource.getScopes() which would also NPE. The refactored version (FineGrainedAdminPermissionEvaluator) avoids this by checking isAdminPermissionsEnabled upfront, but this version has no null guard.",
-        "path": "services/src/main/java/org/keycloak/services/resources/admin/permissions/ClientPermissionsV2.java",
-        "line": 229,
-        "source": "extracted"
-      },
-      {
-        "text": "Javadoc contradicts method signature \u2014 copy-paste error on requireView() and requireViewClientScopes(). Both methods are void (they throw ForbiddenException on failure, they don't return a boolean). The Javadoc says \"Returns true if...\" but should say \"Throws ForbiddenException if ... returns false\" to match the actual behavior and the pattern used by all other require* methods in this interface.",
-        "path": "services/src/main/java/org/keycloak/services/resources/admin/permissions/ClientPermissionEvaluator.java",
-        "line": 97,
-        "source": "extracted"
-      },
-      {
-        "text": "Dead code \u2014 unused private method getEvaluationContext. This private method is never called anywhere in ClientPermissionsV2. It appears to be leftover from the parent class's canExchangeTo implementation, which in V2 throws UnsupportedOperationException. The method's result is computed but never used, making it dead code.",
-        "path": "services/src/main/java/org/keycloak/services/resources/admin/permissions/ClientPermissionsV2.java",
-        "line": 261,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/keycloak/keycloak/pull/33832": {
-    "opus_warpgrep": [
-      {
-        "text": "Lines 115-116 create two ASN1Encoder instances, encode integers into them, and then immediately discard the results. The actual encoding is performed by new, separate encoder instances created in the return statement. This is dead code (wasted computation, encoder output never used) clearly left over from a refactoring or copy-paste. The method produces the correct output, but these two lines serve no purpose. The return value of write() on these two lines is never stored or used.",
-        "path": "authz/client/src/main/java/org/keycloak/authorization/client/util/crypto/AuthzClientCryptoProvider.java",
-        "line": 115,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/getsentry/sentry/pull/93824": {
-    "opus_warpgrep": [
-      {
-        "text": "The original `buffer` passed to `SpanFlusher.__init__` carries a `slice_id` (set via `kafka_slice_id` in the factory: `SpansBuffer(assigned_shards=..., slice_id=self.kafka_slice_id)`). But the diff removes `self.buffer = buffer` and never saves `buffer.slice_id`. When creating per-shard buffers, `SpansBuffer(shards)` defaults `slice_id=None`. This causes the per-shard flusher buffers to use different Redis queue keys than the consumer's writer buffer. Specifically, `SpansBuffer._get_queue_key` produces `span-buf:q:{shard}` instead of `span-buf:q:{slice_id}-{shard}` when `slice_id` is not None. The flusher will look at wrong Redis keys and never find segments to flush, silently losing data for any deployment using `kafka_slice_id`.",
-        "path": "src/sentry/spans/consumers/process/flusher.py",
-        "line": 1,
-        "source": "extracted"
-      },
-      {
-        "text": "Two adjacent metric timers in the same function use different tag key names for the same value \u2014 `\"shard\"` (singular) for the produce timer and `\"shards\"` (plural) for the wait_produce timer. This makes it impossible to consistently query/correlate these metrics by shard in dashboards and alerting. All other metric tags in the diff use `\"shard\"` (singular), making the `\"shards\"` on `wait_produce` the odd one out.",
-        "path": "src/sentry/spans/consumers/process/flusher.py",
-        "line": 1,
-        "source": "extracted"
-      },
-      {
-        "text": "The `monkeypatch.setattr(\"time.sleep\", ...)` replaces `time.sleep` globally with a no-op lambda. The added `time.sleep(0.1)` call does not actually sleep \u2014 it's a no-op, contradicting the comment \"Give flusher threads time to process after drift change.\" This means the test provides no actual time for flusher threads to run before `step.join()` is called, making it racy. The flusher thread may not have consumed the drift change and flushed data before `stopped` is set by `join()`.",
-        "path": "tests/sentry/spans/consumers/process/test_consumer.py",
-        "line": 1,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/ai-code-review-evaluation/keycloak-greptile/pull/1": {
-    "opus_warpgrep": []
-  },
-  "https://github.com/ai-code-review-evaluation/sentry-greptile/pull/1": {
-    "opus_warpgrep": [
-      {
-        "text": "OptimizedCursorPaginator.get_item_key() crashes with TypeError on datetime fields. The method calls math.floor()/math.ceil() directly on the value from getattr(item, self.key), but when used with order_by=\"-datetime\" on AuditLogEntry models, the value is a Python datetime object. Calling math.floor() on a datetime raises TypeError: \"type datetime.datetime doesn't define __floor__ method\". It should first convert the datetime to a float timestamp, as DateTimePaginator.get_item_key() does with: value = float(value.strftime(\"%s.%f\")) * self.multiplier. This will crash whenever there are any audit log results to paginate.",
-        "path": "src/sentry/api/paginator.py",
-        "line": 230,
-        "source": "extracted"
-      },
-      {
-        "text": "Django QuerySet does not support negative slicing. The code allows negative cursor offsets and passes them to queryset[start_offset:stop], but Django QuerySets explicitly prohibit negative indexing and will raise ValueError(\"Negative indexing is not supported.\"). The code comment \"The underlying Django ORM properly handles negative slicing automatically\" is factually incorrect. Any request that triggers this path (by crafting a cursor with a negative offset) will crash with ValueError.",
-        "path": "src/sentry/api/paginator.py",
-        "line": 233,
-        "source": "extracted"
-      },
-      {
-        "text": "organization_context.member can be None, causing AttributeError on .has_global_access. The code does: request.user.is_superuser or organization_context.member.has_global_access. RpcUserOrganizationContext.member is typed as RpcOrganizationMember | None (member can be None when the given user_id does not have membership). If a non-superuser request reaches this code without a valid member (e.g., staff users, edge cases), organization_context.member.has_global_access raises AttributeError: 'NoneType' object has no attribute 'has_global_access'. The safe pattern is to always check for None first.",
-        "path": "src/sentry/api/endpoints/organization_auditlogs.py",
-        "line": 1,
-        "source": "extracted"
-      },
-      {
-        "text": "OptimizedCursorPaginator.value_from_cursor() returns the raw cursor value (an integer timestamp) instead of converting it to a datetime object. When used with order_by=\"-datetime\", build_queryset() uses this value to construct a SQL WHERE clause like 'datetime >= %s'. Passing a raw integer instead of a datetime object causes incorrect query filtering or a database type mismatch error on subsequent pages. DateTimePaginator.value_from_cursor() properly converts via datetime.fromtimestamp(float(cursor.value) / self.multiplier).replace(tzinfo=timezone.utc).",
-        "path": "src/sentry/api/paginator.py",
-        "line": 235,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/getsentry/sentry/pull/80528": {
-    "opus_warpgrep": [
-      {
-        "text": "The function creates a copy of `config`, modifies the copy to replace the raw `schedule_type` integer with a human-readable string via `get_schedule_type_display()`, but then the return dict uses `monitor_environment.monitor.config` (the original, unmodified config) instead of the local `config` variable. The first three lines of the function are dead code \u2014 the human-readable `schedule_type` is computed but never included in the returned context. The fix: change `\"config\": monitor_environment.monitor.config` to `\"config\": config`.",
-        "path": "src/sentry/monitors/logic/incident_occurrence.py",
-        "line": 163,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/getsentry/sentry/pull/77754": {
-    "opus_warpgrep": [
-      {
-        "text": "The default value `timezone.now()` is evaluated once when the class is first defined (at module import time), not each time an instance is created. Every `AssignmentSource` instance that doesn't explicitly pass `queued` will share the same stale timestamp \u2014 the time the module was first imported, which could be hours or days before the actual assignment event. This affects `from_integration()` which relies on the default. The fix is to use `field(default_factory=timezone.now)`.",
-        "path": "src/sentry/integrations/services/assignment_source.py",
-        "line": 18,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/ai-code-review-evaluation/sentry-greptile/pull/5": {
-    "opus_warpgrep": [
-      {
-        "text": "`nodestore.backend.get_multi()` returns a dict keyed by node_id, and dict value ordering is NOT guaranteed to match the input order. When some items are cached and others are not, the dict values will be reordered (uncached items first, then cached items appended). Zipping `error_ids` with `events.values()` silently pairs wrong error IDs with wrong event data. Fix: look up each node_id explicitly using `events.get(node_id)` instead of relying on zip with dict values.",
-        "path": "src/sentry/replays/endpoints/project_replay_summarize_breadcrumbs.py",
-        "line": 90,
-        "source": "extracted"
-      },
-      {
-        "text": "`analytics.record()` expects a single `Event` instance, but is called with a string `\"preprod_artifact.api.assemble\"` plus keyword arguments. This will raise `TypeError: record() got unexpected keyword arguments`. Every other call site in `src/sentry/preprod/` correctly passes an Event instance, e.g. `analytics.record(PreprodArtifactApiAssembleEvent(...))`.",
-        "path": "src/sentry/preprod/api/endpoints/organization_preprod_artifact_assemble.py",
-        "line": 80,
-        "source": "extracted"
-      },
-      {
-        "text": "`analytics.Attribute` does not exist in the analytics module. The `analytics` module exports `Analytics`, `eventclass`, `Event`, `record`, `record_event`, `setup` \u2014 but no `Attribute` class. This file is imported via `src/sentry/preprod/__init__.py` (`from .analytics import *`), so it will crash on import with `AttributeError: module 'sentry.analytics' has no attribute 'Attribute'`.",
-        "path": "src/sentry/preprod/analytics.py",
-        "line": 7,
-        "source": "extracted"
-      },
-      {
-        "text": "Browser report mutual-exclusivity validation uses `.get()` truthiness checks instead of presence checks. Integer value `0` is falsy in Python, so if both `age=0` and `timestamp=0` are provided, neither validator will raise \u2014 allowing both fields to coexist when the intent is mutual exclusivity. The fix is to use `\"age\" in self.initial_data` or `self.initial_data.get(\"age\") is not None`.",
-        "path": "src/sentry/issues/endpoints/browser_reporting_collector.py",
-        "line": 45,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/getsentry/sentry/pull/80168": {
-    "opus_warpgrep": [
-      {
-        "text": "The `value` parameter in `build_mock_occurrence_and_event` is accepted but never used. It is never incorporated into the `IssueOccurrence` or `event_data`. This means the test helper does not verify that the correct value is passed through to the occurrence/event data, silently masking multiple wrong values in the tests below.",
-        "path": "tests/sentry/workflow_engine/processors/test_detector.py",
-        "line": 1,
-        "source": "extracted"
-      },
-      {
-        "text": "In `test_state_results_multi_group`, the data packet sends value `10` for `\"group_2\"`, but the expected mock occurrence is built with value `6` (copy-pasted from `group_1`). This is a copy-paste error: `build_mock_occurrence_and_event(detector.detector_handler, \"group_2\", 6, PriorityLevel.HIGH)` should use `10` instead of `6`. It doesn't cause a test failure only because Bug 1 makes `value` unused, but the test intent is wrong.",
-        "path": "tests/sentry/workflow_engine/processors/test_detector.py",
-        "line": 1,
-        "source": "extracted"
-      },
-      {
-        "text": "In `TestEvaluateGroupKeyValue.test_dedupe`, the mock builds the occurrence with `group_key=\"val1\"` (which calls `handler.build_fingerprint(\"val1\")`), but the actual `evaluate_group_key_value` call in this test passes `\"group_key\"` as the group_key, which would produce `handler.build_fingerprint(\"group_key\")`. Since `build_fingerprint` incorporates the `group_key` into the fingerprint string, the expected occurrence's fingerprint won't match the actual occurrence's fingerprint \u2014 the test would either fail or is testing the wrong thing.",
-        "path": "tests/sentry/workflow_engine/processors/test_detector.py",
-        "line": 1,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/grafana/grafana/pull/97529": {
-    "opus_warpgrep": []
-  },
-  "https://github.com/ai-code-review-evaluation/sentry-greptile/pull/3": {
-    "opus_warpgrep": [
-      {
-        "text": "Missing `ifNull` null-safety in `upsampled_count` SnQL function. Every other usage of `sample_weight` in the codebase wraps it with `ifNull(sample_weight, 1)`. Without `ifNull`, if any event has a NULL `sample_weight` (e.g., events stored before upsampling was configured, or events from SDKs that don't set it), those events are silently excluded from `sum()` in ClickHouse, causing undercounting. The correct implementation is `Function(\"sum\", [Function(\"ifNull\", [Column(\"sample_weight\", entity=Entity(\"events\", alias=\"events\")), 1])])`. Additionally, `Column(\"sample_weight\")` is missing the entity specification `entity=Entity(\"events\", alias=\"events\")` that all other `sample_weight` Column references use, which can cause resolution failures in cross-entity query contexts.",
-        "path": "src/sentry/search/events/datasets/discover.py",
+        "text": "The second branch of the `deleteMany` OR condition (`{ retryCount: { gt: 1 } }`) is missing a `method: WorkflowMethods.SMS` filter. This causes the SMS cron job to delete WorkflowReminder records of ALL method types (EMAIL, WHATSAPP, AI_PHONE_CALL) where retryCount > 1, not just SMS reminders. This is especially damaging because email and WhatsApp schedulers allow up to 3 retries (retryCount < 3), so reminders at retryCount === 2 would be prematurely deleted before those handlers can make their third attempt. The fix is to add `method: WorkflowMethods.SMS` to the second OR branch.",
+        "path": "packages/features/ee/workflows/api/scheduleSMSReminders.ts",
         "line": null,
-        "source": "extracted"
-      },
-      {
-        "text": "Accidental `sentry-repo` git submodule addition. This adds a git submodule reference (Subproject commit a5d290951def84afdcc4c88d2f1f20023fc36e2a), but there is no `.gitmodules` file in the repository to define the submodule's URL. This is an accidental commit artifact. It will create a broken submodule entry that causes errors during `git submodule update --init` and pollutes the repository root with an orphaned submodule reference.",
-        "path": "sentry-repo",
-        "line": 1,
-        "source": "extracted"
-      },
-      {
-        "text": "Test comments contradict assertion values. The comments say \"has 1 event\" but the assertions check for `10`. While the assertion values are correct (1 event \u00d7 sample_weight of 10 from `client_sample_rate: 0.1`), the comments describe the raw count rather than the expected upsampled result. This is misleading and will confuse future developers trying to understand what the test validates. The comments should say something like \"1 event upsampled to 10\" to match the assertion.",
-        "path": "tests/snuba/api/endpoints/test_organization_events_stats.py",
-        "line": null,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/ai-code-review-evaluation/sentry-greptile/pull/2": {
-    "opus_warpgrep": [
-      {
-        "text": "OptimizedCursorPaginator.get_item_key crashes with TypeError on datetime fields. The audit logs endpoint uses order_by=\"-datetime\" on AuditLogEntry, where datetime is a DateTimeField. So getattr(item, \"datetime\") returns a datetime object, and math.floor(datetime_object) raises TypeError. Compare with DateTimePaginator.get_item_key which correctly converts to float first via value = float(value.strftime(\"%s.%f\")) * self.multiplier. This crashes on the first request that returns any results, because build_cursor calls key(results[-1]) \u2192 self.get_item_key(item).",
-        "path": "src/sentry/api/paginator.py",
-        "line": 843,
-        "source": "extracted"
-      },
-      {
-        "text": "OptimizedCursorPaginator.value_from_cursor returns wrong type for datetime columns. When paginating with a cursor on the datetime column, build_queryset uses the return value in a SQL WHERE datetime >= %s clause. DateTimePaginator.value_from_cursor correctly converts the numeric cursor value back to a datetime object. This method just returns the raw number, causing a type mismatch in the database query.",
-        "path": "src/sentry/api/paginator.py",
-        "line": 846,
-        "source": "extracted"
-      },
-      {
-        "text": "Django QuerySet negative slicing raises AssertionError. The comment says \"The underlying Django ORM properly handles negative slicing automatically\" \u2014 this is false. Django QuerySets explicitly raise AssertionError: Negative indexing is not supported for negative slice indices. Since cursor values come from user input (Cursor.from_string parses int(bits[1]) which can be negative), a superuser/admin sending optimized_pagination=true with a crafted cursor like 0:-1:0 will trigger this crash.",
-        "path": "src/sentry/api/paginator.py",
-        "line": 878,
-        "source": "extracted"
-      },
-      {
-        "text": "organization_context.member can be None causing AttributeError. The member field is typed as RpcOrganizationMember | None. If member is None, accessing .has_global_access raises AttributeError. While Python's short-circuit or evaluation means request.user.is_superuser being True would prevent the member access, the code is fragile \u2014 if there's ever any authentication path where a non-superuser non-member can reach this endpoint, it will crash. The safe pattern would be getattr(organization_context.member, 'has_global_access', False).",
-        "path": "src/sentry/api/endpoints/organization_auditlogs.py",
-        "line": null,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/grafana/grafana/pull/94942": {
-    "opus_warpgrep": [
-      {
-        "text": "enableSqlExpressions always returns false due to two compounding bugs: (1) Inverted logic \u2014 `enabled` is set to the negation of `IsEnabledGlobally`, so `enabled` is `true` when the feature is disabled, opposite of what the variable name suggests. (2) Both branches return `false` \u2014 regardless of the value of `enabled`, the function returns `false`. There is no path that returns `true`. Runtime consequence: The caller in `ReadQuery` always gets `false`, so `!enabled` is always `true`, and every SQL expression query is rejected with \"sqlExpressions is not implemented\" even when the FlagSqlExpressions feature toggle is turned on. This is a hard regression for anyone using SQL expressions. The correct implementation should be: `return h.features.IsEnabledGlobally(featuremgmt.FlagSqlExpressions)`.",
-        "path": "pkg/expr/reader.go",
-        "line": 193,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/grafana/grafana/pull/90939": {
-    "opus_warpgrep": [
-      {
-        "text": "Incomplete double-checked locking \u2014 missing re-check after acquiring write lock. After the RLock fast-path check on line 50 finds the cache empty, multiple goroutines can queue up to acquire the exclusive Lock on line 53. When the second (and third, etc.) goroutine finally acquires the write lock, entryPointAssetsCache has already been populated by the first goroutine \u2014 but the code never re-checks. It proceeds to re-read assets from disk/CDN and overwrites the cache unnecessarily. The correct pattern requires a second check after the write lock: if cfg.Env != setting.Dev && entryPointAssetsCache != nil { return entryPointAssetsCache, nil }. Without this, under concurrent startup load, every waiting goroutine will redundantly perform file I/O or CDN HTTP requests, and each will overwrite entryPointAssetsCache with a freshly-allocated result. This is the classic incomplete double-checked locking bug.",
-        "path": "pkg/api/webassets/webassets.go",
-        "line": 53,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/grafana/grafana/pull/103633": {
-    "opus_warpgrep": [
-      {
-        "text": "Test sets wrong value \u2014 doesn't test what it claims. The comment says \"Allow access to the dashboard to prove this is not checked,\" but the value is `false`. In the scope map, `false` means the scope check in `checkPermission` evaluates to `false` \u2014 i.e., access is denied, not allowed. Every other test in this file uses `true` as the map value to indicate a granted permission. The intent is to prove that the denial cache takes priority over the permission cache. But since the permission cache also effectively denies here (value is `false`), the test would produce the same `Allowed: false` result even if the denial cache check were removed entirely. The value should be `true`: `map[string]bool{\"dashboards:uid:dash1\": true}`. Additionally, a fake store should be set up so that if the denial cache is ever bypassed, the test correctly distinguishes \"allowed by perm cache\" from \"denied by denial cache\" rather than panicking on a nil store.",
-        "path": "pkg/services/authz/rbac/service_test.go",
-        "line": 1387,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/getsentry/sentry/pull/95633": {
-    "opus_warpgrep": [
-      {
-        "text": "The test's assertion contradicts both its own docstring and the actual production behavior. The docstring says errors should not block offset commits, but the assertion `assert len(committed_offsets) == 0 or test_partition not in committed_offsets` checks that NO commits happened. In production, `complete_offset` is called in a `finally` block in `OrderedQueueWorker.run()`, meaning offsets ARE completed even when processing raises an exception. The test only passes due to timing luck: the `_commit_loop` does `self.shutdown_event.wait(1.0)` at the start of each iteration, so the first commit happens ~1 second after startup, and the test checks within ~0.3 seconds \u2014 before the commit loop fires. This makes the test inherently flaky and testing the wrong behavior.",
-        "path": "tests/sentry/uptime/consumers/test_results_consumer.py",
-        "line": 1,
-        "source": "extracted"
-      },
-      {
-        "text": "The docstring on `test_thread_queue_parallel_error_handling` says errors should 'not block' commits, but the assertion expects zero commits. There is a mismatch between intent and implementation: if errored messages should NOT have their offsets committed (as the assertion suggests), then the production code has the bug \u2014 `complete_offset` should not be called in the `finally` block for errored messages, but rather in the `try` block's success path only. Either way, there's a mismatch between intent and implementation.",
-        "path": "tests/sentry/uptime/consumers/test_results_consumer.py",
-        "line": 1,
-        "source": "extracted"
-      },
-      {
-        "text": "The `_commit_loop` places `self.shutdown_event.wait(1.0)` at the start of the loop body. During shutdown, if the commit thread is between the `while` check and `wait()` when `shutdown_event` is set, the thread does one final commit and exits \u2014 but workers may still be processing items (via `queue_pool.shutdown()` draining queues after `commit_thread.join()`). Any offsets completed by workers during that drain are never committed. While compatible with at-least-once semantics, this means some successfully processed work is lost during graceful shutdown. A more robust pattern would be to do one final commit after the queue pool is drained.",
-        "path": "src/sentry/remote_subscriptions/consumers/queue_consumer.py",
-        "line": 262,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/grafana/grafana/pull/90045": {
-    "opus_warpgrep": [
-      {
-        "text": "In the `Create` method's error path, the Storage operation's duration is recorded using `recordLegacyDuration` instead of `recordStorageDuration`. This is a copy-paste error that will corrupt metrics: storage failures will be attributed to legacy storage.",
-        "path": "pkg/apiserver/rest/dualwriter_mode3.go",
-        "line": null,
-        "source": "extracted"
-      },
-      {
-        "text": "In the `Update` method's error path, the Storage operation's duration is recorded using `recordLegacyDuration` instead of `recordStorageDuration`. Same copy-paste error as in Create \u2014 storage operation errors are recorded under the Legacy metric.",
-        "path": "pkg/apiserver/rest/dualwriter_mode3.go",
-        "line": null,
-        "source": "extracted"
-      },
-      {
-        "text": "In the `DeleteCollection` method's goroutine, a Legacy operation's duration is recorded using `recordStorageDuration` instead of `recordLegacyDuration`. This is the inverse of the Create/Update bugs \u2014 legacy deletecollection duration is attributed to storage metrics. Every other goroutine doing a legacy background operation correctly uses `recordLegacyDuration`.",
-        "path": "pkg/apiserver/rest/dualwriter_mode3.go",
-        "line": null,
-        "source": "extracted"
-      },
-      {
-        "text": "In the `Delete` method, the enriched logger `log` (with name, kind, method values) is created but then `d.Log` (the base logger without those values) is stored in the context via `klog.NewContext(ctx, d.Log)`. It should be `klog.NewContext(ctx, log)`. Any downstream code extracting the logger from context will get the unenriched version, losing delete-specific metadata for debugging.",
-        "path": "pkg/apiserver/rest/dualwriter_mode3.go",
-        "line": null,
-        "source": "extracted"
-      },
-      {
-        "text": "In the `Delete` method's success path, `name` is used instead of `options.Kind` as the third argument to `recordStorageDuration`. On error the correct `options.Kind` (e.g., \"Playlist\") is used, but on success `name` (e.g., \"my-playlist-1\") is used. This creates a cardinality explosion in metrics \u2014 every unique object name becomes its own metric label \u2014 and is inconsistent with every other method in the file.",
-        "path": "pkg/apiserver/rest/dualwriter_mode3.go",
-        "line": null,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/grafana/grafana/pull/80329": {
-    "opus_warpgrep": [
-      {
-        "text": "r.log.Error() is used for routine informational logging in annotation cleanup operations. This is wrong for multiple reasons: (1) Error level will trigger monitoring alerts and create log noise on every cleanup cycle. (2) The 'err' field is logged after a nil check, so err is always nil \u2014 misleading in an error-level log. (3) Full ID slices (up to AnnotationCleanupJobBatchSize entries, e.g. 32,767 IDs) are logged every batch iteration, creating enormous log entries. These should be at Debug level or removed entirely.",
-        "path": "pkg/services/annotations/annotationsimpl/xorm_store.go",
-        "line": 1,
-        "source": "extracted"
-      },
-      {
-        "text": "Cleanup ticker reduced from 10 minutes to 1 minute, but the hardcoded 9-minute timeout in clean() at line 123 was designed as a pair with the 10-minute interval (ensuring cleanup finishes before the next tick). With a 1-minute ticker, if any cleanup cycle takes >1 minute, the next cycle fires immediately after. The 9-minute timeout still applies, so cleanup could run back-to-back for up to 9 minutes, generating 10x the expected database load. This appears to be a debugging leftover that should be reverted to 10 minutes.",
-        "path": "pkg/services/cleanup/cleanup.go",
-        "line": 77,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/getsentry/sentry/pull/67876": {
-    "opus_warpgrep": [
-      {
-        "text": "The `src/sentry/identity/github/__init__.py` file is empty \u2014 it doesn't export `GitHubIdentityProvider` or `get_user_info`. These are defined in `src/sentry/identity/github/provider.py`. This import will raise `ImportError` at module load time, completely breaking the GitHub integration. The correct import should be: `from sentry.identity.github.provider import GitHubIdentityProvider, get_user_info`",
-        "path": "src/sentry/integrations/github/integration.py",
-        "line": 1,
-        "source": "extracted"
-      },
-      {
-        "text": "The `pipeline.signature` is an MD5 hash of the fully-qualified class names of the pipeline views. The diff changes `get_pipeline_views()` from `[GitHubInstallation()]` to `[OAuthLoginView(), GitHubInstallation()]`, which changes the signature. All other tests correctly use the new signature `\"9cae5e88803f35ed7970fc131e6e65d3\"`, but `test_installation_not_found` uses the old signature `\"ddd023d87a913d5226e2a882c4c4cc05\"`. Because the state doesn't match `pipeline.signature`, the `OAuthLoginView` immediately returns an error at the state validation check, so the test passes but tests OAuth state validation failure, not the intended \"installation not found\" scenario. The actual \"installation not found\" code path is never exercised.",
-        "path": "tests/sentry/integrations/github/test_integration.py",
-        "line": 1,
-        "source": "extracted"
-      },
-      {
-        "text": "If `integration.metadata` does not contain a `\"sender\"` key (e.g., integration created by a different code path, or metadata was corrupted/migrated), accessing `integration.metadata[\"sender\"][\"login\"]` raises an unhandled `KeyError` resulting in a 500 error. The `.get()` method or a try/except should be used for safe access, especially since this is user-facing flow code.",
-        "path": "src/sentry/integrations/github/integration.py",
-        "line": 1,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/keycloak/keycloak/pull/32918": {
-    "opus_warpgrep": [
-      {
-        "text": "Test cleanup uses the literal alias \"alias\" instead of the actual alias of the created IDP (e.g., \"idp-alias-0\" through \"idp-alias-19\"). The cleanup code `getCleanup().addCleanup(testRealm().identityProviders().get(\"alias\")::remove)` should use the actual alias like `\"idp-alias-\" + i`. This means cleanup will attempt to remove a non-existent IDP named \"alias\", while the 20+ IDPs created during the test persist and pollute subsequent tests. Same bug exists at line 422 for \"idp-alias-20\". This is a copy-paste error from the pre-existing `testCacheIDPByOrg` test (line 302) which has the same bug.",
-        "path": "testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/organization/cache/OrganizationCacheTest.java",
-        "line": 378,
-        "source": "extracted"
-      },
-      {
-        "text": "Test cleanup registers removal of IDP with literal alias \"alias\" instead of the actual alias \"idp-alias-20\". Should be `getCleanup().addCleanup(testRealm().identityProviders().get(\"idp-alias-20\")::remove)`. The created IDP will not be cleaned up, leaking into subsequent tests.",
-        "path": "testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/organization/cache/OrganizationCacheTest.java",
-        "line": 422,
-        "source": "extracted"
-      },
-      {
-        "text": "The new predicate `.and(idp -> idp.getOrganizationId() == null || Boolean.parseBoolean(idp.getConfig().get(OrganizationModel.BROKER_PUBLIC)))` added to `getLoginPredicate()` is too restrictive. It causes `registerIDPLoginInvalidation()` to skip cache invalidation for org-linked IDPs that don't have BROKER_PUBLIC set. However, `getForLogin(ORG_ONLY, orgId)` returns all org-linked IDPs matching login search options without filtering by BROKER_PUBLIC, so those IDPs can be cached. When such an IDP is removed, the login cache won't be invalidated because the predicate returns false. This predicate/delegate mismatch is a design inconsistency that could cause subtle cache staleness, especially in `registerIDPLoginInvalidationOnUpdate` where there's no self-healing fallback.",
-        "path": "server-spi/src/main/java/org/keycloak/models/IdentityProviderStorageProvider.java",
-        "line": 254,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/grafana/grafana/pull/106778": {
-    "opus_warpgrep": [
-      {
-        "text": "Missing `key` prop for `GrafanaRuleListItem` in list rendering. The `key` variable is destructured from `ruleWithOrigin` and is correctly passed to `<DataSourceRuleLoader key={key}>` and `<UnknownRuleListItem key={key}>`, but is not passed to `<GrafanaRuleListItem>`. The old code had `<GrafanaRuleLoader key={key} ...>`. This will produce React warnings about missing keys in list rendering and cause incorrect component reuse/reconciliation when the filtered list changes (e.g., items reordering, additions, removals).",
-        "path": "public/app/features/alerting/unified/rule-list/FilterView.tsx",
-        "line": 157,
-        "source": "extracted"
-      },
-      {
-        "text": "`isAlertingRule` incorrectly replaces `isGrafanaManagedAlertRule`. The new variable `isAlertingRule = prometheusRuleType.grafana.alertingRule(rule)` only matches alerting rules (type === PromRuleType.Alerting), whereas the old equivalent `isGrafanaManagedAlertRule = rulerRuleType.grafana.rule(rule)` matched any Grafana rule (alerting or recording). This causes Grafana recording rules to lose Export (ModifyExport), Restore, and DeletePermanently abilities \u2014 all resolve to [false, ...] for recording rules. The fix should use a broader check like `prometheusRuleType.grafana.rule(rule)` for ModifyExport, Restore, and DeletePermanently, while keeping `isAlertingRule` for Pause and Silence.",
-        "path": "public/app/features/alerting/unified/hooks/useAbilities.ts",
-        "line": 386,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/grafana/grafana/pull/107534": {
-    "opus_warpgrep": [
-      {
-        "text": "Double application of `applyTemplateVariables` (including ad hoc filters). The new code calls `applyTemplateVariables` in `runSplitQuery`, but `DataSourceWithBackend.query()` (called via `datasource.runQuery()` \u2192 `super.query()`) already calls `applyTemplateVariables` internally. Since `addAdHocFilters` is NOT idempotent (it calls `addLabelToQuery` for each filter unconditionally), ad hoc filters will be added to the query expression 2 times, producing incorrect queries like `{a=\"b\", job=\"prometheus\", job=\"prometheus\"}`. Tests don't catch this because `datasource.runQuery` is mocked, preventing `super.query()` from being called.",
-        "path": "public/app/plugins/datasource/loki/querySplitting.ts",
-        "line": 339,
-        "source": "extracted"
-      },
-      {
-        "text": "Triple application of `applyTemplateVariables` in the shard split path. `runShardSplitQuery` calls `applyTemplateVariables` (line 57), then calls `splitQueriesByStreamShard` \u2192 `runSplitQuery` which calls it again (line 339), then `datasource.runQuery()` \u2192 `super.query()` calls it a third time. Since `addAdHocFilters` is not idempotent, ad hoc filters will be added 3 times to the query expression, producing incorrect queries. Tests don't catch this because `datasource.runQuery` is mocked.",
-        "path": "public/app/plugins/datasource/loki/shardQuerySplitting.ts",
-        "line": 57,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/7": {
-    "opus_warpgrep": [
-      {
-        "text": "Light-mode color regression \u2014 `.custom-message-length`. The original lightness was 70% but the first argument (light mode) in `dark-light-choose` was changed to 30%. The arguments appear to be swapped. The desktop version of the same selector correctly preserves 70% for light mode. This will make `.custom-message-length` text drastically darker in light mode on mobile.",
-        "path": "app/assets/stylesheets/mobile/modal.scss",
-        "line": 102,
-        "source": "extracted"
-      },
-      {
-        "text": "Light-mode color regression \u2014 embedded-posts `.row a`. The original lightness was 30% but the first argument (light mode) in `dark-light-choose` was changed to 70%. The arguments appear to be swapped. This will make these links much lighter (washed out) in light mode.",
-        "path": "app/assets/stylesheets/desktop/topic-post.scss",
-        "line": 291,
-        "source": "extracted"
-      },
-      {
-        "text": "Light-mode color regression \u2014 `.name`. The original lightness of 30% (relatively dark/prominent text) was changed to 50% in light mode. This silently makes the `.name` text lighter and less readable in light mode. Should be `dark-light-choose(scale-color($primary, $lightness: 30%), scale-color($secondary, $lightness: 70%))`.",
-        "path": "app/assets/stylesheets/desktop/user.scss",
-        "line": 522,
-        "source": "extracted"
-      },
-      {
-        "text": "Light-mode color regression \u2014 `.name`. Same issue as the desktop/user.scss bug but in the mobile stylesheet. The light-mode value was changed from 30% to 50%, making the `.name` text lighter and less readable in light mode.",
-        "path": "app/assets/stylesheets/mobile/user.scss",
-        "line": 497,
-        "source": "extracted"
-      },
-      {
-        "text": "Light-mode color regression \u2014 `h3`. The original lightness was 20% (near-black, prominent heading) but the first argument (light mode) in `dark-light-choose` was changed to 50%. The desktop equivalent correctly preserves `$lightness: 20%` in its `dark-light-choose`. This will make the `h3` heading significantly lighter/washed-out in light mode on mobile.",
-        "path": "app/assets/stylesheets/mobile/topic-post.scss",
-        "line": 182,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/grafana/grafana/pull/76186": {
-    "opus_warpgrep": [
-      {
-        "text": "TestLogger.FromContext returns a brand-new TestLogger that is not connected to the receiver `f`. Since LoggerMiddleware.logRequest now logs through m.logger.FromContext(ctx).Info(...), any test that creates a TestLogger, passes it to LoggerMiddleware, and then asserts on testLogger.InfoLogs.Calls or testLogger.ErrorLogs.Calls will see zero calls \u2014 the log writes silently go to the throwaway logger returned by FromContext. The correct implementation should return the receiver (`f`) so that log output remains observable in tests: `func (f *TestLogger) FromContext(_ context.Context) Logger { return f }`.",
-        "path": "pkg/plugins/log/fake.go",
-        "line": 46,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/10": {
-    "opus_warpgrep": [
-      {
-        "text": "The file contents of category_fabricator.rb and embeddable_host_fabricator.rb are swapped. category_fabricator.rb has category fabricators removed and replaced with Fabricator(:embeddable_host), while embeddable_host_fabricator.rb (new file) contains the Fabricator(:category), Fabricator(:diff_category), Fabricator(:happy_category), and Fabricator(:private_category) definitions. The embeddable_host fabricator should be in embeddable_host_fabricator.rb, and the category fabricators should remain in category_fabricator.rb. Because Ruby's Fabrication gem loads all files by name (not file name), tests still pass \u2014 but the files are definitively swapped.",
-        "path": "spec/fabricators/category_fabricator.rb",
-        "line": 1,
-        "source": "extracted"
-      },
-      {
-        "text": "If the `embed_category` site setting was never configured (the default was ''), or its value doesn't match any category name, the query returns zero rows. `[0]` on an empty PG::Result returns nil, and nil['id'] raises NoMethodError: undefined method '[]' for nil:NilClass. The migration crashes before reaching the `if category_id == 0` fallback on line 14. This would break any Discourse instance that never configured embedding.",
-        "path": "db/migrate/20150818190757_create_embeddable_hosts.rb",
-        "line": 9,
-        "source": "extracted"
-      },
-      {
-        "text": "The host value `h` is directly interpolated into the SQL string without escaping. If an admin had set an `embeddable_hosts` value containing a single quote (e.g., `it's-a-host.com`), the migration crashes with a SQL syntax error. Should use parameterized queries or at minimum `connection.quote(h)`.",
-        "path": "db/migrate/20150818190757_create_embeddable_hosts.rb",
-        "line": 25,
-        "source": "extracted"
-      },
-      {
-        "text": "If `host` is nil (e.g., EmbeddableHost.new.valid? or a missing param), `self.host.sub!` raises NoMethodError: undefined method 'sub!' for nil:NilClass. The before_validation callback runs before validates_format_of, so the validation never gets a chance to return a proper error. Should guard with `self.host&.sub!` or `return if host.blank?`.",
-        "path": "app/models/embeddable_host.rb",
-        "line": 5,
-        "source": "extracted"
-      },
-      {
-        "text": "The `update` action simply re-renders the current state without applying any changes. The `@embedding` is a fresh OpenStruct built by `fetch_embedding` from the database \u2014 no incoming params are read or saved. The `saveChanges` action in the JS controller sends a PUT to this endpoint, but it silently succeeds without persisting anything. The update action is a complete no-op.",
-        "path": "app/controllers/admin/embedding_controller.rb",
-        "line": 9,
-        "source": "extracted"
-      },
-      {
-        "text": "JavaScript's String.replace() with a string first argument only replaces the first occurrence. For `embeddable_host` (one underscore) this works, but for any future admin model type with multiple underscores (e.g., `web_hook_event`), only the first underscore would be replaced (`web-hook_event`), failing to match the hyphenated entry in ADMIN_MODELS. Should use `type.replace(/_/g, '-')` with a regex global flag.",
-        "path": "app/assets/javascripts/discourse/adapters/rest.js.es6",
-        "line": 22,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/5": {
-    "opus_warpgrep": [
-      {
-        "text": "The property `-ms-align-items` was never a valid vendor-prefixed CSS property in any version of Internet Explorer or Edge. The correct IE10 property for `align-items` is `-ms-flex-align` (which is already included on the line above). This line is dead code that all browsers will silently ignore. It suggests the author was guessing at the prefix pattern rather than using the actual IE10 flexbox implementation (`-ms-flex-align`).",
-        "path": "app/assets/stylesheets/common/foundation/mixins.scss",
-        "line": 125,
-        "source": "extracted"
-      },
-      {
-        "text": "The old flexbox spec (`-webkit-box-ordinal-group` and `-moz-box-ordinal-group`) uses 1-based ordinal groups (default = 1), while the standard `order` property is 0-based (default = 0). The mixin passes the same raw value to both, creating an off-by-one mapping. The correct old-spec values should be `$val + 1` to match the standard `order` semantics. For example, `@include order(0)` would produce `-webkit-box-ordinal-group: 0` (invalid, values must be \u2265 1) and `@include order(1)` would be indistinguishable from the default ordinal group on old WebKit.",
-        "path": "app/assets/stylesheets/common/foundation/mixins.scss",
-        "line": 130,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/3": {
-    "opus_warpgrep": [
-      {
-        "text": "Missing `$` anchor in domain regex \u2014 whitelist bypass / blacklist false positives. The regex `@(#{domains})` is not anchored at the end with `$`. When the setting is a pipe-separated domain list like `\"example.com|mail.com\"`, the regex becomes `/@(example\\.com|mail\\.com)/i`. If `email_domains_whitelist` is set to `\"example.com\"`, an attacker can register with `user@example.com.evil.com` \u2014 the regex finds `@example.com` as a substring match and passes validation, even though the actual domain is `evil.com`. For blacklists, a legitimate email like `user@spam.com.legitimate.org` would be incorrectly blocked. The fix should anchor the regex with `$`, e.g. `regexp = Regexp.new(\"@(.+\\\\.)?(#{domains})$\", true)`.",
-        "path": "lib/validators/email_validator.rb",
-        "line": 20,
-        "source": "extracted"
-      },
-      {
-        "text": "`BlockedEmail.should_block?` has write side-effects during read-only validation. This method is called from within `EmailValidator#validate_each`, meaning it runs during `User#valid?` \u2014 a nominally read-only check. Every call to `user.valid?` (or any validation trigger, including failed saves due to other validation errors like username) will increment `match_count` and update `last_match_at` in the database. This corrupts the statistics: the count reflects how many times validation ran, not how many actual blocked registration attempts occurred.",
-        "path": "app/models/blocked_email.rb",
-        "line": 11,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/grafana/grafana/pull/79265": {
-    "opus_warpgrep": [
-      {
-        "text": "Args corruption on DB retry in `updateDevice`. The `args` slice is declared outside the closure but mutated inside it via `args = append([]interface{}{query}, args...)`. On the first call, `args` becomes `[query, clientIP, userAgent, ...]`. On a retry (triggered by lock contention), `args` is already `[query, clientIP, ...]`, and the prepend makes it `[query, query, clientIP, ...]`. The `Exec` call then treats the second `query` string as the first SQL parameter value, shifting all parameters by one and passing one extra \u2014 this will produce a database error or silently wrong results.",
-        "path": "pkg/services/anonymous/anonimpl/anonstore/database.go",
-        "line": 111,
-        "source": "extracted"
-      },
-      {
-        "text": "Missing integration test skip guard. Every other `TestIntegration*` function in this file calls `testutil.SkipIntegrationTestInShortMode(t)` as the first line. The new `TestIntegrationBeyondDeviceLimit` test omits this call, meaning the integration test will run during `go test -short` when it shouldn't, which is inconsistent with the codebase convention and could slow CI or fail in environments without a database configured.",
-        "path": "pkg/services/anonymous/anonimpl/anonstore/database_test.go",
-        "line": 1,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/9": {
-    "opus_warpgrep": [
-      {
-        "text": "FallbackLocaleList#[] does not convert `locale` to a symbol. When called with a string locale like \"fr\" (from SiteSetting.default_locale), the returned fallback list is [\"fr\", :fr, :en] because `.uniq` does not deduplicate \"fr\" (string) and :fr (symbol). This causes a wasted lookup + exception throw/catch on every translation call with a string locale, since the Simple backend stores translations under symbol keys (:fr) but first tries the string key \"fr\" which returns nil. The fix is to add `locale = locale.to_sym` as the first line of the method, which the evolved version of this code does but this PR omits. While the translation is ultimately found via the symbol fallback, this represents an unnecessary performance penalty on a hot path.",
-        "path": "config/initializers/i18n.rb",
-        "line": 14,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/8": {
-    "opus_warpgrep": [
-      {
-        "text": "The formula `Math.floor(user_count / limit) + 1` is wrong when `user_count` is evenly divisible by `limit`. For example: 50 users, limit 50 \u2192 `Math.floor(1) + 1 = 2` (should be 1); 100 users, limit 50 \u2192 `Math.floor(2) + 1 = 3` (should be 2). This causes a phantom empty page to always be shown at the end when counts are exact multiples of limit. Since `showingLast` compares `currentPage` to `totalPages`, the \"next\" button stays enabled and navigates to an empty results page. The correct formula is `Math.ceil(user_count / limit)`.",
-        "path": "app/assets/javascripts/admin/controllers/admin-group.js.es6",
-        "line": 3,
-        "source": "extracted"
-      },
-      {
-        "text": "`group.users.delete(user_id)` is used instead of `group.remove(user)`. The `Group#remove` method is the standard method used throughout the codebase which destroys the `group_user` record and also runs `publish_category_updates`, `trigger_user_removed_event`, and `enqueue_user_removed_from_group_webhook_events`. Using the low-level `group.users.delete(user_id)` only removes the association record, bypassing all those important side effects.",
-        "path": "app/controllers/admin/groups_controller.rb",
-        "line": 5,
-        "source": "extracted"
-      },
-      {
-        "text": "The test uses `xhr :put, :remove_member` but the route declares `delete \"members\" => \"groups#remove_member\"`. While this still passes in controller specs (which invoke actions directly without routing), it means the test doesn't verify the correct HTTP method contract. The other `remove_member` test in the same file correctly uses `xhr :delete`.",
-        "path": "spec/controllers/admin/groups_controller_spec.rb",
-        "line": 3,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/4": {
-    "opus_warpgrep": [
-      {
-        "text": "ERB syntax error: `end if` instead of `end`. In Ruby, `end if` is a conditional modifier that requires a boolean expression after `if`. Here `end if` appears with no condition, making it a syntax error that will crash the template on every render. The correct code is `<% end %>`.",
-        "path": "app/views/embed/best.html.erb",
-        "line": 6,
-        "source": "extracted"
-      },
-      {
-        "text": "Origin validation bypass via `indexOf`. The check `discourseUrl.indexOf(e.origin) === -1` tests whether `e.origin` is a substring of `discourseUrl`, which is backwards and insecure. An attacker's origin like `http://example.co` would match as a prefix of `http://example.com/embed/`, bypassing the origin check. This allows an attacker on a prefix-matching domain to send arbitrary `postMessage` events. The correct approach is to compare the origin portion of `discourseUrl` strictly, e.g., `if (e.origin !== new URL(discourseUrl).origin) { return; }`.",
-        "path": "app/assets/javascripts/embed.js",
-        "line": 17,
-        "source": "extracted"
-      },
-      {
-        "text": "`X-Frame-Options: ALLOWALL` is not a valid value per the HTTP spec. Valid values are `DENY`, `SAMEORIGIN`, and `ALLOW-FROM uri`. Browser behavior with `ALLOWALL` is undefined \u2014 some may ignore the header entirely (desired), others may treat it as `DENY` (breaking embedding). The fix is to delete the header entirely: `response.headers.delete(\"X-Frame-Options\")`.",
-        "path": "app/controllers/embed_controller.rb",
-        "line": 27,
-        "source": "extracted"
-      },
-      {
-        "text": "`NoMethodError` when RSS item has no `content` field. Many RSS feeds use `<description>` rather than `<content>` elements. When an RSS item lacks a `content` field, `i.content` returns `nil` in SimpleRSS, and calling `.scrub` on `nil` raises `NoMethodError: undefined method 'scrub' for nil:NilClass`. This will crash the entire feed polling job. Should fall back to `i.description` or guard against nil, e.g., `i.content || i.description || \"\"`.",
-        "path": "app/jobs/scheduled/poll_feed.rb",
-        "line": 33,
-        "source": "extracted"
-      },
-      {
-        "text": "SSRF via `open()` with user-controlled URL. `Kernel#open` (via `open-uri`) fetches arbitrary URLs including `file://` schemes in some Ruby versions and internal network addresses. In `import_remote`, the `url` comes from external content (e.g., Disqus link data), enabling SSRF to probe internal services. The same issue exists in `app/jobs/scheduled/poll_feed.rb` line 28. Should use a safe URL fetcher that validates URIs and blocks internal IPs.",
-        "path": "app/models/topic_embed.rb",
-        "line": 47,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/2": {
-    "opus_warpgrep": [
-      {
-        "text": "TopicUser.find_by returns nil when no record exists (e.g., a user clicking the unsubscribe link for a topic they've never visited). Calling tu.notification_level on nil will raise NoMethodError: undefined method 'notification_level' for nil:NilClass, resulting in a 500 error.",
-        "path": "app/controllers/topics_controller.rb",
-        "line": 105,
-        "source": "extracted"
-      },
-      {
-        "text": "The computed property is named stopNotificiationsText with an extra 'i' making it 'Notificiations' instead of 'Notifications'. While the controller and template are consistent with each other so it renders at runtime, this is a naming typo that will cause confusion during maintenance and won't match if anyone references the correctly-spelled name stopNotificationsText.",
-        "path": "app/assets/javascripts/discourse/controllers/topic-unsubscribe.js.es6",
-        "line": 5,
-        "source": "extracted"
-      },
-      {
-        "text": "The template references stopNotificiationsText with the same typo ('Notificiations' instead of 'Notifications'). While consistent with the controller's misspelling so it works at runtime, this propagates the naming bug and will break if either side is corrected independently.",
-        "path": "app/assets/javascripts/discourse/templates/topic/unsubscribe.hbs",
-        "line": 3,
         "source": "extracted"
       }
     ]
@@ -709,57 +12,95 @@
   "https://github.com/calcom/cal.com/pull/8330": {
     "opus_warpgrep": [
       {
-        "text": "Using `===` reference comparison on dayjs objects, which always returns false since two distinct dayjs objects will never be reference-equal even if they represent the same moment. The condition should use `.isSame()` instead. Impact: Zero-length date overrides (where start equals end, meaning the organizer is unavailable all day) will never be detected, causing the slot to incorrectly be considered available.",
+        "text": "Comparison of two dayjs objects using `===` always returns `false` because `===` compares object references, not values. Should use `.isSame()`. Zero-length date overrides (where start equals end, indicating a fully blocked day) are never detected, so the slot is incorrectly treated as available.",
         "path": "packages/trpc/server/routers/viewer/slots.ts",
-        "line": 109,
+        "line": null,
         "source": "extracted"
       },
       {
-        "text": "Copy-paste error: `end` is computed from `slotStartTime` instead of `slotEndTime`. Both `start` and `end` use `slotStartTime.hour() * 60 + slotStartTime.minute()`, so `start === end` always. The variable `end` should use `slotEndTime` (defined earlier as `time.add(eventLength, \"minutes\").utc()`). Impact: Slots that start within working hours but extend past the end of working hours will incorrectly be considered available (e.g., a 60-minute slot starting at 4:30 PM with working hours ending at 5 PM would be allowed even though the slot ends at 5:30 PM).",
+        "text": "Copy-paste bug: `end` is calculated from `slotStartTime` instead of `slotEndTime`, making `start` and `end` identical. The working hours boundary check doesn't actually verify the slot's end time. Slots that start within working hours but whose duration extends past working hours will be incorrectly shown as available.",
         "path": "packages/trpc/server/routers/viewer/slots.ts",
-        "line": 133,
+        "line": null,
         "source": "extracted"
       }
     ]
   },
-  "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/6": {
+  "https://github.com/keycloak/keycloak/pull/37634": {
     "opus_warpgrep": [
       {
-        "text": "The method `include_website_name` is missing the `?` suffix required by ActiveModel::Serializer (0.8.x) for conditional include predicates. Without the trailing `?`, the framework never calls this method, making it dead code. It happens to work by coincidence because the parent class `UserCardSerializer` already defines `include_website_name?` (with `?`) via its `untrusted_attributes` macro. The developer's intent (`website.present?`) differs from what actually runs (`website_name.present?` with a trust-level check). If someone later removes `website_name` from `untrusted_attributes` in the parent, this method would silently stop working as a conditional include. Also, if someone adds `?` to \"fix\" the name, it would override the parent's trust-level check, creating a security regression (TL0 users' website would be exposed to anonymous visitors).",
-        "path": "app/serializers/user_serializer.rb",
-        "line": 1,
+        "text": "Copy-paste error: line 114 checks `grantType` a second time instead of `rawTokenId`. `Objects.requireNonNull(grantType, \"Null rawTokenId not allowed\")` should be `Objects.requireNonNull(rawTokenId, \"Null rawTokenId not allowed\")`. This allows a null `rawTokenId` to pass constructor validation, leading to a NullPointerException later when `rawTokenId` is used (e.g., in `encodeTokenId()` or `equals()`/`hashCode()`).",
+        "path": "services/src/main/java/org/keycloak/protocol/oidc/encode/AccessTokenContext.java",
+        "line": 114,
+        "source": "extracted"
+      },
+      {
+        "text": "Two independent bugs in `isAccessTokenId` matcher: (1) Wrong substring indices \u2014 `substring(3, 5)` extracts positions 3-4, but the grant type shortcut occupies indices 4-5, so it should be `substring(4, 6)`. (2) Inverted condition logic \u2014 `if (items[0].substring(3, 5).equals(expectedGrantShortcut)) return false;` returns false when the substring matches, but it should return false when it does NOT match. The fix is: `if (!items[0].substring(4, 6).equals(expectedGrantShortcut)) return false;`. Combined effect: the matcher always passes regardless of actual grant type, rendering all grant-type assertions useless.",
+        "path": "testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/AssertEvents.java",
+        "line": 553,
         "source": "extracted"
       }
     ]
   },
-  "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/1": {
+  "https://github.com/grafana/grafana/pull/94942": {
     "opus_warpgrep": [
       {
-        "text": "The method `FileHelper.is_image?` does not exist. `FileHelper` defines `is_supported_image?`, `is_inline_image?`, `is_svg?`, etc., but never `is_image?`. This will raise a `NoMethodError` at runtime, causing the entire image downsizing feature to fail. The correct method is `FileHelper.is_supported_image?(filename)`.",
-        "path": "app/controllers/uploads_controller.rb",
-        "line": 1,
+        "text": "The function `enableSqlExpressions` always returns `false` on every code path, making SQL expressions permanently disabled. Two compounding errors: (1) the feature flag check is inverted with `!h.features.IsEnabledGlobally(...)`, and (2) both the `if` branch and the fallthrough return `false`. The function should simply be `return h.features.IsEnabledGlobally(featuremgmt.FlagSqlExpressions)`. This causes all SQL expression queries to be rejected with \"sqlExpressions is not implemented\" even when the feature flag is enabled.",
+        "path": "pkg/expr/reader.go",
+        "line": 193,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/7": {
+    "opus_warpgrep": [
+      {
+        "text": "Swapped `dark-light-choose` arguments. The original light-mode value was `$lightness: 30%`, but the new code passes `$lightness: 70%` as the light-mode (first) argument and `30%` as the dark-mode (second) argument. This makes topic-map button links nearly invisible on light themes. Should be: `dark-light-choose(scale-color($primary, $lightness: 30%), scale-color($secondary, $lightness: 70%))`.",
+        "path": "app/assets/stylesheets/desktop/topic-post.scss",
+        "line": 291,
         "source": "extracted"
       },
       {
-        "text": "Duplicate `def self.downsize` \u2014 the first definition (accepting `max_width, max_height` as separate arguments) is silently overwritten by the second definition (accepting a single `dimensions` string). In Ruby, redefining a method silently overwrites the previous definition, so the first `downsize` is dead code and will never execute. The author likely intended to replace the first definition with the second, not keep both. The first definition should have been removed.",
-        "path": "app/models/optimized_image.rb",
-        "line": 1,
-        "source": "extracted"
-      },
-      {
-        "text": "Client-side validation hardcodes 10MB (`10 * 1024` KB) for ALL upload types, replacing the old dynamic lookup `Discourse.SiteSettings['max_' + type + '_size_kb']`. This means non-image attachments that admins allow to be larger than 10MB (e.g., `max_attachment_size_kb = 51200`) will be wrongly rejected client-side, and the error message will always show \"10240 KB\" as the limit regardless of actual server configuration. The server-side downsizing feature only applies to images, but this client-side change affects all file types indiscriminately.",
-        "path": "app/assets/javascripts/discourse/lib/utilities.js",
+        "text": "Light-mode `h3` color changed from original `$lightness: 20%` to `$lightness: 50%`, making headings significantly lighter/washed out on mobile. The desktop version correctly preserves the original `20%` for light mode. Should be: `dark-light-choose(scale-color($primary, $lightness: 20%), scale-color($secondary, $lightness: 80%))` to match the desktop version and preserve the original light-mode value.",
+        "path": "app/assets/stylesheets/mobile/topic-post.scss",
         "line": 182,
         "source": "extracted"
       }
     ]
   },
-  "https://github.com/calcom/cal.com/pull/14943": {
+  "https://github.com/getsentry/sentry/pull/93824": {
     "opus_warpgrep": [
       {
-        "text": "The second branch of the OR clause in deleteMany has no `method` filter. The first OR branch correctly scopes to WorkflowMethods.SMS, but the second OR branch will match any WorkflowReminder row with retryCount > 1, regardless of method \u2014 including EMAIL, WHATSAPP, and AI_PHONE_CALL reminders. When this SMS cron job runs, it will delete email reminders, WhatsApp reminders, and AI phone call reminders that happen to have retryCount > 1, even if those reminders are valid and managed by their own separate handler. The fix is to add `method: WorkflowMethods.SMS` to the second OR branch.",
-        "path": "packages/features/ee/workflows/api/scheduleSMSReminders.ts",
-        "line": 31,
+        "text": "Missing `slice_id` when creating per-shard `SpansBuffer` instances in `_create_process_for_shards`. The original buffer's `slice_id` is never preserved, so new buffers are created with `SpansBuffer(shards)` (slice_id=None) instead of including the slice_id. When `kafka_slice_id` is configured, spans are written to Redis keys like `span-buf:q:2-0` but the flusher looks for `span-buf:q:0`, causing silent data loss.",
+        "path": "src/sentry/spans/consumers/process/flusher.py",
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`time.sleep(0.1)` intended to give flusher threads time to process is a no-op because `time.sleep` was monkeypatched to `lambda _: None` earlier in the test. No actual waiting occurs, making the test potentially flaky.",
+        "path": "tests/sentry/spans/consumers/process/test_consumer.py",
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "Inconsistent metric tag key `\"shard\"` vs `\"shards\"` in `SpanFlusher.main`. The `wait_produce` timer uses tag key `\"shards\"` (plural) while all other metrics use `\"shard\"` (singular), causing dashboards/alerts filtering on one tag key to miss the other metric.",
+        "path": "src/sentry/spans/consumers/process/flusher.py",
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/ai-code-review-evaluation/sentry-greptile/pull/1": {
+    "opus_warpgrep": [
+      {
+        "text": "Django QuerySet does not support negative indexing \u2014 `queryset[start_offset:stop]` with a negative `start_offset` raises `AssertionError(\"Negative indexing is not supported.\")`. A user can trigger this by providing a cursor with a negative offset (e.g., `cursor=0:-5:0`), which `Cursor.from_string` accepts. This results in an unhandled `AssertionError` \u2192 HTTP 500. The same issue exists in other branches where negative offsets can pass through to queryset slicing (e.g., the `cursor.is_prev=True` path in `DateTimePaginator.get_result`).",
+        "path": "src/sentry/api/paginator.py",
+        "line": null,
+        "source": "extracted"
+      },
+      {
+        "text": "`organization_context.member` can be `None` (e.g., for SentryApp proxy users with no real org membership). When `request.user.is_superuser` is `False`, the expression `organization_context.member.has_global_access` accesses an attribute on `None`, raising `AttributeError` and causing an HTTP 500. The code should check for `None` before accessing `.has_global_access`.",
+        "path": "src/sentry/api/endpoints/organization_auditlogs.py",
+        "line": null,
         "source": "extracted"
       }
     ]
@@ -767,181 +108,95 @@
   "https://github.com/calcom/cal.com/pull/22532": {
     "opus_warpgrep": [
       {
-        "text": "The comment explicitly states the intent is to \"Update SelectedCalendar.updatedAt\", but this passes an empty `data: {}` object to `prisma.selectedCalendar.updateMany()`. Prisma's `updateMany` does not automatically trigger `@updatedAt` \u2014 only `update()` and `upsert()` do. With `updateMany`, you must explicitly set the timestamp in the `data` argument. Passing `data: {}` will generate a SQL query with an empty `SET` clause \u2014 either a no-op or invalid. The `updatedAt` field will never be updated. Fix: Pass the timestamp explicitly: `await SelectedCalendarRepository.updateManyByCredentialId(this.credential.id, { updatedAt: new Date() });`. Impact: The feature relies on `SelectedCalendar.updatedAt` being refreshed when availability cache is rebuilt. Since it's never actually updated, the \"Last updated\" timestamp shown in the `CredentialActionsDropdown` UI will be stale/incorrect.",
+        "text": "Prisma's `updateMany` with an empty `data: {}` object is a no-op \u2014 no SQL UPDATE is generated, and the `@updatedAt` directive does not fire because there are no actual field changes to apply. The intent is to update `SelectedCalendar.updatedAt` for all calendars under the credential, but this will never happen. Fix: pass an explicit timestamp, e.g. `{ updatedAt: new Date() }`.",
         "path": "packages/app-store/googlecalendar/lib/CalendarService.ts",
         "line": null,
         "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/calcom/cal.com/pull/22345": {
-    "opus_warpgrep": [
-      {
-        "text": "Missing outer parentheses in `getBaseConditions` \u2014 SQL operator precedence bug. When `authConditions` contains an OR (as it does for org/team scopes, e.g. `(teamId condition) OR (userId condition)`), and a caller uses the result in a larger query like `WHERE ${baseConditions} AND \"status\" = 'accepted'`, SQL operator precedence (AND binds tighter than OR) will cause incorrect evaluation. The first OR branch would bypass the additional AND filter entirely. When only `authConditions` or only `filterConditions` is returned, they are not wrapped in parentheses, unlike the combined case. The fix is to wrap these returns: `return Prisma.sql\\`(${authConditions})\\`;` and `return Prisma.sql\\`(${filterConditions})\\`;`.",
-        "path": "packages/lib/server/service/insightsBooking.ts",
-        "line": 233,
-        "source": "extracted"
       },
       {
-        "text": "`orgId: number` type is too strict \u2014 rejects `null` from callers. The zod schema (`insightsBookingServiceOptionsSchema`) accepts `orgId: z.number().nullish().optional()` for \"user\" and \"team\" scopes. The router passes `ctx.user.organizationId` which is typed `number | null`. With `orgId: number`, TypeScript rejects `null` values, breaking callers for users not in an organization. The type should be `orgId: number | null | undefined`.",
-        "path": "packages/lib/server/service/insightsBooking.ts",
-        "line": 125,
+        "text": "`sed -i ''` syntax is macOS/BSD-only. On GNU/Linux, `sed -i` does not take a separate backup extension argument \u2014 the `''` would be interpreted as a filename, causing the command to fail with an error. The script will fail on Linux, which is the typical CI/server environment.",
+        "path": "scripts/test-gcal-webhooks.sh",
+        "line": 68,
         "source": "extracted"
       }
     ]
   },
-  "https://github.com/calcom/cal.com/pull/14740": {
+  "https://github.com/keycloak/keycloak/pull/37429": {
     "opus_warpgrep": [
       {
-        "text": "`&&` is used instead of `||` in the permission check, making `isTeamAdminOrOwner` true only for owners (since any owner passes `isTeamAdmin`, but only owners pass `isTeamOwner`). Team admins who are not owners will be incorrectly denied permission. The variable name `isTeamAdminOrOwner` clearly indicates `||` was intended. Should be: `(await isTeamAdmin(...)) || (await isTeamOwner(...))`.",
-        "path": "packages/trpc/server/routers/viewer/bookings/addGuests.handler.ts",
-        "line": 49,
+        "text": "Lithuanian locale file contains Italian text for `totpStep1` (\"Installa una delle seguenti applicazioni sul tuo cellulare:\") instead of Lithuanian. Users with Lithuanian locale will see Italian instructions for the TOTP setup step.",
+        "path": "themes/src/main/resources-community/theme/base/account/messages/messages_lt.properties",
+        "line": 101,
         "source": "extracted"
       },
       {
-        "text": "`guests` (raw user input) is passed to `sendAddGuestsEmails` instead of `uniqueGuests` (the filtered list). In the email manager, this parameter is used to distinguish new guests (who get `AttendeeScheduledEmail`) from existing attendees (who get `AttendeeAddGuestsEmail`). If a user submits an email that's already an attendee, that email is in `guests` but filtered out of `uniqueGuests`, causing the existing attendee to incorrectly receive a full booking confirmation email instead of a \"new guests added\" notification. Should be `await sendAddGuestsEmails(evt, uniqueGuests)`.",
-        "path": "packages/trpc/server/routers/viewer/bookings/addGuests.handler.ts",
-        "line": 170,
-        "source": "extracted"
-      },
-      {
-        "text": "The blacklisted emails are lowercased via `.toLowerCase()`, but the user-provided `guest` string is not lowercased before the `.includes()` check. A user can bypass the blacklist by using different casing, e.g., submitting `Blocked@Example.com` when `blocked@example.com` is blacklisted. Should be `!blacklistedGuestEmails.includes(guest.toLowerCase())`.",
-        "path": "packages/trpc/server/routers/viewer/bookings/addGuests.handler.ts",
-        "line": 82,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/calcom/cal.com/pull/11059": {
-    "opus_warpgrep": [
-      {
-        "text": "`parseRefreshTokenResponse` returns the full `safeParse()` result object (`{ success: true, data: { ... } }`) instead of `.data`. In Google Calendar, `key` gets stored in the database wrapped in the SafeParseResult. The next time the credential is loaded and parsed via `googleCredentialSchema.parse(credential.key)`, it will fail because the stored shape is `{ success, data: {...} }` instead of `{ access_token, refresh_token, ... }`. This corrupts Google Calendar credentials for all users on every token refresh.",
-        "path": "packages/app-store/_utils/oauth/parseRefreshTokenResponse.ts",
-        "line": 28,
-        "source": "extracted"
-      },
-      {
-        "text": "Invalid Zod schema: `z.string()` returns a `ZodString` object, and calling `.toString()` on it uses `Object.prototype.toString()`, which returns `\"[object Object]\"`. Both computed property keys resolve to the same string `\"[object Object]\"`, so the second overwrites the first. The resulting schema is effectively `z.object({ access_token: z.string(), \"[object Object]\": z.unknown().optional() })`. This does not create a schema that validates \"any string key maps to a number\" as intended, so it won't enforce the presence of an expiry field.",
-        "path": "packages/app-store/_utils/oauth/parseRefreshTokenResponse.ts",
-        "line": 7,
-        "source": "extracted"
-      },
-      {
-        "text": "zoho-bigin passes `credentialId` (which is `credential.id`, the credential's database row ID) instead of `credential.userId` to `refreshOAuthTokens` as the `userId` parameter. Every other integration correctly passes `credential.userId`. When credential sharing is enabled, this sends the wrong user ID to the external endpoint, causing token refresh to fail or refresh tokens for the wrong user.",
-        "path": "packages/app-store/zoho-bigin/lib/CalendarService.ts",
-        "line": 1,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/calcom/cal.com/pull/7232": {
-    "opus_warpgrep": [
-      {
-        "text": "In `deleteScheduledEmailReminder`, when `immediateDelete=true` and `referenceId` is non-null, the function cancels the SendGrid scheduled send but then returns without deleting the `WorkflowReminder` DB record or setting `cancelled: true`. This orphans DB records permanently. The cron job won't pick them up because `cancelled` is never set to `true`, and there is no cascade to clean them up. Contrast with the non-`immediateDelete` path which correctly marks `cancelled: true`, and with `deleteScheduledSMSReminder` which always deletes the DB record.",
-        "path": "packages/features/ee/workflows/lib/reminders/emailReminderManager.ts",
+        "text": "The `totpStep1` value uses Traditional Chinese characters (\u624b\u6a5f, \u5b89\u88dd, \u61c9\u7528\u7a0b\u5f0f\u4e4b\u4e00) instead of Simplified Chinese (\u624b\u673a, \u5b89\u88c5, \u5e94\u7528\u7a0b\u5e8f\u4e4b\u4e00). The `zh_CN` locale targets Simplified Chinese users, so this will display Traditional Chinese text incorrectly.",
+        "path": "themes/src/main/resources-community/theme/base/account/messages/messages_zh_CN.properties",
         "line": null,
         "source": "extracted"
       },
       {
-        "text": "Both `deleteScheduledEmailReminder` and `deleteScheduledSMSReminder` are `async` functions, but they are called without `await` inside a synchronous `forEach` callback. Their returned promises are discarded. The `try/catch` will never catch errors from these async operations\u2014it can only catch synchronous errors. The developer clearly intended error handling here, but it is completely non-functional for the async code paths (SendGrid API calls, Twilio cancellations, Prisma DB operations).",
-        "path": "packages/features/bookings/lib/handleNewBooking.ts",
-        "line": 963,
-        "source": "extracted"
-      },
-      {
-        "text": "If the SendGrid API call fails for any single reminder, the entire `for` loop exits to the `catch` block. This means: (1) All subsequent reminders in the batch are not processed (their SendGrid sends are not cancelled and could still fire). (2) The `Promise.all(workflowRemindersToDelete)` is never reached, so even the DB records for successfully cancelled reminders are not deleted (Prisma promises are lazy and won't execute without being awaited). The error handling should be per-reminder (e.g., `Promise.allSettled` or a try/catch inside the loop).",
-        "path": "packages/features/ee/workflows/api/scheduleEmailReminders.ts",
-        "line": 52,
-        "source": "extracted"
-      },
-      {
-        "text": "The new code calls the async delete functions (`deleteScheduledEmailReminder`, `deleteScheduledSMSReminder`) without awaiting them and removes `remindersToDelete` from the awaited promises array. This is a regression from the old code which collected DB deletion promises and explicitly awaited them. The handler can return a response to the client before the SMS is actually cancelled in Twilio and before the DB record is deleted. If the SMS delete fails silently (caught internally), the record persists with no retry mechanism (unlike email which has the cron fallback).",
-        "path": "packages/features/bookings/lib/handleCancelBooking.ts",
-        "line": null,
+        "text": "The `error-invalid-multivalued-size` key was changed from i18next interpolation format (`{{0}}`, `{{1}}`, `{{2}}`) to Java MessageFormat (`{0}`, `{1}`, `{2}`) plus `{2,choice,...}` syntax. These files serve the React frontend which uses i18next, which requires `{{0}}` syntax. Users will see the literal uninterpolated string instead of actual values.",
+        "path": "js/apps/account-ui/maven-resources/theme/keycloak.v3/account/messages/messages_en.properties",
+        "line": 188,
         "source": "extracted"
       }
     ]
   },
-  "https://github.com/calcom/cal.com/pull/8087": {
-    "opus_warpgrep": [
-      {
-        "text": "forEach with async callback \u2014 promises silently discarded. Array.prototype.forEach ignores the return value of callbacks, so when the callback is async, the returned Promise is silently discarded. The await getCalendar(...) and subsequent deleteEvent/deleteMeeting calls inside the callback will not be awaited by the calling code. The function proceeds to the next statements (sending emails, etc.) before the calendar/video deletion operations even start. Errors are uncatchable as rejected promises become unhandled promise rejections. This is a regression from the old code. Correct fix: Use Promise.all(bookingRefsFiltered.map(async (bookingRef) => { ... })) or a for...of loop instead of forEach.",
-        "path": "packages/trpc/server/routers/viewer/bookings.tsx",
-        "line": 553,
-        "source": "extracted"
-      },
-      {
-        "text": "forEach with async callback \u2014 promises silently discarded. Array.prototype.forEach ignores the return value of callbacks, so when the callback is async, the returned Promise is silently discarded. The await getCalendar(...) and subsequent deleteEvent/deleteMeeting calls inside the callback will not be awaited. The forEach is wrapped in a try/catch block, but since forEach doesn't await the async callbacks, rejected promises will become unhandled promise rejections instead of being caught. This is a regression from the old code. Correct fix: Use Promise.all(bookingRefsFiltered.map(async (bookingRef) => { ... })) or a for...of loop instead of forEach.",
-        "path": "packages/app-store/vital/lib/reschedule.ts",
-        "line": 125,
-        "source": "extracted"
-      },
-      {
-        "text": "forEach with async callback \u2014 promises silently discarded. Array.prototype.forEach ignores the return value of callbacks, so when the callback is async, the returned Promise is silently discarded. The await getCalendar(...) and subsequent deleteEvent/deleteMeeting calls inside the callback will not be awaited. The forEach is wrapped in a try/catch block, but since forEach doesn't await the async callbacks, rejected promises will become unhandled promise rejections instead of being caught. This is a regression from the old code. Correct fix: Use Promise.all(bookingRefsFiltered.map(async (bookingRef) => { ... })) or a for...of loop instead of forEach.",
-        "path": "packages/app-store/wipemycalother/lib/reschedule.ts",
-        "line": 125,
-        "source": "extracted"
-      },
-      {
-        "text": "getCalendarCredentials stores unawaited Promise, breaking the type contract. getCalendarCredentials remains a synchronous function but calls getCalendar(credential) which is now async (returns Promise<Calendar | null>). The calendar field stored in the returned objects is now a Promise<Calendar | null> instead of Calendar | null. While getConnectedCalendars handles this by awaiting the stored promise, other consumers of getCalendarCredentials may access the calendar property expecting a resolved value without await, leading to type errors or incorrect behavior.",
-        "path": "packages/core/CalendarManager.ts",
-        "line": 28,
-        "source": "extracted"
-      }
-    ]
+  "https://github.com/ai-code-review-evaluation/sentry-greptile/pull/5": {
+    "opus_warpgrep": []
   },
-  "https://github.com/calcom/cal.com/pull/10967": {
+  "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/10": {
     "opus_warpgrep": [
       {
-        "text": "When `evt.destinationCalendar` is `null`, `undefined`, or an empty array `[]`, the destructuring `const [mainHostDestinationCalendar] = evt.destinationCalendar ?? []` yields `mainHostDestinationCalendar = undefined`. Accessing `.integration` on `undefined` throws `TypeError: Cannot read properties of undefined (reading 'integration')`. The old code used `evt.destinationCalendar?.integration` with optional chaining. The new code drops the `?.`, so any event with no destination calendar that uses Google Meet location will crash this handler. Fix: `mainHostDestinationCalendar?.integration !== \"google_calendar\"`",
-        "path": "packages/core/EventManager.ts",
-        "line": null,
-        "source": "extracted"
-      },
-      {
-        "text": "In both `updateEvent` and `deleteEvent`, the else branch of the ternary searches for `cal.externalId === externalCalendarId` but `externalCalendarId` is guaranteed falsy at that point. No calendar will ever have `externalId === undefined`, so the `find` always returns `undefined`. The old code fell back to `event.destinationCalendar?.externalId`. The new code always produces `undefined` in the fallback path, meaning the calendar ID is lost. For `deleteEvent` (where `externalCalendarId` is optional), this means events may fail to delete from the correct calendar. Fix: The else branch should find the appropriate calendar from the array differently, e.g., using `event.destinationCalendar?.[0]?.externalId` or matching on `credentialId`.",
-        "path": "packages/app-store/googlecalendar/lib/CalendarService.ts",
-        "line": 253,
-        "source": "extracted"
-      },
-      {
-        "text": "The original logic set `slug` directly when billing is disabled (`!IS_TEAM_BILLING_ENABLED`) and `requestedSlug` in metadata when billing is enabled. The new code inverts the first condition: `...(IS_TEAM_BILLING_ENABLED ? { slug } : {})` now sets `slug` when billing IS enabled. Combined with the second line that still sets `requestedSlug` when billing is enabled, the result is: Billing enabled: Both `slug` AND `requestedSlug` are set (wrong \u2014 slug should only be set after payment). Billing disabled: Neither `slug` nor `requestedSlug` is set (wrong \u2014 org has no slug at all). This breaks organization creation in both modes.",
-        "path": "packages/trpc/server/routers/viewer/organizations/create.handler.ts",
-        "line": null,
-        "source": "extracted"
-      },
-      {
-        "text": "When neither the event type nor the organizer has a destination calendar, `destinationCalendar` is set to `null`. Later, `evt.destinationCalendar?.push(...teamDestinationCalendars)` is silently skipped because `null` doesn't have `push`. This means for COLLECTIVE team events, team members' destination calendars are dropped when the organizer hasn't set up a destination calendar. The default should be `[]` (empty array) instead of `null` so team calendars can still be pushed.",
-        "path": "packages/features/bookings/lib/handleNewBooking.ts",
-        "line": null,
-        "source": "extracted"
-      }
-    ]
-  },
-  "https://github.com/calcom/cal.com/pull/10600": {
-    "opus_warpgrep": [
-      {
-        "text": "Case-sensitive backup code comparison will reject valid codes typed in uppercase. Backup codes are generated as lowercase hex via `crypto.randomBytes(5).toString(\"hex\")`, but the comparison uses case-sensitive `indexOf`. If a user types their backup code in uppercase (e.g., `A1B2C-3D4E5`), it will fail to match the stored lowercase code, resulting in an \"incorrect backup code\" error despite entering the correct code. The fix is to normalize case: `.replaceAll(\"-\", \"\").toLowerCase()`.",
-        "path": "packages/features/auth/lib/next-auth-options.ts",
-        "line": 197,
-        "source": "extracted"
-      },
-      {
-        "text": "Same case-sensitive backup code comparison issue as in next-auth-options.ts. The comparison uses case-sensitive `indexOf` against lowercase hex backup codes. If a user types uppercase letters, the match fails. Should normalize with `.replaceAll(\"-\", \"\").toLowerCase()`.",
-        "path": "apps/web/app/api/auth/two-factor/totp/disable/route.ts",
-        "line": 72,
-        "source": "extracted"
-      },
-      {
-        "text": "After 2FA is successfully enabled on the server, the modal transitions to SetupStep.DisplayBackupCodes. The only intended exit is the 'Close' button which calls `onEnable()`. However, the Radix Dialog still allows dismissal via Escape key or clicking outside (DialogContent does not set `preventCloseOnOutsideClick`). These trigger `onOpenChange` which closes the modal without calling `onEnable()`. Since `onEnable()` is responsible for invalidating the query cache (`utils.viewer.me.invalidate()`), the 2FA switch in the parent view will still show 'unchecked' even though 2FA is enabled server-side. Additionally, `resetState()` is skipped, so re-opening the dialog shows stale backup codes.",
-        "path": "apps/web/components/settings/EnableTwoFactorModal.tsx",
+        "text": "The contents of category_fabricator.rb and embeddable_host_fabricator.rb have been swapped. category_fabricator.rb now defines Fabricator(:embeddable_host) and embeddable_host_fabricator.rb defines the category fabricators. While Fabrication loads by symbol name so tests won't immediately break, the files contain the wrong fabricators, causing maintenance confusion.",
+        "path": "spec/fabricators/category_fabricator.rb",
         "line": 1,
         "source": "extracted"
       },
       {
-        "text": "The first E2E test ('enable 2FA and login') doesn't close the backup codes dialog after the modal transitions to DisplayBackupCodes. The assertion `await expect(page.locator('[data-testid=two-factor-switch]').isChecked()).toBeTruthy()` is vacuous \u2014 `isChecked()` returns a `Promise<boolean>`, and `expect(promise).toBeTruthy()` always passes because a Promise object is truthy regardless of its resolved value. The test should use `await expect(locator).toBeChecked()` and should close the backup codes dialog first. The test passes by accident because it navigates away (Logout) in the next step.",
-        "path": "apps/web/playwright/login.2fa.e2e.ts",
-        "line": 47,
+        "text": "When the 'embed_category' site setting doesn't exist (e.g., fresh installs), the SQL query returns zero rows. Accessing [0] on an empty PG::Result returns nil, and then nil['id'] raises NoMethodError. The fallback check (if category_id == 0) is never reached. Should guard against empty results, e.g., check cmd_tuples > 0 before accessing [0]['id'].",
+        "path": "db/migrate/20150818190757_create_embeddable_hosts.rb",
+        "line": 9,
+        "source": "extracted"
+      },
+      {
+        "text": "In the plural ID branch of _hydrateEmbedded, _lookupSubType returns undefined when it can't find a record, and .map() preserves these undefined values in the resulting array. The `hydrated || []` fallback is dead code since .map() always returns an array (even an empty one is truthy), so arrays of undefined values are stored. Additionally, `delete obj[k]` unconditionally removes the original _ids key even when no lookups succeeded, permanently losing the raw IDs.",
+        "path": "app/assets/javascripts/discourse/models/store.js.es6",
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/grafana/grafana/pull/103633": {
+    "opus_warpgrep": [
+      {
+        "text": "The test \"Should deny on explicit cache deny entry\" uses `false` in the permission cache map (`\"dashboards:uid:dash1\": false`), which means the permission cache itself would not grant access. The test passes regardless of whether the denial cache is checked, making it vacuous. The value should be `true` so that the permission cache would grant access, thereby proving the denial cache takes priority. Without this fix, the test gives false confidence and would fail to catch a regression if the denial cache check were accidentally removed or reordered.",
+        "path": "pkg/services/authz/rbac/service_test.go",
+        "line": 1387,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/9": {
+    "opus_warpgrep": [
+      {
+        "text": "The `ensure_loaded!` method does not convert its `locale` argument to a symbol before checking `@loaded_locales.include?(locale)`. Since `@loaded_locales` stores symbols exclusively (via `load_locale` which calls `locale.to_sym`), passing a string locale (e.g. `\"en\"`) will cause the `.include?` check to always return `false` (since `\"en\" != :en` in Ruby), resulting in redundant `load_locale` calls on every request. The fix is to add `locale = locale.to_sym` as the first line of `ensure_loaded!`.",
+        "path": "lib/freedom_patches/translate_accelerator.rb",
+        "line": null,
+        "source": "extracted"
+      }
+    ]
+  },
+  "https://github.com/grafana/grafana/pull/97529": {
+    "opus_warpgrep": []
+  },
+  "https://github.com/keycloak/keycloak/pull/38446": {
+    "opus_warpgrep": [
+      {
+        "text": "The `getCredentials()` method creates a `RecoveryAuthnCodesCredentialModel` via `createFromValues()` but never sets the ID on the returned model. The stored credential has an ID (generated in `updateCredential()` at line 196), but it is not propagated to the model returned by `getCredentials()`. This results in `getId()` returning null. Downstream, when `RecoveryAuthnCodesFormAuthenticator` calls `removeStoredCredentialById(recoveryCodeCredentialModel.getId())` after all codes are used, it passes null, causing either silent failure or a NullPointerException. Fix: add `model.setId(myUser.recoveryCodes.getId());` after the `createFromValues` call.",
+        "path": "testsuite/integration-arquillian/servers/auth-server/services/testsuite-providers/src/main/java/org/keycloak/testsuite/federation/BackwardsCompatibilityUserStorage.java",
+        "line": 238,
         "source": "extracted"
       }
     ]

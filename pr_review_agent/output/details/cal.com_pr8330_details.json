@@ -4,20 +4,20 @@
   "issues": [
     {
       "file_path": "packages/trpc/server/routers/viewer/slots.ts",
-      "line_number": 109,
+      "line_number": 0,
       "category": "api_misuse",
       "severity": "high",
-      "confidence": 0.95,
-      "comment": "Using `===` reference comparison on dayjs objects, which always returns false since two distinct dayjs objects will never be reference-equal even if they represent the same moment. The condition should use `.isSame()` instead. Impact: Zero-length date overrides (where start equals end, meaning the organizer is unavailable all day) will never be detected, causing the slot to incorrectly be considered available.",
+      "confidence": 0.97,
+      "comment": "Comparison of two dayjs objects using `===` always returns `false` because `===` compares object references, not values. Should use `.isSame()`. Zero-length date overrides (where start equals end, indicating a fully blocked day) are never detected, so the slot is incorrectly treated as available.",
       "source_pass": "review"
     },
     {
       "file_path": "packages/trpc/server/routers/viewer/slots.ts",
-      "line_number": 133,
-      "category": "incorrect_value",
+      "line_number": 0,
+      "category": "logic_error",
       "severity": "high",
-      "confidence": 0.95,
-      "comment": "Copy-paste error: `end` is computed from `slotStartTime` instead of `slotEndTime`. Both `start` and `end` use `slotStartTime.hour() * 60 + slotStartTime.minute()`, so `start === end` always. The variable `end` should use `slotEndTime` (defined earlier as `time.add(eventLength, \"minutes\").utc()`). Impact: Slots that start within working hours but extend past the end of working hours will incorrectly be considered available (e.g., a 60-minute slot starting at 4:30 PM with working hours ending at 5 PM would be allowed even though the slot ends at 5:30 PM).",
+      "confidence": 0.96,
+      "comment": "Copy-paste bug: `end` is calculated from `slotStartTime` instead of `slotEndTime`, making `start` and `end` identical. The working hours boundary check doesn't actually verify the slot's end time. Slots that start within working hours but whose duration extends past working hours will be incorrectly shown as available.",
       "source_pass": "review"
     }
   ]

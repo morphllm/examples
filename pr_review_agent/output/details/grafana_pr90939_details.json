@@ -7,8 +7,8 @@
       "line_number": 53,
       "category": "race_condition",
       "severity": "high",
-      "confidence": 0.95,
-      "comment": "Incomplete double-checked locking: After acquiring the write lock, the code does not re-check whether `entryPointAssetsCache` has already been populated by another goroutine. If two goroutines both read the cache as nil under the read lock, one acquires the write lock and populates the cache, then the second acquires the write lock and redundantly re-reads/re-parses the manifest without checking the cache first. If the second goroutine's redundant read fails (transient file error, context cancellation), `result` will be nil and it overwrites the previously successful cache value with nil at line 92, causing all subsequent requests to miss the cache. Fix: add a re-check after acquiring the write lock: if cfg.Env != setting.Dev && entryPointAssetsCache != nil { return entryPointAssetsCache, nil }",
+      "confidence": 0.92,
+      "comment": "Incomplete double-checked locking pattern: after acquiring the exclusive write lock, the code fails to re-check whether `entryPointAssetsCache` has already been populated by another goroutine. Multiple goroutines that passed the initial RLock check while cache was nil will queue on the Lock and each redundantly re-read the file, re-evaluate feature flags, and overwrite the cache. A re-check `if cfg.Env != setting.Dev && entryPointAssetsCache != nil { return entryPointAssetsCache, nil }` should be added immediately after acquiring the write lock.",
       "source_pass": "review"
     }
   ]

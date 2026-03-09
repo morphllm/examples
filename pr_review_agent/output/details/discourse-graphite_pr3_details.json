@@ -1,23 +1,14 @@
 {
   "pr_url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/3",
-  "total_issues": 2,
+  "total_issues": 1,
   "issues": [
     {
       "file_path": "lib/validators/email_validator.rb",
-      "line_number": 20,
+      "line_number": 19,
       "category": "security",
-      "severity": "critical",
-      "confidence": 0.95,
-      "comment": "Missing `$` anchor in domain regex \u2014 whitelist bypass / blacklist false positives. The regex `@(#{domains})` is not anchored at the end with `$`. When the setting is a pipe-separated domain list like `\"example.com|mail.com\"`, the regex becomes `/@(example\\.com|mail\\.com)/i`. If `email_domains_whitelist` is set to `\"example.com\"`, an attacker can register with `user@example.com.evil.com` \u2014 the regex finds `@example.com` as a substring match and passes validation, even though the actual domain is `evil.com`. For blacklists, a legitimate email like `user@spam.com.legitimate.org` would be incorrectly blocked. The fix should anchor the regex with `$`, e.g. `regexp = Regexp.new(\"@(.+\\\\.)?(#{domains})$\", true)`.",
-      "source_pass": "review"
-    },
-    {
-      "file_path": "app/models/blocked_email.rb",
-      "line_number": 11,
-      "category": "logic_error",
-      "severity": "medium",
-      "confidence": 0.6,
-      "comment": "`BlockedEmail.should_block?` has write side-effects during read-only validation. This method is called from within `EmailValidator#validate_each`, meaning it runs during `User#valid?` \u2014 a nominally read-only check. Every call to `user.valid?` (or any validation trigger, including failed saves due to other validation errors like username) will increment `match_count` and update `last_match_at` in the database. This corrupts the statistics: the count reflects how many times validation ran, not how many actual blocked registration attempts occurred.",
+      "severity": "high",
+      "confidence": 0.75,
+      "comment": "Regex in `email_in_restriction_setting?` lacks `$` anchor, allowing domain suffix bypass. The regex `@(#{domains})` matches the domain as a substring rather than the full domain. For whitelists, an attacker can register with e.g. `attacker@company.com.evil.org` to bypass a `company.com` whitelist. For blacklists, legitimate emails like `user@spam.com.legitimate.org` are incorrectly blocked. Fix: anchor with `$` e.g. `regexp = Regexp.new(\"@(.+\\\\.)?(#{domains})$\", true)`.",
       "source_pass": "review"
     }
   ]
