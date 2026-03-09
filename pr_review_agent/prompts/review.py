@@ -35,7 +35,7 @@ LANGUAGE_HINTS = {
     "ruby": """Ruby-specific checks:
 - Method called on nil (find_by returns nil, then .method called)
 - method redefinition silently overwrites previous def
-- before_validation on nil receiver
+- lifecycle callback registered on class/model that doesn't support it
 - Missing ? suffix on predicate methods (Rails expects include_X? not include_X)
 - Fabricator/factory defined for wrong model
 - Regex anchoring: @(#{domains}) matches suffixes, not full domains

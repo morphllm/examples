@@ -16,27 +16,27 @@ When a function signature, interface, or return type changes, search for ALL cal
 
 3. AUDIT CONCURRENCY SYSTEMATICALLY
 For every piece of mutable shared state being read AND written (counters, caches, shared objects, database records), ask: "What happens if two requests execute this code simultaneously?" Enumerate ALL shared state — do not stop after finding one race condition. Look for:
-- Non-atomic read-modify-write: `x = x + 1` or `retryCount + 1` without a lock
+- Non-atomic read-modify-write: `x = x + 1` or `counter + 1` without a lock
 - Check-then-act without locks: `if count < limit then add` (TOCTOU)
 - Reduced lock scope compared to the original code — if a mutex/lock previously protected a larger block and now only protects a subset, the unprotected portion is likely a new race window
 - In-memory mutation of data that gets written back to storage (decrypt, modify, re-encrypt)
-- Asymmetric cache trust: if cached grants are trusted but cached denials trigger fresh lookups (or vice versa), stale data can persist for one path but not the other
+- Asymmetric cache trust: if the cache is trusted for one outcome (e.g., positive results) but bypassed for the opposite outcome (e.g., negative results), stale data persists for one path but not the other
 
 3b. VERIFY RUNTIME TYPE HIERARCHIES
-When code uses `isinstance()`, `is_a?`, type guards, or type checks, verify the actual runtime type. Framework alternatives often have different class hierarchies than expected. For example: `multiprocessing.get_context('spawn').Process` creates SpawnProcess which is NOT a subclass of `multiprocessing.Process` on POSIX. Similarly, different auth backends, ORM adapters, or plugin systems may return objects that don't inherit from the expected base class. When a callback or hook is registered (e.g., `before_validation`, `after_save`), verify the method is actually defined on that model/class.
+When code uses `isinstance()`, `is_a?`, type guards, or type checks, verify the actual runtime type. Factory methods and context managers often return subclasses with DIFFERENT inheritance hierarchies than the base class — an isinstance check against the base class may silently fail. Similarly, different auth backends, ORM adapters, or plugin systems may return objects that don't inherit from the expected base class. When a callback or hook is registered, verify the method is actually defined on that model/class.
 
 3c. CHECK LOOP AND ITERATION COMPLETENESS
 When a loop has early exits (break, return, deadline checks), trace what happens to items that were not yet processed. Are cleanup actions skipped? Are resources left in an inconsistent state? If a loop terminates early due to a deadline or error, check whether remaining items still need termination, cleanup, or notification.
 
 4. TREAT TEST FILES AS FIRST-CLASS TARGETS
 Test files have real bugs worth reporting. Look for:
-- Method name typos that prevent test discovery (test_from_dict_inalid_data)
+- Method name typos that prevent test discovery (e.g., misspelled test method names won't be collected by test runners)
 - Assertions that pass vacuously (expect(promise).toBeTruthy() without await)
 - Monkeypatched functions that invalidate the test's mechanism (sleep patched to no-op but test uses sleep to wait)
 - Wrong HTTP methods (test uses PUT but route expects DELETE)
-- Comments/docstrings that contradict the assertion values (e.g., comment says "allow access" but test value is false)
+- Comments/docstrings that contradict the assertion values (e.g., comment describes one expected outcome but the asserted value tests for the opposite)
 - Wrong expected values from copy-paste
-- Test setup that contradicts the scenario being tested (e.g., cache populated with "deny" values but test claims "allow")
+- Test setup that contradicts the scenario being tested (e.g., test data configured to produce outcome A but the test claims to verify outcome B)
 - IMPORTANT: When you find a test bug, always trace backward — "What production behavior was this test verifying? Is that production code actually correct?" A test with wrong values often reveals the production code has the same confusion.
 
 5. DEDUPLICATE BY ROOT CAUSE, NOT BY FILE
@@ -49,26 +49,27 @@ What to look for (the WHAT):
 1. **Wrong value / copy-paste**: Wrong variable, swapped parameters, wrong method name, function returns original instead of modified copy
 2. **Wrong locale / translation**: Wrong language content in locale files, wrong script variant (Traditional vs Simplified Chinese)
 3. **Inverted / wrong logic**: AND vs OR, always-true/false conditions, unreachable branches, inverted condition sense
-4. **API misuse**: Non-existent methods/imports (grep to verify the imported class/function actually exists in the source module), missing required parameters, forEach+async (doesn't await), invalid schema syntax, registering callbacks/hooks (before_validation, after_save) on classes that don't define them
+4. **API misuse**: Non-existent methods/imports (grep to verify the imported class/function actually exists in the source module), missing required parameters, forEach+async (doesn't await), invalid schema syntax, registering lifecycle hooks or callbacks on classes/models that don't support them
 5. **Race conditions**: Double-checked locking without second check, stale reads under concurrency, TOCTOU patterns
 6. **Null / nil dereference**: Accessing properties on values that can be nil/undefined/None without checking
-7. **Type mismatch**: Operations on wrong types (math on datetime), negative slicing on unsupported collections, object reference comparison instead of value comparison
+7. **Type mismatch**: Operations on wrong types (math on datetime), using operations the collection type doesn't support (e.g., negative indexing on types that reject it), object reference comparison instead of value comparison
 8. **Security**: SSRF, auth bypass, weakened protections, injection, clickjacking misconfiguration
 9. **Broken tests**: Name typos, wrong assertions, HTTP method mismatches, monkeypatch invalidation
-10. **Framework pitfalls**: Class-level evaluation (datetime.now() at definition time), method redefinition overwrites, regex suffix matching vs full-domain matching, ORM update/save with empty data object (skips auto-updated timestamps like @updatedAt), dict ordering assumptions (zip with dict.values() loses key alignment)
+10. **Framework pitfalls**: Class-level evaluation (datetime.now() at definition time), method redefinition overwrites, regex suffix matching vs full-domain matching, ORM update/save with empty data object (may skip auto-updated timestamp fields), assuming dict/map iteration order matches input key order when using zip or positional access
 11. **Contract violations**: Return type changes that break callers, behavioral regressions, wrong deletion scope, breaking changes in API response format that callers depend on
 12. **CSS / styling**: Wrong color values, invalid vendor prefixes (-ms-align-items doesn't exist), incompatible layout modes
 13. **Naming bugs**: Property/method name typos that affect runtime behavior, inconsistent metric tags, wrong alias strings
+14. **Portability**: Shell commands with OS-specific syntax (e.g., sed, find, date flags that differ between macOS/BSD and Linux/GNU), platform-specific path separators, OS-dependent APIs
 
 ALSO REPORT:
-- Silently ignored error returns — function returns an error but the caller discards it (e.g., `db.RunCommands()` returns error but `err` is not checked). In Go, this means `_ = fn()` or no error variable at all.
+- Silently ignored error returns — function returns an error/status but the caller discards it without checking. In Go, watch for missing `if err != nil` checks; in Java, empty catch blocks; in Python, bare `except: pass`.
 - Dead code where results are computed but discarded
 - Docstring/comment that contradicts what the code actually does
 - Wrong log level (Error for non-error information)
 - Hardcoded values that ignore configurable settings
 - Interface contract changes that break existing implementations
 - Stub methods that return "not implemented", raise NotImplementedError, or have TODO bodies in production code paths (not test mocks)
-- Data migrations that insert raw/unnormalized data when the new code expects normalized lookups (e.g., migration inserts URLs with http:// but new queries compare bare hostnames). Also check: if query code uses lower()/downcase() but the data was inserted without normalization, queries will miss rows
+- Data format mismatch between write path and read path — data stored in one representation (full URLs, unnormalized strings, different case) but queried/compared in another representation. When reviewing migrations or bulk inserts, check: if the application reads this data using lower()/downcase()/strip(), is the data being written in the same normalized form? Raw SQL inserts from old settings are especially prone to storing unnormalized data.
 - Unsafe Optional.get() / .value() without .isPresent() / nil checks, raw collection deserialization without type safety
 
 WHAT NOT TO REPORT:

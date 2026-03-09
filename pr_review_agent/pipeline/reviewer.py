@@ -226,16 +226,16 @@ How to search effectively with WarpGrep — it is a search AGENT, not a grep too
 - Search for callers. Will they handle the new behavior correctly?
 - If a function signature, interface, or return type changed, grep for ALL callers and implementers. Don't assume they were all updated.
 - If a constant or key name changed, find where the old value was referenced. Was everything updated?
-- If concurrency is involved (locks, goroutines, threads, async), find ALL readers and writers of the shared state. Ask: "What happens if two requests do this simultaneously?" Look specifically for: lock scope reductions (lock used to cover more code, now covers less), non-atomic read-modify-write (e.g. `retryCount + 1` without a lock), iterating a shared collection while another goroutine/thread modifies it. When a PR changes the initialization order of components, ALSO trace into each component's internal code to check for internal races — the new init order may expose pre-existing concurrent access bugs in the component's shared state.
+- If concurrency is involved (locks, goroutines, threads, async), find ALL readers and writers of the shared state. Ask: "What happens if two requests do this simultaneously?" Look specifically for: lock scope reductions (lock used to cover more code, now covers less), non-atomic read-modify-write (reading a value, computing a new one, writing it back without synchronization), iterating a shared collection while another goroutine/thread modifies it. When a PR changes the initialization order of components, ALSO trace into each component's internal code to check for internal races — the new init order may expose pre-existing concurrent access bugs in the component's shared state.
 - If initialization timing changes (lazy→eager, sync→async, or vice versa), check: can multiple callers now trigger initialization simultaneously? Does the new path clean up resources on failure?
 - If code branches on environment variables or feature flags, analyze BOTH paths. Bugs hide in less-tested paths.
 - If a framework API is used, verify its behavior with the specific arguments used. Edge cases like empty objects, nil values, or platform differences are where bugs hide.
 - If test files are changed, check: are any mocked/patched functions the same ones the test relies on for correctness? A test that patches `time.sleep` then uses `sleep()` for synchronization is broken.
 - If error response format or exception types changed, grep for all callers that parse errors from this function/endpoint. Do their catch blocks match the new format?
-- VERIFY NEW DEFINITIONS: If the diff imports a new class/function or registers a callback (before_validation, after_save), grep to confirm it exists. Missing imports and undefined callbacks crash immediately.
+- VERIFY NEW DEFINITIONS: If the diff imports a new class/function or registers a lifecycle callback/hook, grep to confirm the referenced symbol actually exists. Missing imports and undefined callbacks crash immediately.
 - CHECK SPELLING of new identifiers — typos in method names cause NoMethodError.
 
-INVESTIGATION PRIORITY: Spend most of your tool budget on data handling, API/backend logic, migrations, and concurrency code. These are where critical bugs hide. Leave UI/component/styling files for last — they rarely contain logic bugs. If a component is replaced with a different one (e.g. `FlexCenter` → `Flex`), that is a style choice, not a bug.
+INVESTIGATION PRIORITY: Spend most of your tool budget on data handling, API/backend logic, migrations, and concurrency code. These are where critical bugs hide. Leave UI/component/styling files for last — they rarely contain logic bugs. If one UI component is swapped for a different one with slightly different default styling, that is a style choice, not a bug.
 
 **Step 3: Write your review.** For each confirmed bug, output an `<issue>` XML tag with the details. Every issue must be backed by evidence from your tool calls.
 
@@ -264,12 +264,12 @@ You can output `<issue>` tags at ANY point during your investigation — as soon
 
 Important investigation rules:
 - Don't stop at the first finding. Keep investigating ALL changed files.
-- STRICT: Report each unique root cause ONCE. If the same bug pattern appears in multiple functions or files (e.g., negative QuerySet slicing in both BasePaginator and OptimizedCursorPaginator), write ONE issue and list all affected locations in the comment. Two candidates for the same root cause = wasted budget. Before writing a new issue, check if you already reported the same underlying problem.
+- STRICT: Report each unique root cause ONCE. If the same bug pattern appears in multiple functions or files, write ONE issue and list all affected locations in the comment. Two candidates for the same root cause = wasted budget. Before writing a new issue, check if you already reported the same underlying problem.
 - Before claiming "X doesn't exist" or "Y is not imported", search the entire repo. Definitions exist outside the diff.
 - Don't over-extrapolate edge cases. Only report bugs you can demonstrate via actual code paths, not theoretical "what if" scenarios.
 - Check for naming bugs: method name typos, property name typos, error messages that contradict the operation.
-- Do NOT report CSS/styling property differences (padding, margin, align, gap, text-overflow, overflow, color values, height) as bugs when a styled component is replaced with a different one. Replacing `FlexCenter` with `Flex` using slightly different CSS is an intentional style choice, not a bug. Do NOT report "property X from old component is missing in new component" — the developer chose a different component deliberately. Only report if it causes a runtime crash (e.g., accessing a non-existent sub-component like `Flex.Item` when `Flex` has no such property).
-- Do NOT report missing sub-components (e.g., `Flex.Item`) as bugs unless you have verified via grep/search that the sub-component truly does not exist on the replacement component AND the code actually tries to use it.
+- Do NOT report CSS/styling property differences (padding, margin, align, gap, text-overflow, overflow, color values, height) as bugs when one styled component replaces another. Different default styling is an intentional choice, not a bug. Do NOT report "property X from old component is missing in new component" — the developer chose a different component deliberately. Only report if it causes a runtime crash (e.g., accessing a sub-component or static property that doesn't exist on the replacement).
+- Do NOT report missing sub-components as bugs unless you have verified via grep/search that the sub-component truly does not exist on the replacement AND the code actually tries to use it.
 - Do NOT report code organization issues (wrong file names, wrong file placement, code in unexpected files) when the framework loads by class/function/fabricator name, not by filename. If the code works correctly at runtime despite the file naming, it's not a bug.
 
 BUDGET YOUR INVESTIGATION: You have a limited number of tool rounds. Do NOT spend more than 2-3 searches on the same question. If a symbol, class, or file doesn't appear after 2 searches, it either doesn't exist or isn't relevant — move on. Spread your investigation across ALL areas of the diff rather than deep-diving into one area. A common failure mode is spending 15+ rounds chasing one question while ignoring the rest of the PR.
@@ -278,13 +278,15 @@ FREQUENTLY MISSED PATTERNS — check each one explicitly:
 1. CONCURRENCY: If lock scope was REDUCED (lock used to cover reads+writes, now only covers writes), trace what happens when thread A reads the unlocked data while thread B writes. If a shared map/cache is iterated by one goroutine while another modifies it, that's a crash. Not just "could race" — trace the specific interleaving. When you find one concurrency issue, keep looking — PRs with concurrency changes often have MULTIPLE independent race conditions on different shared state.
 2. COPY-PASTE ERRORS: In null checks, conditionals, and update operations, verify the correct variable is being checked. Common bug: `if (x == null)` when the code should check `y` (variable name was copy-pasted from a nearby line). Also check: is the correct dict key used when accessing/updating values?
 3. TEST MOCKING: If a test patches/mocks a function (time.sleep, network calls), verify the test doesn't DEPEND on that function for its correctness. Patching sleep then using sleep for timing = broken test.
-4. DATA MIGRATIONS: If PR adds a DB migration inserting seed data, verify the inserted format matches what new code queries for (e.g., migration inserts full URLs but code queries bare hostnames = mismatch). Focus on DATA CORRECTNESS (format, normalization, constraints), not just SQL injection.
-5. DICT/MAP ORDERING: When zip(), positional indexing, or iteration order is used with dict.values()/dict.items(), verify ordering is guaranteed. If get_multi() returns a dict, its .values() order may not match the input key order.
+4. DATA FORMAT MISMATCH: If PR adds a DB migration or bulk insert, verify the stored data format matches how the application queries it. Data stored in one representation but queried in another (different normalization, different casing, different structure) causes silent lookup failures. Focus on data correctness, not just SQL injection.
+5. COLLECTION ORDERING: When zip(), positional indexing, or iteration order is used with results from a batch/cache lookup, verify ordering is guaranteed. Results from batch fetches, caches, or database multi-gets may return in arbitrary order — iterating `.values()` and zipping with input keys can silently pair the wrong items.
 6. API CONTRACTS: If error response format, exception types, or return type changes, grep for ALL callers/catch blocks that parse the OLD format. Breaking change in error shape = runtime crash in consumers.
-7. NAMING: Spell-check new/changed identifiers. Common typos: 'santize'→'sanitize', 'suthenticator'→'authenticator'. Report immediately.
-8. ORM/DB WRITES: If update/save is called with empty or partial data object, check if auto-updated fields (@updatedAt, modified_at) get skipped.
-9. MISSING DEFINITIONS: If the diff imports a new class/function (`from X import Y`, `import X`), grep the source module to verify Y actually exists. If the diff registers a callback or hook (before_validation, after_save, on_commit), grep to verify the callback method is defined on the target class. Missing imports and undefined callbacks cause immediate crashes.
-10. QUERY NORMALIZATION: If code queries data with normalization (lower(), strip(), downcase()), verify the stored data was inserted with the same normalization. Check both direct inserts AND migrations. A query using `WHERE lower(host) = ?` will miss data inserted without lowering.
+7. NAMING: Spell-check new/changed identifiers. Typos in method names cause NoMethodError/AttributeError, typos in string keys cause silent lookup failures, typos in test method names prevent test discovery. Report immediately.
+8. ORM/DB WRITES: If update/save is called with empty or partial data object, check if auto-managed timestamp fields get skipped.
+9. MISSING DEFINITIONS: If the diff imports a new class/function, grep the source module to verify it actually exists. If the diff registers a callback or lifecycle hook, grep to verify the callback method is defined on the target class. Missing imports and undefined callbacks cause immediate crashes.
+10. QUERY NORMALIZATION: If code queries data with normalization (lower(), strip(), downcase()), verify the stored data was inserted with the same normalization. Check both direct inserts AND migrations for consistency with how the application reads the data. In migrations that copy data from old settings/tables via raw SQL, the old data is often NOT normalized.
+11. PLATFORM PORTABILITY: If the PR adds or modifies shell commands, scripts, or CLI invocations, check for OS-specific syntax (e.g., sed -i flag differs between macOS and Linux, date format specifiers vary, find flags differ). Scripts that work on one OS may fail silently or crash on another.
+12. CRUD COMPLETENESS: If new controller actions or API endpoints are added, verify all CRUD operations have proper validation and authorization. A new "create" may validate inputs, but does the corresponding "update" also validate? Does "destroy" check authorization?
 
 IMPORTANT: Report every bug you find that you believe is real. It is better to report a borderline bug than to miss a real one. Even if you only have moderate confidence (0.5-0.7), report it — the confidence score communicates your uncertainty. Do NOT hold back findings.
 
@@ -867,11 +869,16 @@ Each issue must have these fields:
                         "3. DICT ORDERING: If zip() or positional access is used with dict.values() or get_multi() "
                         "results, is the ordering guaranteed? Dict values may not match input key order.\n"
                         "4. ERROR FORMAT: If error response format changed, grep for consumers that parse the old format.\n"
-                        "5. SPELLING: Any new identifier misspelled? (e.g., 'santize', 'suthenticator')\n"
+                        "5. SPELLING: Any new identifier that looks misspelled? Check method names, class names, and variable names for typos.\n"
                         "6. MISSING DEFINITIONS: Any new import, callback registration, or method call referencing "
                         "something that doesn't exist? Grep for the class/method definition to verify.\n"
                         "7. LOOP COMPLETENESS: Any loop with early exit (break, deadline) that skips cleanup/termination "
-                        "of remaining items?\n\n"
+                        "of remaining items?\n"
+                        "8. ORM EMPTY DATA: Any ORM update/save called with an empty or minimal data object that might "
+                        "skip auto-managed fields (timestamps, counters)?\n"
+                        "9. DATA NORMALIZATION: Any migration or bulk insert that stores data without the normalization "
+                        "that the application's read queries expect (lower(), strip(), etc.)?\n"
+                        "10. PORTABILITY: Any shell commands with OS-specific syntax (sed, find, date flags)?\n\n"
                         "Report new bugs with <issue> tags. If you already covered these, say 'No additional issues.'"
                     )})
                     # Allow sweep to run a mini agentic loop (up to 4 tool rounds)
