@@ -1,0 +1,25 @@
+============================================================
+PR Review Agent - Benchmark Pipeline
+============================================================
+Loaded 50 PRs
+WarpGrep: ENABLED
+Reviewing 1 PRs
+
+Running 1 PRs with parallelism=1
+
+[1/1] grafana PR#94942 (2 golden)
+  [1/1] grafana PR#94942 4 files, 41 added lines
+    WarpGrep: How is enableSqlExpressions used and what does the FlagSqlExpressions feature fl
+    WarpGrep: Who calls ReadQuery on ExpressionQueryReader and how are SQL expression queries 
+    WarpGrep: Where is ExpressionQueryReader ReadQuery called and how does it handle the SQL q
+  Loop done round=11 (tools: codebase_search=3, grep=12, read_file=6, list_directory=1, glob=3)
+  Review complete: 1 issues
+  [1/1] grafana PR#94942 1 raw -> 1 kept
+    [1/1] grafana PR#94942 [0.97] logic_error: The `enableSqlExpressions` function always returns `false` due to two compounding errors: 
+Wrote candidates to /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+
+============================================================
+DONE: 1 reviewed, 1 raw -> 1 filtered
+Avg/PR: 1.0, Time: 157s
+Candidates: /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+Benchmark data updated: /Users/tejas/personal/applymodel/zmisc/examples/code-review-benchmark/offline/results/benchmark_data.json

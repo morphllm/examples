@@ -1,0 +1,145 @@
+============================================================
+PR Review Agent - Benchmark Pipeline
+============================================================
+Loaded 50 PRs
+WarpGrep: ENABLED
+Reviewing 10 PRs
+
+Running 10 PRs with parallelism=10
+
+[1/10] keycloak PR#37429 (4 golden)
+[2/10] keycloak PR#37634 (4 golden)
+[3/10] keycloak PR#38446 (2 golden)
+[5/10] keycloak PR#36880 (3 golden)
+[6/10] keycloak PR#37038 (2 golden)
+[4/10] keycloak PR#36882 (1 golden)
+[8/10] keycloak PR#40940 (2 golden)
+[7/10] keycloak PR#33832 (2 golden)
+[9/10] keycloak-greptile PR#1 (2 golden)
+[10/10] sentry PR#93824 (5 golden)
+  [8/10] keycloak PR#40940 4 files, 51 added lines
+  [2/10] keycloak PR#37634 28 files, 722 added lines
+  [4/10] keycloak PR#36882 10 files, 56 added lines
+  [10/10] sentry PR#93824 6 files, 199 added lines
+  [5/10] keycloak PR#36880 10 files, 866 added lines
+  [1/10] keycloak PR#37429 48 files, 343 added lines
+  [7/10] keycloak PR#33832 12 files, 673 added lines
+  [9/10] keycloak-greptile PR#1 9 files, 407 added lines
+  [6/10] keycloak PR#37038 19 files, 831 added lines
+  [3/10] keycloak PR#38446 8 files, 256 added lines
+    WarpGrep: ClientPermissions class definition and its canMapRoles, canMapCompositeRoles, ca
+    WarpGrep: SpanFlusher.main method signature and how it's called
+    WarpGrep: GroupAdapter getGroupModel method and modelSupplier field definition
+    WarpGrep: Who uses RECREATE_UPGRADE_EXIT_CODE and how is exit code 4 or 3 referenced
+    WarpGrep: santizeAnchors method usage and definition in VerifyMessageProperties
+    WarpGrep: Who implements CryptoProvider interface and what order() method do they return
+    WarpGrep: isConditionalPasskeysEnabled method definition in UsernameForm and its parent cl
+    WarpGrep: getFederatedCredentialsStream method definition on credential manager
+    WarpGrep: How is canManage() used for groups, what does it protect against? What are the c
+    WarpGrep: SpansBuffer constructor and assigned_shards property
+    WarpGrep: callers of picocli.exit and what arguments they pass
+    WarpGrep: Lithuanian locale messages_lt totpStep1 translation
+    WarpGrep: Who calls getSubGroupsCount on GroupModel and how do they handle null return
+    WarpGrep: updateCredential method on user credential manager returns boolean
+    WarpGrep: ClientPermissionsV2 parent class - the old ClientPermissions class that V2 exten
+    WarpGrep: How does CryptoIntegration.init work and who calls it
+    WarpGrep: UsernameForm class hierarchy and parent class AbstractUsernameFormAuthenticator
+    WarpGrep: resolveUser and resolveClient methods in AdminPermissionsSchema - what do they r
+    WarpGrep: run_with_initialized_sentry function signature and how it wraps target with addi
+    WarpGrep: messages_zh_CN.properties totpStep1 simplified chinese traditional chinese chara
+    WarpGrep: How are other getSubGroupsStream methods in infinispan GroupAdapter handling mod
+    WarpGrep: RecoveryAuthnCodesCredentialModel createFromValues method signature
+    WarpGrep: RecoveryAuthnCodesFormAuthenticator isRecoveryAuthnCodeInputValid how it validat
+    WarpGrep: concatenatedRSToASN1DER implementation in existing crypto providers
+    WarpGrep: santizeAnchors replaceFirst with value mutation while iterating with matcher
+    WarpGrep: resolveUser resolveClient in AdminPermissionsSchema - what format is the resourc
+    WarpGrep: GroupRepresentation setSubGroupCount method and what happens when null Long is p
+    WarpGrep: BackwardsCompatibilityUserStorage getCredentials method and how federated creden
+    WarpGrep: GroupRepresentation subGroupCount field type and getter setter
+    WarpGrep: RecoveryAuthnCodesCredentialProvider isValid method how recovery codes are valid
+    WarpGrep: UserCredentialManager getFederatedCredentialsStream implementation for federated
+    WarpGrep: Find all implementations of OAuth2GrantTypeFactory interface
+    WarpGrep: CredentialInputUpdater supportsCredentialType for recovery authn codes in user s
+    WarpGrep: LazyModel class implementation in cache infinispan - how does it cache the resul
+    WarpGrep: SpansBuffer slice_id usage and how it affects Redis operations
+    WarpGrep: Thread join in keycloak tests to ensure background thread completes before asser
+    WarpGrep: ASN1Decoder readSequence and how readNext tracks byte count with mark/reset
+  Loop done round=9 (tools: read_file=10, grep=3, warpgrep_codebase_search=1)
+    WarpGrep: getResourceTypeResource method definition in AdminPermissionsSchema
+  Review complete: 3 issues
+  [2/10] keycloak PR#37634 3 raw -> 3 kept
+    [2/10] keycloak PR#37634 [0.98] null_reference: Copy-paste error: the second Objects.requireNonNull checks `grantType` again instead of `r
+    [2/10] keycloak PR#37634 [0.97] incorrect_value: Wrong substring indices: `substring(3, 5)` extracts characters at indices 3-4, but the gra
+    [2/10] keycloak PR#37634 [0.97] logic_error: Inverted condition: the method returns false (does not match) when the grant shortcut equa
+    WarpGrep: AbstractRevisioned or parent class of CachedGroup that has getRealm method
+    WarpGrep: configureTestRealm method in PasskeysUsernamePasswordFormTest or its superclass
+    WarpGrep: AuthzClient.create called in the codebase to understand usage patterns
+    WarpGrep: printError method in AbstractUpdatesCommand or AbstractCommand for picocli comma
+    WarpGrep: UserCredentialModel constructor that takes id, type, challengeResponse
+    WarpGrep: Who calls getOrCreateResource in AdminPermissionsSchema and how is the returned 
+    WarpGrep: ProcessSpansStrategyFactory constructor and kafka_slice_id parameter
+    WarpGrep: GroupPermissionsV2 getGroupIdsWithViewPermission - how is the result used to fil
+    WarpGrep: How does the operator handle update compatibility exit codes and what values doe
+  Loop done round=10 (tools: warpgrep_codebase_search=8, grep=2, read_file=5)
+  Review complete: 1 issues
+  [8/10] keycloak PR#40940 1 raw -> 1 kept
+    [8/10] keycloak PR#40940 [0.93] race_condition: The spawned reader thread is never saved to a variable nor .join()'d before the assertion.
+  Loop done round=11 (tools: warpgrep_codebase_search=4, read_file=4, grep=12, glob=1)
+    WarpGrep: PolicyStore findByResource method definition signature
+  Review complete: 4 issues
+  [1/10] keycloak PR#37429 4 raw -> 4 kept
+    [1/10] keycloak PR#37429 [0.98] localization: Italian text was inserted into the Lithuanian locale file. The value for `totpStep1` is "I
+    [1/10] keycloak PR#37429 [0.98] localization: Italian text was inserted into the Lithuanian locale file. The value for `loginTotpStep1` 
+    [1/10] keycloak PR#37429 [0.97] localization: Traditional Chinese characters were used in the Simplified Chinese (zh_CN) locale file. Th
+    [1/10] keycloak PR#37429 [0.85] incorrect_value: Method name typo: `santizeAnchors` should be `sanitizeAnchors` (missing 'i' in "sanitize")
+    WarpGrep: getBouncyCastleProvider usage in keycloak codebase and what happens if provider 
+    WarpGrep: How does searchForUserStream handle the GROUPS session attribute to filter users
+    WarpGrep: generatedRecoveryAuthnCodes hidden field in recovery codes form template how cod
+    WarpGrep: Where are ROLLING_UPGRADE_EXIT_CODE and RECREATE_UPGRADE_EXIT_CODE used in the c
+    WarpGrep: UserConfigBuilder class definition with id method
+  Loop done round=9 (tools: warpgrep_codebase_search=3, grep=5, read_file=7)
+  Max tool rounds reached (tools: warpgrep_codebase_search=5, grep=18, read_file=12, glob=2, bash=1)
+    WarpGrep: RecoveryAuthnCodesConfigBean generatedRecoveryAuthnCodesAsString how codes are j
+  Loop done round=8 (tools: warpgrep_codebase_search=6, read_file=8, grep=2)
+  Review complete: 2 issues
+  [9/10] keycloak-greptile PR#1 2 raw -> 2 kept
+    [9/10] keycloak-greptile PR#1 [0.95] api_misuse: `isConditionalPasskeysEnabled()` is called without the required `UserModel` argument. The 
+    [9/10] keycloak-greptile PR#1 [0.92] logic_error: `isConditionalPasskeysEnabled` uses `user != null` which inverts the original behavior. Th
+  Review complete: 1 issues
+  [7/10] keycloak PR#33832 1 raw -> 1 kept
+    [7/10] keycloak PR#33832 [0.93] logic_error: Dead code: Lines 115-116 create two ASN1Encoder instances, write rBigInteger and sBigInteg
+    WarpGrep: How kafka_slice_id is passed to ProcessSpansStrategyFactory from consumer config
+    WarpGrep: RecoveryAuthnCodesConfigBean generatedRecoveryAuthnCodesAsString and generatedRe
+  Review complete: 0 issues
+  [4/10] keycloak PR#36882 0 raw -> 0 kept
+    WarpGrep: SetupRecoveryAuthnCodesPage getRecoveryAuthnCodes method implementation
+    WarpGrep: EnterRecoveryAuthnCodePage enterRecoveryAuthnCode method implementation
+    WarpGrep: What is the difference between Resource.getId() and Resource.getName() in the au
+    WarpGrep: getClientsWithPermission method definition or declaration
+    WarpGrep: How is canViewClientDefault() method used and defined - parent class of ClientPe
+    WarpGrep: resolveUser resolveClient in the V1 AdminPermissionsSchema (non-fgap package) - 
+  Max tool rounds reached (tools: warpgrep_codebase_search=7, grep=9, glob=2, list_directory=1, bash=2, read_file=4)
+    WarpGrep: CredentialModel getUserLabel method and setUserLabel
+  Review complete: 0 issues
+  [5/10] keycloak PR#36880 0 raw -> 0 kept
+  Loop done round=16 (tools: warpgrep_codebase_search=6, grep=7, read_file=11)
+  Review complete: 2 issues
+  [10/10] sentry PR#93824 2 raw -> 2 kept
+    [10/10] sentry PR#93824 [0.95] incorrect_value: The `wait_produce` metric timer uses `tags={"shards": shard_tag}` (plural) while the `prod
+    [10/10] sentry PR#93824 [0.85] logic_error: When creating per-shard `SpansBuffer` instances in `_create_process_for_shards`, `SpansBuf
+    WarpGrep: Where is auth.groups().canManage() (without parameter) called to check permissio
+  Loop done round=18 (tools: warpgrep_codebase_search=9, read_file=6, grep=8, glob=2, bash=4)
+  Review complete: 2 issues
+  [6/10] keycloak PR#37038 2 raw -> 2 kept
+    [6/10] keycloak PR#37038 [0.95] security: The parameterless `canManage()` checks for both VIEW and MANAGE scopes via `hasPermission(
+    [6/10] keycloak PR#37038 [0.92] api_misuse: `getGroupIdsWithViewPermission()` uses `groupResource.getId()` (the authorization Resource
+  Max tool rounds reached (tools: warpgrep_codebase_search=15, grep=9, read_file=11)
+  Review complete: 0 issues
+  [3/10] keycloak PR#38446 0 raw -> 0 kept
+Wrote candidates to /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+
+============================================================
+DONE: 10 reviewed, 15 raw -> 15 filtered
+Avg/PR: 1.5, Time: 533s
+Candidates: /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+Benchmark data updated: /Users/tejas/personal/applymodel/zmisc/examples/code-review-benchmark/offline/results/benchmark_data.json

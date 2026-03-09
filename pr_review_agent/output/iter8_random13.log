@@ -1,0 +1,94 @@
+============================================================
+PR Review Agent - Benchmark Pipeline
+============================================================
+Loaded 50 PRs
+WarpGrep: ENABLED
+Random eval: 13 PRs (2 per source_repo, seed=42)
+Reviewing 13 PRs
+
+Running 13 PRs with parallelism=13
+
+[1/13] cal.com PR#8330 (2 golden)
+[2/13] cal.com PR#22532 (2 golden)
+[3/13] discourse-graphite PR#3 (2 golden)
+[4/13] discourse-graphite PR#8 (3 golden)
+[5/13] grafana PR#90939 (2 golden)
+[6/13] grafana PR#94942 (2 golden)
+[8/13] keycloak PR#32918 (2 golden)
+[7/13] keycloak PR#37634 (4 golden)
+[9/13] keycloak-greptile PR#1 (2 golden)
+[10/13] sentry PR#93824 (5 golden)
+[11/13] sentry PR#67876 (3 golden)
+[12/13] sentry-greptile PR#5 (3 golden)
+[13/13] sentry-greptile PR#3 (3 golden)
+  [10/13] sentry PR#93824 6 files, 199 added lines
+  [1/13] cal.com PR#8330 4 files, 111 added lines
+  [2/13] cal.com PR#22532 17 files, 379 added lines
+  [6/13] grafana PR#94942 4 files, 41 added lines
+  [5/13] grafana PR#90939 1 files, 13 added lines
+  [3/13] discourse-graphite PR#3 10 files, 155 added lines
+  [9/13] keycloak-greptile PR#1 9 files, 407 added lines
+  [12/13] sentry-greptile PR#5 105 files, 2312 added lines
+  [8/13] keycloak PR#32918 4 files, 268 added lines
+  [13/13] sentry-greptile PR#3 8 files, 480 added lines
+  [11/13] sentry PR#67876 3 files, 247 added lines
+  [7/13] keycloak PR#37634 28 files, 722 added lines
+  [4/13] discourse-graphite PR#8 16 files, 389 added lines
+    WarpGrep: How is the upsampled_count function defined in the errors dataset? Does it exist
+    WarpGrep: SpansBuffer constructor and how assigned_shards property is set
+    WarpGrep: How does getForLogin work in IdentityProviderStorageProvider? What are all imple
+    WarpGrep: How is email_in_restriction_setting used and what does the email_domains_whiteli
+    WarpGrep: How does checkIfIsAvailable work and who calls it?
+    WarpGrep: Who calls GetWebAssets and how is it used?
+    WarpGrep: How does PRCommentWorkflow.get_merged_pr_single_issue_template work and who call
+    WarpGrep: What happens when Prisma updateMany is called with an empty data object? Does it
+    WarpGrep: How does PipelineView.determine_active_organization work and what does self.acti
+    WarpGrep: Where is isConditionalPasskeysEnabled defined on UsernameForm or its parent clas
+    WarpGrep: How does the remove_member action in the groups controller work? What does group
+    WarpGrep: How does SpanFlusher.main() use the buffer parameter and what is the first posit
+    WarpGrep: How does dayjs object comparison with === work? Are dayjs objects compared by re
+    WarpGrep: What does the SnubaParams.project_ids property return? Can it be None?
+    WarpGrep: How is enableSqlExpressions used and what does FlagSqlExpressions feature flag c
+    WarpGrep: How is updateManyByCredentialId used in the codebase and what does passing an em
+    WarpGrep: How does the Enum class work? What does Enum.new(:block, :do_nothing) return for
+    WarpGrep: How does UsernameForm relate to UsernamePasswordForm in the class hierarchy? Doe
+    WarpGrep: What is IdentityProviderListQuery and how does it store multiple search keys? Ho
+    WarpGrep: What is the dateOverrides structure passed to checkIfIsAvailable and how are dat
+    WarpGrep: What does the connectedCalendars query return, specifically does it include cach
+    WarpGrep: How does fetch_error_details use nodestore.backend.get_multi and what ordering g
+    WarpGrep: Is upsampled_count defined as a SnQLFunction in the errors dataset (errors.py)?
+    WarpGrep: How is ProcessSpansStrategyFactory.create_with_partitions called and what parame
+    WarpGrep: Who calls the enableSqlExpressions function and how is the return value used?
+    WarpGrep: What is pipeline.signature and how is it generated in IntegrationPipeline?
+    WarpGrep: What HTTP method does the test use for remove_member action in admin groups cont
+    WarpGrep: How does LoginFilter enum work in IdentityProviderStorageProvider? What are the 
+    WarpGrep: What does the Attributes component filter logic look like when searchQuery is em
+  WarpGrep connection error, retrying in 3s (attempt 1/3): SSLError
+    WarpGrep: How does GitHubIdentityProvider get_oauth_client_id and get_oauth_client_secret 
+    WarpGrep: What format does email_domains_whitelist or email_domains_blacklist SiteSetting 
+    WarpGrep: How does the errors dataset resolve function names? Does it inherit from the dis
+    WarpGrep: What does nodestore.backend.get_multi return? Is it an ordered dict or unordered
+    WarpGrep: How is BlockedEmail.should_block? used in the email validator? Does it get calle
+    WarpGrep: How does the determine_active_organization method work on PipelineView? Is it a 
+  WarpGrep connection error, retrying in 3s (attempt 1/3): SSLError
+    WarpGrep: What does integration.metadata look like for GitHub integrations? What fields do
+    WarpGrep: Does the SelectedCalendar model have an updatedAt field in the Prisma schema?
+    WarpGrep: How does the FlexBox/FlexContainer replacement with Flex component affect the he
+    WarpGrep: Who calls the Context copy constructor in OAuth2GrantType, specifically "new Con
+    WarpGrep: What does group.users.delete do with an integer user_id in ActiveRecord? Does it
+  Loop done round=5 (tools: read_file=2, warpgrep_codebase_search=1, grep=4)
+    WarpGrep: What implementations of OAuth2GrantTypeFactory exist and do they all implement g
+    WarpGrep: How is QueryFramesInto called and what does it do? Is there another implementati
+    WarpGrep: What does PRCommentWorkflow._truncate_title refer to? Is _truncate_title a stati
+  Review complete: 1 issues
+  [5/13] grafana PR#90939 1 raw -> 1 kept
+    [5/13] grafana PR#90939 [0.92] race_condition: Incomplete double-checked locking pattern: after acquiring the exclusive write lock, the c
+    WarpGrep: What is the relationship between CommitContextIntegration and PRCommentWorkflow?
+    WarpGrep: How does the deleteCache trpc mutation verify credential ownership, especially f
+    WarpGrep: How does the group members template reference members in the group/members.hbs? 
+    WarpGrep: Where does GitHubInstallation (PipelineView) get the determine_active_organizati
+    WarpGrep: Does Prisma updateMany with empty data object {} automatically populate @updated
+    WarpGrep: Where is BROKER_PUBLIC filtered in getForLogin or getLoginSearchOptions? Does ge
+    WarpGrep: What does _get_bytes_multi return? Is it an ordered dict that preserves the orde
+    WarpGrep: How does Pipeline dispatch to pipeline views? How is PipelineView.dispatch calle
+    WarpGrep: How is ExpressionQueryReader.ReadQuery called? What is the call chain that leads

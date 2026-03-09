@@ -1,0 +1,27 @@
+============================================================
+PR Review Agent - Benchmark Pipeline
+============================================================
+Loaded 50 PRs
+WarpGrep: ENABLED
+Reviewing 1 PRs
+
+Running 1 PRs with parallelism=1
+
+[1/1] sentry PR#93824 (5 golden)
+  [1/1] sentry PR#93824 6 files, 199 added lines
+    WarpGrep: SpanFlusher class and how it's instantiated with buffer and shards
+    WarpGrep: SpansBuffer constructor and assigned_shards property
+    WarpGrep: Does SpawnProcess from multiprocessing.get_context('spawn') inherit from multipr
+    WarpGrep: run_with_initialized_sentry how does it work with partial and pickled arguments
+  Loop done round=11 (tools: codebase_search=4, grep=8, read_file=8, bash=3)
+  Review complete: 2 issues
+  [1/1] sentry PR#93824 2 raw -> 2 kept
+    [1/1] sentry PR#93824 [0.95] type_error: `isinstance(process, multiprocessing.Process)` is always `False` for processes created via
+    [1/1] sentry PR#93824 [0.92] incorrect_value: The metric `spans.buffer.flusher.wait_produce` uses tag key `"shards"` (plural) while all 
+Wrote candidates to /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+
+============================================================
+DONE: 1 reviewed, 2 raw -> 2 filtered
+Avg/PR: 2.0, Time: 270s
+Candidates: /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+Benchmark data updated: /Users/tejas/personal/applymodel/zmisc/examples/code-review-benchmark/offline/results/benchmark_data.json

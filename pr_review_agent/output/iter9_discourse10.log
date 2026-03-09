@@ -1,0 +1,31 @@
+============================================================
+PR Review Agent - Benchmark Pipeline
+============================================================
+Loaded 50 PRs
+WarpGrep: ENABLED
+Reviewing 1 PRs
+
+Running 1 PRs with parallelism=1
+
+[1/1] discourse-graphite PR#10 (4 golden)
+  [1/1] discourse-graphite PR#10 36 files, 449 added lines
+    WarpGrep: How does the store.find method work for singleton resources vs collections in Di
+    WarpGrep: How does _hydrateEmbedded and _lookupSubType work in the Discourse store
+    WarpGrep: How does the rest adapter basePath method handle type names with underscores vs 
+    WarpGrep: How does the migration handle the case when embed_category site setting doesn't 
+    WarpGrep: Where is basePath called and what type values get passed to it in the REST adapt
+    WarpGrep: How does PG::Result handle indexing with [0] when there are no rows in PostgreSQ
+  Loop done round=32 (tools: codebase_search=6, grep=18, read_file=20, glob=6)
+  Review complete: 4 issues
+  [1/1] discourse-graphite PR#10 4 raw -> 4 kept
+    [1/1] discourse-graphite PR#10 [0.95] null_reference: Migration unconditionally dereferences `execute(...)[0]['id']` without checking if any row
+    [1/1] discourse-graphite PR#10 [0.95] logic_error: The file contents of `category_fabricator.rb` and `embeddable_host_fabricator.rb` are swap
+    [1/1] discourse-graphite PR#10 [0.85] logic_error: The `update` action is a no-op — it re-renders the existing `@embedding` without processin
+    [1/1] discourse-graphite PR#10 [0.80] logic_error: In the `_ids` plural hydration branch of `_hydrateEmbedded`, `_lookupSubType` can return `
+Wrote candidates to /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+
+============================================================
+DONE: 1 reviewed, 4 raw -> 4 filtered
+Avg/PR: 4.0, Time: 352s
+Candidates: /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+Benchmark data updated: /Users/tejas/personal/applymodel/zmisc/examples/code-review-benchmark/offline/results/benchmark_data.json

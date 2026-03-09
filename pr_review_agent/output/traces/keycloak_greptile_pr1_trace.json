@@ -1,0 +1,246 @@
+[
+  {
+    "round": 0,
+    "tool": "warpgrep_codebase_search",
+    "input": {
+      "search_string": "Find the isConditionalPasskeysEnabled method in UsernameForm and its parent classes"
+    },
+    "output_len": 5315,
+    "is_error": false
+  },
+  {
+    "round": 0,
+    "tool": "warpgrep_codebase_search",
+    "input": {
+      "search_string": "Who calls isConditionalPasskeysEnabled and where is it defined in the class hierarchy of UsernameForm, UsernamePasswordForm, AbstractUsernameFormAuthenticator"
+    },
+    "output_len": 22293,
+    "is_error": false
+  },
+  {
+    "round": 1,
+    "tool": "grep",
+    "input": {
+      "pattern": "isConditionalPasskeysEnabled",
+      "glob": "*.java"
+    },
+    "output_len": 4131,
+    "is_error": false
+  },
+  {
+    "round": 1,
+    "tool": "read_file",
+    "input": {
+      "path": "services/src/main/java/org/keycloak/authentication/authenticators/browser/UsernameForm.java"
+    },
+    "output_len": 4675,
+    "is_error": false
+  },
+  {
+    "round": 2,
+    "tool": "grep",
+    "input": {
+      "pattern": "isConditionalPasskeysEnabled\\(\\)",
+      "glob": "*.java"
+    },
+    "output_len": 10,
+    "is_error": false
+  },
+  {
+    "round": 2,
+    "tool": "grep",
+    "input": {
+      "pattern": "boolean isConditionalPasskeysEnabled",
+      "glob": "*.java"
+    },
+    "output_len": 664,
+    "is_error": false
+  },
+  {
+    "round": 3,
+    "tool": "read_file",
+    "input": {
+      "path": "services/src/main/java/org/keycloak/authentication/authenticators/browser/AbstractUsernameFormAuthenticator.java"
+    },
+    "output_len": 13501,
+    "is_error": false
+  },
+  {
+    "round": 3,
+    "tool": "read_file",
+    "input": {
+      "path": "services/src/main/java/org/keycloak/authentication/authenticators/browser/UsernamePasswordForm.java"
+    },
+    "output_len": 7302,
+    "is_error": false
+  },
+  {
+    "round": 4,
+    "tool": "grep",
+    "input": {
+      "pattern": "isConditionalPasskeysEnabled"
+    },
+    "output_len": 4131,
+    "is_error": false
+  },
+  {
+    "round": 4,
+    "tool": "read_file",
+    "input": {
+      "path": "services/src/main/java/org/keycloak/authentication/AbstractFormAuthenticator.java"
+    },
+    "output_len": 1101,
+    "is_error": false
+  },
+  {
+    "round": 5,
+    "tool": "read_file",
+    "input": {
+      "path": "services/src/main/java/org/keycloak/authentication/authenticators/browser/WebAuthnAuthenticator.java",
+      "lines": "85-135"
+    },
+    "output_len": 2595,
+    "is_error": false
+  },
+  {
+    "round": 5,
+    "tool": "read_file",
+    "input": {
+      "path": "services/src/main/java/org/keycloak/authentication/authenticators/browser/WebAuthnConditionalUIAuthenticator.java"
+    },
+    "output_len": 2914,
+    "is_error": false
+  },
+  {
+    "round": 6,
+    "tool": "warpgrep_codebase_search",
+    "input": {
+      "search_string": "Where is shouldDisplayAuthenticators defined and used in WebAuthnAuthenticator and WebAuthnConditionalUIAuthenticator"
+    },
+    "output_len": 5061,
+    "is_error": false
+  },
+  {
+    "round": 6,
+    "tool": "read_file",
+    "input": {
+      "path": "services/src/main/java/org/keycloak/authentication/authenticators/browser/WebAuthnAuthenticator.java",
+      "lines": "85-165"
+    },
+    "output_len": 4030,
+    "is_error": false
+  },
+  {
+    "round": 7,
+    "tool": "grep",
+    "input": {
+      "pattern": "configureTestRealm",
+      "glob": "**/PasskeysUsernamePasswordFormTest.java"
+    },
+    "output_len": 727,
+    "is_error": false
+  },
+  {
+    "round": 7,
+    "tool": "warpgrep_codebase_search",
+    "input": {
+      "search_string": "Find configureTestRealm method in the passkeys test base classes or AbstractPasskeysTest"
+    },
+    "output_len": 1228,
+    "is_error": false
+  },
+  {
+    "round": 8,
+    "tool": "read_file",
+    "input": {
+      "path": "testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/webauthn/passwordless/PasskeysUsernamePasswordFormTest.java",
+      "lines": "1-80"
+    },
+    "output_len": 3275,
+    "is_error": false
+  },
+  {
+    "round": 8,
+    "tool": "warpgrep_codebase_search",
+    "input": {
+      "search_string": "Find configureTestRealm in AbstractPasskeysTest or parent class of PasskeysUsernamePasswordFormTest"
+    },
+    "output_len": 19627,
+    "is_error": false
+  },
+  {
+    "round": 9,
+    "tool": "grep",
+    "input": {
+      "pattern": "isConditionalPasskeysEnabled\\b",
+      "glob": "*.java"
+    },
+    "output_len": 4131,
+    "is_error": false
+  },
+  {
+    "round": 9,
+    "tool": "warpgrep_codebase_search",
+    "input": {
+      "search_string": "Find all implementations and overloads of isConditionalPasskeysEnabled method in the entire codebase"
+    },
+    "output_len": 17449,
+    "is_error": false
+  },
+  {
+    "round": 10,
+    "tool": "grep",
+    "input": {
+      "pattern": "class UsernameForm extends",
+      "glob": "*.java"
+    },
+    "output_len": 550,
+    "is_error": false
+  },
+  {
+    "round": 10,
+    "tool": "grep",
+    "input": {
+      "pattern": "protected boolean isConditionalPasskeysEnabled\\(",
+      "glob": "*.java"
+    },
+    "output_len": 664,
+    "is_error": false
+  },
+  {
+    "round": 11,
+    "tool": "read_file",
+    "input": {
+      "path": "services/src/main/java/org/keycloak/authentication/authenticators/browser/WebAuthnPasswordlessAuthenticator.java"
+    },
+    "output_len": 5366,
+    "is_error": false
+  },
+  {
+    "round": 12,
+    "tool": "warpgrep_codebase_search",
+    "input": {
+      "search_string": "Find the FTL template that renders the webauth form with id='webauth' for conditional passkeys login"
+    },
+    "output_len": 11650,
+    "is_error": false
+  },
+  {
+    "round": 13,
+    "tool": "bash",
+    "input": {
+      "command": "cd /Users/tejas/personal/applymodel/zmisc/examples/pr_clones/keycloak && grep -rn \"void isConditionalPasskeysEnabled\\|boolean isConditionalPasskeysEnabled\" --include=\"*.java\" | head -20"
+    },
+    "output_len": 181,
+    "is_error": false
+  },
+  {
+    "round": 14,
+    "tool": "bash",
+    "input": {
+      "command": "cd /Users/tejas/personal/applymodel/zmisc/examples/pr_clones/keycloak && grep -rn \"isConditionalPasskeysEnabled()\" --include=\"*.java\" | head -20"
+    },
+    "output_len": 11,
+    "is_error": false
+  }
+]

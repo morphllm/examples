@@ -1,0 +1,386 @@
+[
+  {
+    "round": 0,
+    "tool": "codebase_search",
+    "input": {
+      "search_string": "How does the REST adapter basePath handle type names with underscores vs hyphens?"
+    },
+    "output_len": 4017,
+    "is_error": false
+  },
+  {
+    "round": 0,
+    "tool": "codebase_search",
+    "input": {
+      "search_string": "How does _lookupSubType work in the store and what happens when it returns null or undefined?"
+    },
+    "output_len": 1685,
+    "is_error": false
+  },
+  {
+    "round": 0,
+    "tool": "codebase_search",
+    "input": {
+      "search_string": "category_fabricator.rb and embeddable_host_fabricator.rb fabricators for categories and embeddable hosts"
+    },
+    "output_len": 113,
+    "is_error": false
+  },
+  {
+    "round": 0,
+    "tool": "grep",
+    "input": {
+      "pattern": "Fabricator\\(:category\\)"
+    },
+    "output_len": 414,
+    "is_error": false
+  },
+  {
+    "round": 1,
+    "tool": "read_file",
+    "input": {
+      "path": "app/assets/javascripts/discourse/models/store.js.es6"
+    },
+    "output_len": 75,
+    "is_error": false
+  },
+  {
+    "round": 1,
+    "tool": "read_file",
+    "input": {
+      "path": "app/assets/javascripts/discourse/adapters/rest.js.es6"
+    },
+    "output_len": 76,
+    "is_error": false
+  },
+  {
+    "round": 1,
+    "tool": "read_file",
+    "input": {
+      "path": "app/models/embeddable_host.rb"
+    },
+    "output_len": 2490,
+    "is_error": false
+  },
+  {
+    "round": 2,
+    "tool": "grep",
+    "input": {
+      "pattern": "basePath",
+      "glob": "*.es6"
+    },
+    "output_len": 10,
+    "is_error": false
+  },
+  {
+    "round": 2,
+    "tool": "grep",
+    "input": {
+      "pattern": "_hydrateEmbedded",
+      "glob": "*.es6"
+    },
+    "output_len": 10,
+    "is_error": false
+  },
+  {
+    "round": 2,
+    "tool": "read_file",
+    "input": {
+      "path": "spec/fabricators/category_fabricator.rb"
+    },
+    "output_len": 1409,
+    "is_error": false
+  },
+  {
+    "round": 2,
+    "tool": "read_file",
+    "input": {
+      "path": "spec/fabricators/embeddable_host_fabricator.rb"
+    },
+    "output_len": 112,
+    "is_error": false
+  },
+  {
+    "round": 3,
+    "tool": "grep",
+    "input": {
+      "pattern": "replace\\('_'",
+      "glob": "*.es6"
+    },
+    "output_len": 10,
+    "is_error": false
+  },
+  {
+    "round": 3,
+    "tool": "codebase_search",
+    "input": {
+      "search_string": "How does the store call basePath and what type format is used (underscore vs hyphen)?"
+    },
+    "output_len": 4017,
+    "is_error": false
+  },
+  {
+    "round": 3,
+    "tool": "read_file",
+    "input": {
+      "path": "db/migrate/20150818190757_create_embeddable_hosts.rb"
+    },
+    "output_len": 1514,
+    "is_error": false
+  },
+  {
+    "round": 4,
+    "tool": "read_file",
+    "input": {
+      "path": "test/javascripts/helpers/create-pretender.js.es6",
+      "lines": "39-55"
+    },
+    "output_len": 71,
+    "is_error": false
+  },
+  {
+    "round": 4,
+    "tool": "read_file",
+    "input": {
+      "path": "test/javascripts/models/store-test.js.es6",
+      "lines": "106-140"
+    },
+    "output_len": 64,
+    "is_error": false
+  },
+  {
+    "round": 4,
+    "tool": "grep",
+    "input": {
+      "pattern": "_lookupSubType",
+      "glob": "*.es6"
+    },
+    "output_len": 10,
+    "is_error": false
+  },
+  {
+    "round": 5,
+    "tool": "glob",
+    "input": {
+      "pattern": "**/store-test*"
+    },
+    "output_len": 52,
+    "is_error": false
+  },
+  {
+    "round": 5,
+    "tool": "glob",
+    "input": {
+      "pattern": "**/create-pretender*"
+    },
+    "output_len": 52,
+    "is_error": false
+  },
+  {
+    "round": 5,
+    "tool": "glob",
+    "input": {
+      "pattern": "**/store.js*"
+    },
+    "output_len": 79,
+    "is_error": false
+  },
+  {
+    "round": 6,
+    "tool": "read_file",
+    "input": {
+      "path": "frontend/discourse/app/services/store.js",
+      "lines": "350-400"
+    },
+    "output_len": 1550,
+    "is_error": false
+  },
+  {
+    "round": 6,
+    "tool": "read_file",
+    "input": {
+      "path": "frontend/discourse/tests/unit/services/store-test.js",
+      "lines": "100-150"
+    },
+    "output_len": 1952,
+    "is_error": false
+  },
+  {
+    "round": 7,
+    "tool": "codebase_search",
+    "input": {
+      "search_string": "How does EmbeddableHost.record_for_host handle when called from TopicEmbed.import?"
+    },
+    "output_len": 6291,
+    "is_error": false
+  },
+  {
+    "round": 7,
+    "tool": "grep",
+    "input": {
+      "pattern": "record_for_host"
+    },
+    "output_len": 10,
+    "is_error": false
+  },
+  {
+    "round": 8,
+    "tool": "codebase_search",
+    "input": {
+      "search_string": "How does PG::Result indexing work when accessing rows from empty result sets in Rails migrations?"
+    },
+    "output_len": 5862,
+    "is_error": false
+  },
+  {
+    "round": 8,
+    "tool": "grep",
+    "input": {
+      "pattern": "store\\.find\\('fruit'"
+    },
+    "output_len": 10,
+    "is_error": false
+  },
+  {
+    "round": 9,
+    "tool": "grep",
+    "input": {
+      "pattern": "find\\('fruit'"
+    },
+    "output_len": 10,
+    "is_error": false
+  },
+  {
+    "round": 9,
+    "tool": "grep",
+    "input": {
+      "pattern": "fruits/:id"
+    },
+    "output_len": 496,
+    "is_error": false
+  },
+  {
+    "round": 10,
+    "tool": "read_file",
+    "input": {
+      "path": "app/controllers/admin/embeddable_hosts_controller.rb"
+    },
+    "output_len": 1902,
+    "is_error": false
+  },
+  {
+    "round": 10,
+    "tool": "read_file",
+    "input": {
+      "path": "app/controllers/admin/embedding_controller.rb"
+    },
+    "output_len": 905,
+    "is_error": false
+  },
+  {
+    "round": 11,
+    "tool": "read_file",
+    "input": {
+      "path": "frontend/discourse/app/services/store.js",
+      "lines": "315-390"
+    },
+    "output_len": 2381,
+    "is_error": false
+  },
+  {
+    "round": 11,
+    "tool": "read_file",
+    "input": {
+      "path": "frontend/discourse/tests/helpers/store-pretender.js"
+    },
+    "output_len": 4217,
+    "is_error": false
+  },
+  {
+    "round": 12,
+    "tool": "grep",
+    "input": {
+      "pattern": "embed_category",
+      "glob": "*.yml"
+    },
+    "output_len": 10,
+    "is_error": false
+  },
+  {
+    "round": 12,
+    "tool": "codebase_search",
+    "input": {
+      "search_string": "How does the EmbeddableHost before_validation handle nil host values?"
+    },
+    "output_len": 2528,
+    "is_error": false
+  },
+  {
+    "round": 13,
+    "tool": "grep",
+    "input": {
+      "pattern": "expandable_first_post"
+    },
+    "output_len": 4684,
+    "is_error": false
+  },
+  {
+    "round": 13,
+    "tool": "codebase_search",
+    "input": {
+      "search_string": "Where is expandable_first_post used and what was the embeddable_hosts check purpose?"
+    },
+    "output_len": 17,
+    "is_error": false
+  },
+  {
+    "round": 14,
+    "tool": "read_file",
+    "input": {
+      "path": "frontend/discourse/app/services/store.js",
+      "lines": "1-80"
+    },
+    "output_len": 2354,
+    "is_error": false
+  },
+  {
+    "round": 15,
+    "tool": "read_file",
+    "input": {
+      "path": "frontend/discourse/app/services/store.js",
+      "lines": "90-160"
+    },
+    "output_len": 2515,
+    "is_error": false
+  },
+  {
+    "round": 16,
+    "tool": "grep",
+    "input": {
+      "pattern": "cmd_tuples",
+      "path": "db/migrate"
+    },
+    "output_len": 6466,
+    "is_error": false
+  },
+  {
+    "round": 16,
+    "tool": "grep",
+    "input": {
+      "pattern": "uncategorized_category_id",
+      "glob": "*.yml"
+    },
+    "output_len": 355,
+    "is_error": false
+  },
+  {
+    "round": 17,
+    "tool": "read_file",
+    "input": {
+      "path": "frontend/discourse/tests/unit/services/store-test.js",
+      "lines": "160-220"
+    },
+    "output_len": 2181,
+    "is_error": false
+  }
+]

@@ -17,7 +17,7 @@ class Config:
     """Central configuration for the review pipeline."""
 
     # Provider selection: "anthropic" | "openai" | "google"
-    provider: str = "google"
+    provider: str = "anthropic"
 
     # API keys
     anthropic_api_key: str = ""
@@ -31,7 +31,7 @@ class Config:
     output_dir: Path = Path("")
 
     # Model settings
-    model: str = "gemini-3.1-pro-preview"
+    model: str = "claude-opus-4-6"
     max_tokens: int = 64000
 
     # Confidence thresholds (lower = more recall, higher = more precision)

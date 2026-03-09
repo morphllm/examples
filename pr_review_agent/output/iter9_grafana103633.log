@@ -1,0 +1,30 @@
+============================================================
+PR Review Agent - Benchmark Pipeline
+============================================================
+Loaded 50 PRs
+WarpGrep: ENABLED
+Reviewing 1 PRs
+
+Running 1 PRs with parallelism=1
+
+[1/1] grafana PR#103633 (2 golden)
+  [1/1] grafana PR#103633 4 files, 240 added lines
+    WarpGrep: How does the Check method in the RBAC service handle permissions caching and wha
+    WarpGrep: What callers use newRBACClient and how is it referenced across the codebase?
+    WarpGrep: How does the permDenialCache interact with the regular permCache invalidation? W
+    WarpGrep: What does getCachedIdentityPermissions return and how does checkPermission use t
+    WarpGrep: How is the checkPermission function signature defined and how many parameters do
+    WarpGrep: What is the asymmetric cache pattern risk: denial cache is checked first but per
+    WarpGrep: What interface does WithCacheClientOption expect? What methods must the cache im
+    WarpGrep: How does checkPermission evaluate scopeMap entries with false values? Does scope
+  Loop done round=13 (tools: codebase_search=8, read_file=13, grep=8)
+  Review complete: 1 issues
+  [1/1] grafana PR#103633 1 raw -> 1 kept
+    [1/1] grafana PR#103633 [0.95] test_correctness: In the test "Should deny on explicit cache deny entry", the permCache value for "dashboard
+Wrote candidates to /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+
+============================================================
+DONE: 1 reviewed, 1 raw -> 1 filtered
+Avg/PR: 1.0, Time: 459s
+Candidates: /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+Benchmark data updated: /Users/tejas/personal/applymodel/zmisc/examples/code-review-benchmark/offline/results/benchmark_data.json

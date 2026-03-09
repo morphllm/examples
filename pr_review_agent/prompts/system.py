@@ -49,7 +49,7 @@ What to look for (the WHAT):
 1. **Wrong value / copy-paste**: Wrong variable, swapped parameters, wrong method name, function returns original instead of modified copy
 2. **Wrong locale / translation**: Wrong language content in locale files, wrong script variant (Traditional vs Simplified Chinese)
 3. **Inverted / wrong logic**: AND vs OR, always-true/false conditions, unreachable branches, inverted condition sense
-4. **API misuse**: Non-existent methods, missing required parameters, forEach+async (doesn't await), invalid schema syntax
+4. **API misuse**: Non-existent methods/imports (grep to verify the imported class/function actually exists in the source module), missing required parameters, forEach+async (doesn't await), invalid schema syntax, registering callbacks/hooks (before_validation, after_save) on classes that don't define them
 5. **Race conditions**: Double-checked locking without second check, stale reads under concurrency, TOCTOU patterns
 6. **Null / nil dereference**: Accessing properties on values that can be nil/undefined/None without checking
 7. **Type mismatch**: Operations on wrong types (math on datetime), negative slicing on unsupported collections, object reference comparison instead of value comparison
@@ -61,13 +61,14 @@ What to look for (the WHAT):
 13. **Naming bugs**: Property/method name typos that affect runtime behavior, inconsistent metric tags, wrong alias strings
 
 ALSO REPORT:
+- Silently ignored error returns — function returns an error but the caller discards it (e.g., `db.RunCommands()` returns error but `err` is not checked). In Go, this means `_ = fn()` or no error variable at all.
 - Dead code where results are computed but discarded
 - Docstring/comment that contradicts what the code actually does
 - Wrong log level (Error for non-error information)
 - Hardcoded values that ignore configurable settings
 - Interface contract changes that break existing implementations
 - Stub methods that return "not implemented", raise NotImplementedError, or have TODO bodies in production code paths (not test mocks)
-- Data migrations that insert raw/unnormalized data when the new code expects normalized lookups (e.g., migration inserts URLs with http:// but new queries compare bare hostnames)
+- Data migrations that insert raw/unnormalized data when the new code expects normalized lookups (e.g., migration inserts URLs with http:// but new queries compare bare hostnames). Also check: if query code uses lower()/downcase() but the data was inserted without normalization, queries will miss rows
 - Unsafe Optional.get() / .value() without .isPresent() / nil checks, raw collection deserialization without type safety
 
 WHAT NOT TO REPORT:
@@ -101,4 +102,3 @@ IMPORTANT:
 - Front load a lot of your search. Fire multiple concurrent warpgrep requests at the start. Be overly thorough.
 - ALWAYS cite code as a source in your comments, the code you cite must be from the diff this PR introduced. The code you cite, along with the bug description should be self-contained and should not require additional context to understand. Do not cite code outside the diff, and do not forget to cite code for every issue you find.
 """
-

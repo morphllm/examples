@@ -1,0 +1,26 @@
+============================================================
+PR Review Agent - Benchmark Pipeline
+============================================================
+Loaded 50 PRs
+WarpGrep: ENABLED
+Reviewing 1 PRs
+
+Running 1 PRs with parallelism=1
+
+[1/1] cal.com PR#14943 (2 golden)
+  [1/1] cal.com PR#14943 3 files, 38 added lines
+    WarpGrep: How does the deletion of workflow reminders interact with the OR condition for m
+    WarpGrep: How are workflow reminders deleted in the scheduling cron jobs for Whatsapp and 
+    WarpGrep: Where are scheduled email workflow reminders cleaned up or deleted? Is there a s
+    WarpGrep: How does the scheduleWhatsappReminders handler clean up or delete old Whatsapp w
+  Loop done round=9 (tools: read_file=5, codebase_search=4, grep=12)
+  Review complete: 1 issues
+  [1/1] cal.com PR#14943 1 raw -> 1 kept
+    [1/1] cal.com PR#14943 [0.95] logic_error: The second condition in the OR clause of the deleteMany query (`{ retryCount: { gt: 1 } }`
+Wrote candidates to /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+
+============================================================
+DONE: 1 reviewed, 1 raw -> 1 filtered
+Avg/PR: 1.0, Time: 151s
+Candidates: /Users/tejas/personal/applymodel/zmisc/examples/pr_review_agent/output/candidates.json
+Benchmark data updated: /Users/tejas/personal/applymodel/zmisc/examples/code-review-benchmark/offline/results/benchmark_data.json

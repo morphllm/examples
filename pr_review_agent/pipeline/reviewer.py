@@ -209,7 +209,9 @@ class Reviewer:
 
 ## How to Review
 
-**Step 1: Investigate the codebase.** Before forming any opinions, use `codebase_search` to understand the codebase context. Make at least 8 searches targeting your uncertainties about the changed code.
+**Step 1: Plan and investigate.** First, mentally list all changed files from the diff. Classify each as: DATA (models, migrations, DB operations), API (endpoints, handlers, serializers), LOGIC (business logic, algorithms), TEST (test files), or UI (components, templates, styling). Then investigate DATA and API files first — they have the most critical bugs.
+
+Use `codebase_search` to understand codebase context. Make at least 8 searches targeting your uncertainties — more if the PR touches multiple subsystems.
 
 How to search effectively with WarpGrep — it is a search AGENT, not a grep tool. Ask it QUESTIONS about behavior and relationships, not keyword lookups:
 - GOOD: "What concurrency model protects [shared state]? Are there locks or transactions?"
@@ -224,9 +226,16 @@ How to search effectively with WarpGrep — it is a search AGENT, not a grep too
 - Search for callers. Will they handle the new behavior correctly?
 - If a function signature, interface, or return type changed, grep for ALL callers and implementers. Don't assume they were all updated.
 - If a constant or key name changed, find where the old value was referenced. Was everything updated?
-- If concurrency is involved (locks, goroutines, threads, async), find ALL readers and writers of the shared state. Ask: "What happens if two requests do this simultaneously?" Look for non-atomic read-modify-write patterns (e.g. `retryCount + 1` without a lock).
+- If concurrency is involved (locks, goroutines, threads, async), find ALL readers and writers of the shared state. Ask: "What happens if two requests do this simultaneously?" Look specifically for: lock scope reductions (lock used to cover more code, now covers less), non-atomic read-modify-write (e.g. `retryCount + 1` without a lock), iterating a shared collection while another goroutine/thread modifies it. When a PR changes the initialization order of components, ALSO trace into each component's internal code to check for internal races — the new init order may expose pre-existing concurrent access bugs in the component's shared state.
+- If initialization timing changes (lazy→eager, sync→async, or vice versa), check: can multiple callers now trigger initialization simultaneously? Does the new path clean up resources on failure?
 - If code branches on environment variables or feature flags, analyze BOTH paths. Bugs hide in less-tested paths.
 - If a framework API is used, verify its behavior with the specific arguments used. Edge cases like empty objects, nil values, or platform differences are where bugs hide.
+- If test files are changed, check: are any mocked/patched functions the same ones the test relies on for correctness? A test that patches `time.sleep` then uses `sleep()` for synchronization is broken.
+- If error response format or exception types changed, grep for all callers that parse errors from this function/endpoint. Do their catch blocks match the new format?
+- VERIFY NEW DEFINITIONS: If the diff imports a new class/function or registers a callback (before_validation, after_save), grep to confirm it exists. Missing imports and undefined callbacks crash immediately.
+- CHECK SPELLING of new identifiers — typos in method names cause NoMethodError.
+
+INVESTIGATION PRIORITY: Spend most of your tool budget on data handling, API/backend logic, migrations, and concurrency code. These are where critical bugs hide. Leave UI/component/styling files for last — they rarely contain logic bugs. If a component is replaced with a different one (e.g. `FlexCenter` → `Flex`), that is a style choice, not a bug.
 
 **Step 3: Write your review.** For each confirmed bug, output an `<issue>` XML tag with the details. Every issue must be backed by evidence from your tool calls.
 
@@ -245,43 +254,54 @@ Valid categories: logic_error, incorrect_value, api_misuse, race_condition, null
 Valid severities: critical, high, medium, low
 Confidence: 0.5-1.0 (0.9+ = certain, 0.7-0.89 = very likely, 0.5-0.69 = probable)
 
+WRITING GOOD BUG DESCRIPTIONS: Focus on the RUNTIME CONSEQUENCE, not the security classification. Describe what goes wrong when the code executes:
+- BAD: "SQL injection vulnerability via string interpolation"
+- GOOD: "Host values containing single quotes will break the SQL INSERT, and the unescaped interpolation means corrupted data from the old setting gets inserted verbatim"
+- BAD: "Missing overflow handling"
+- GOOD: "Text content that exceeds the container width will not be truncated, pushing adjacent elements out of view"
+
 You can output `<issue>` tags at ANY point during your investigation — as soon as you confirm a bug, report it. Don't wait until the end.
 
 Important investigation rules:
 - Don't stop at the first finding. Keep investigating ALL changed files.
-- Report each unique bug ONCE. If forEach+async appears in 3 files, report it once and mention the other files. Two candidates for the same root cause = one report.
+- STRICT: Report each unique root cause ONCE. If the same bug pattern appears in multiple functions or files (e.g., negative QuerySet slicing in both BasePaginator and OptimizedCursorPaginator), write ONE issue and list all affected locations in the comment. Two candidates for the same root cause = wasted budget. Before writing a new issue, check if you already reported the same underlying problem.
 - Before claiming "X doesn't exist" or "Y is not imported", search the entire repo. Definitions exist outside the diff.
 - Don't over-extrapolate edge cases. Only report bugs you can demonstrate via actual code paths, not theoretical "what if" scenarios.
 - Check for naming bugs: method name typos, property name typos, error messages that contradict the operation.
+- Do NOT report CSS/styling property differences (padding, margin, align, gap, text-overflow, overflow, color values, height) as bugs when a styled component is replaced with a different one. Replacing `FlexCenter` with `Flex` using slightly different CSS is an intentional style choice, not a bug. Do NOT report "property X from old component is missing in new component" — the developer chose a different component deliberately. Only report if it causes a runtime crash (e.g., accessing a non-existent sub-component like `Flex.Item` when `Flex` has no such property).
+- Do NOT report missing sub-components (e.g., `Flex.Item`) as bugs unless you have verified via grep/search that the sub-component truly does not exist on the replacement component AND the code actually tries to use it.
+- Do NOT report code organization issues (wrong file names, wrong file placement, code in unexpected files) when the framework loads by class/function/fabricator name, not by filename. If the code works correctly at runtime despite the file naming, it's not a bug.
 
 BUDGET YOUR INVESTIGATION: You have a limited number of tool rounds. Do NOT spend more than 2-3 searches on the same question. If a symbol, class, or file doesn't appear after 2 searches, it either doesn't exist or isn't relevant — move on. Spread your investigation across ALL areas of the diff rather than deep-diving into one area. A common failure mode is spending 15+ rounds chasing one question while ignoring the rest of the PR.
 
-FREQUENTLY MISSED PATTERNS (check these explicitly for every PR):
-- Spelling errors in new/changed identifiers: 'santize' vs 'sanitize', 'reciever' vs 'receiver', 'inalid' vs 'invalid'. Spell-check every new method, variable, and constant name.
-- Method/variable name typos (missing letters, wrong suffixes)
-- Callbacks/hooks (before_validation, after_save, on_event, etc.) that reference methods NOT defined on the target class. Grep for the method name to verify it exists.
-- Inconsistent string constants: metric tags, error codes, or keys that use slightly different names in different places (e.g., "shard" vs "shards")
-- Test setup that contradicts the test's intent (e.g., cache values set to "deny" but test claims "allow")
-- API/response format changes that break existing consumers or callers
-- Reduced mutex/lock scope compared to original code (creates race windows)
-- ORM updates with empty data objects (skip auto-updated fields like @updatedAt)
-- Dictionary/map ordering assumptions (e.g., zip(keys, dict.values()) loses alignment)
-- Shell commands with platform-specific syntax (e.g., macOS sed -i vs Linux)
-- Database lookups (find, where, get) where nil/null result is used without checking
-- Read-modify-write without locks on shared state (e.g., `retryCount + 1` without atomicity)
+FREQUENTLY MISSED PATTERNS — check each one explicitly:
+1. CONCURRENCY: If lock scope was REDUCED (lock used to cover reads+writes, now only covers writes), trace what happens when thread A reads the unlocked data while thread B writes. If a shared map/cache is iterated by one goroutine while another modifies it, that's a crash. Not just "could race" — trace the specific interleaving. When you find one concurrency issue, keep looking — PRs with concurrency changes often have MULTIPLE independent race conditions on different shared state.
+2. COPY-PASTE ERRORS: In null checks, conditionals, and update operations, verify the correct variable is being checked. Common bug: `if (x == null)` when the code should check `y` (variable name was copy-pasted from a nearby line). Also check: is the correct dict key used when accessing/updating values?
+3. TEST MOCKING: If a test patches/mocks a function (time.sleep, network calls), verify the test doesn't DEPEND on that function for its correctness. Patching sleep then using sleep for timing = broken test.
+4. DATA MIGRATIONS: If PR adds a DB migration inserting seed data, verify the inserted format matches what new code queries for (e.g., migration inserts full URLs but code queries bare hostnames = mismatch). Focus on DATA CORRECTNESS (format, normalization, constraints), not just SQL injection.
+5. DICT/MAP ORDERING: When zip(), positional indexing, or iteration order is used with dict.values()/dict.items(), verify ordering is guaranteed. If get_multi() returns a dict, its .values() order may not match the input key order.
+6. API CONTRACTS: If error response format, exception types, or return type changes, grep for ALL callers/catch blocks that parse the OLD format. Breaking change in error shape = runtime crash in consumers.
+7. NAMING: Spell-check new/changed identifiers. Common typos: 'santize'→'sanitize', 'suthenticator'→'authenticator'. Report immediately.
+8. ORM/DB WRITES: If update/save is called with empty or partial data object, check if auto-updated fields (@updatedAt, modified_at) get skipped.
+9. MISSING DEFINITIONS: If the diff imports a new class/function (`from X import Y`, `import X`), grep the source module to verify Y actually exists. If the diff registers a callback or hook (before_validation, after_save, on_commit), grep to verify the callback method is defined on the target class. Missing imports and undefined callbacks cause immediate crashes.
+10. QUERY NORMALIZATION: If code queries data with normalization (lower(), strip(), downcase()), verify the stored data was inserted with the same normalization. Check both direct inserts AND migrations. A query using `WHERE lower(host) = ?` will miss data inserted without lowering.
 
-CORE LOGIC FIRST: A common failure mode is spending investigation time on peripheral files (helpers, adapters, serializers, fabricators) while missing bugs in core model/controller/service logic. Prioritize investigating the main business logic changes — the files where the PR's primary feature or fix lives. Then check secondary files.
+IMPORTANT: Report every bug you find that you believe is real. It is better to report a borderline bug than to miss a real one. Even if you only have moderate confidence (0.5-0.7), report it — the confidence score communicates your uncertainty. Do NOT hold back findings.
 
-IMPORTANT: Report every bug you find that you believe is real. It is better to report a borderline bug than to miss a real one. Even if you only have moderate confidence (0.5-0.7), report it — the confidence score communicates your uncertainty. Do NOT hold back findings. A well-reviewed PR with significant changes typically has 2-4 real bugs — if you've found fewer than 2, you may have missed something.
+FOLLOW THROUGH ON FINDINGS: If during your investigation you discover something suspicious (a misspelling, an unexpected type, a missing method), you MUST either: (a) report it as a bug with an <issue> tag, or (b) explicitly write "NOT A BUG because [specific reason]". Do NOT silently move on. Common findings you must follow through on:
+- A method/variable name that is misspelled → report as naming bug immediately
+- A monkeypatch/mock that disables the mechanism the test relies on → report as test bug
+- A loop with early exit that skips cleanup of remaining items → report as logic error
+- A cache that trusts stale data for one outcome but not the other → report as race condition
 
-After your investigation, go through EVERY changed file in the diff and ask: "Did I check this file for bugs?" If you skipped any files, review them now."""
+BEFORE FINISHING: Scan through ALL changed files one more time. For any file you haven't investigated, do a quick check. It's easy to spend all your time on the first few files and miss bugs in the rest."""
 
         if tools:
             messages = [{"role": "user", "content": prompt}]
             try:
                 review_text, trace = self._agentic_loop(
                     messages, tools, repo_path, warpgrep_tool_def,
-                    thinking_budget=10000, max_tool_rounds=30,
+                    thinking_budget=10000, max_tool_rounds=35,
                 )
             except Exception as e:
                 print(f"  Review failed: {e}", file=sys.stderr)
@@ -294,14 +314,14 @@ After your investigation, go through EVERY changed file in the diff and ask: "Di
         self._last_trace = trace
 
         # Parse <issue> XML tags directly from the model's output
-        issues = self._parse_xml_issues(review_text)
+        all_issues = self._parse_xml_issues(review_text)
 
         # Post-processing dedup: merge issues with same category and overlapping descriptions
-        issues = self._dedup_issues(issues)
+        all_issues = self._dedup_issues(all_issues)
 
-        print(f"  Review complete: {len(issues)} issues", file=sys.stderr)
+        print(f"  Review complete: {len(all_issues)} issues", file=sys.stderr)
         self.last_metrics = self._metrics
-        return issues
+        return all_issues
 
     def _extract_issues(self, review_text: str, diff_text: str) -> list[ReviewIssue]:
         """Extract structured issues from freeform review text using structured JSON output."""
@@ -448,9 +468,14 @@ Each issue must have these fields:
             is_dup = False
             for existing in kept:
                 sim = _similarity(issue.comment, existing.comment)
-                # Same category: lower threshold to catch paraphrases
-                # Different category: higher threshold for true dupes only
-                threshold = 0.25 if issue.category == existing.category else 0.40
+                # Thresholds: tighter for same file+category (likely same root cause),
+                # standard for same category, higher for cross-category
+                if issue.category == existing.category and issue.file_path == existing.file_path:
+                    threshold = 0.25  # Same file + category = very likely same bug
+                elif issue.category == existing.category:
+                    threshold = 0.35
+                else:
+                    threshold = 0.50
                 if sim > threshold:
                     is_dup = True
                     break
@@ -829,6 +854,41 @@ Each issue must have these fields:
                         "followup_text": followup_text[:2000],
                         "followup_text_length": len(followup_text),
                     })
+                # Targeted follow-up: ask model to check specific high-miss patterns
+                if round_num >= 3 and any(all_text_parts):
+                    messages.append(self.provider.format_assistant_message(response))
+                    messages.append({"role": "user", "content": (
+                        "Good investigation. Now do ONE targeted sweep — check these specific patterns "
+                        "that are easy to miss. Use tools if needed to verify, then report any new bugs:\n\n"
+                        "1. COPY-PASTE: In null checks and conditionals, is the RIGHT variable/key being checked? "
+                        "Look for lines where a variable name or dict key was copied from a nearby line but not updated.\n"
+                        "2. CONCURRENCY: If the diff changes lock scope or has shared mutable state, did you find ALL "
+                        "race conditions? Check every piece of shared state independently, not just the first one.\n"
+                        "3. DICT ORDERING: If zip() or positional access is used with dict.values() or get_multi() "
+                        "results, is the ordering guaranteed? Dict values may not match input key order.\n"
+                        "4. ERROR FORMAT: If error response format changed, grep for consumers that parse the old format.\n"
+                        "5. SPELLING: Any new identifier misspelled? (e.g., 'santize', 'suthenticator')\n"
+                        "6. MISSING DEFINITIONS: Any new import, callback registration, or method call referencing "
+                        "something that doesn't exist? Grep for the class/method definition to verify.\n"
+                        "7. LOOP COMPLETENESS: Any loop with early exit (break, deadline) that skips cleanup/termination "
+                        "of remaining items?\n\n"
+                        "Report new bugs with <issue> tags. If you already covered these, say 'No additional issues.'"
+                    )})
+                    # Allow sweep to run a mini agentic loop (up to 4 tool rounds)
+                    for _sweep_round in range(4):
+                        sweep_response = self._call_api_with_retry(tools, messages)
+                        self._metrics.api_calls_review += 1
+                        if sweep_response.text_parts:
+                            all_text_parts.append("\n".join(sweep_response.text_parts))
+                        if not sweep_response.tool_calls:
+                            break
+                        messages.append(self.provider.format_assistant_message(sweep_response))
+                        sweep_tool_results = []
+                        for tc in sweep_response.tool_calls:
+                            tool_counts[tc.name] = tool_counts.get(tc.name, 0) + 1
+                            result = self._execute_tool(tc, repo_path, warpgrep_tool_def)
+                            sweep_tool_results.append(result)
+                        messages.append({"role": "user", "content": sweep_tool_results})
                 summary = ", ".join(f"{n}={c}" for n, c in tool_counts.items())
                 print(f"  Loop done round={round_num} (tools: {summary or 'none'})", file=sys.stderr)
                 return "\n".join(all_text_parts), trace

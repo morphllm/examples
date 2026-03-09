@@ -1,0 +1,197 @@
+============================================================
+PR Review Agent - Benchmark Pipeline
+============================================================
+Loaded 50 PRs
+WarpGrep: ENABLED
+Mini eval: 15 PRs (3 per repo)
+Reviewing 15 PRs
+
+Running 15 PRs with parallelism=15
+
+[1/15] keycloak PR#37429 (4 golden)
+[2/15] keycloak PR#37634 (4 golden)
+[3/15] keycloak PR#38446 (2 golden)
+[4/15] sentry PR#93824 (5 golden)
+[5/15] sentry-greptile PR#5 (3 golden)
+[6/15] sentry-greptile PR#1 (4 golden)
+[8/15] grafana PR#103633 (2 golden)
+[7/15] grafana PR#97529 (2 golden)
+[9/15] grafana PR#94942 (2 golden)
+[11/15] discourse-graphite PR#10 (4 golden)
+[10/15] discourse-graphite PR#9 (2 golden)
+[12/15] discourse-graphite PR#7 (3 golden)
+[13/15] cal.com PR#22532 (2 golden)
+[14/15] cal.com PR#8330 (2 golden)
+[15/15] cal.com PR#14943 (2 golden)
+  [15/15] cal.com PR#14943 3 files, 38 added lines
+  [10/15] discourse-graphite PR#9 6 files, 31 added lines
+  [7/15] grafana PR#97529 5 files, 25 added lines
+  [8/15] grafana PR#103633 4 files, 240 added lines
+  [13/15] cal.com PR#22532 17 files, 379 added lines
+  [3/15] keycloak PR#38446 8 files, 256 added lines
+  [9/15] grafana PR#94942 4 files, 41 added lines
+  [4/15] sentry PR#93824 6 files, 199 added lines
+  [11/15] discourse-graphite PR#10 36 files, 449 added lines
+  [14/15] cal.com PR#8330 4 files, 111 added lines
+  [2/15] keycloak PR#37634 28 files, 722 added lines
+  [1/15] keycloak PR#37429 48 files, 343 added lines
+  [6/15] sentry-greptile PR#1 3 files, 128 added lines
+  [12/15] discourse-graphite PR#7 32 files, 115 added lines
+  [5/15] sentry-greptile PR#5 105 files, 2312 added lines
+    WarpGrep: How is the deletion of WorkflowReminder records handled? What conditions determi
+    WarpGrep: How does the store.find method work for singular resources vs collections in the
+    WarpGrep: How is set_locale implemented in ApplicationController and what does it return?
+    WarpGrep: How is checkIfIsAvailable called and what parameters are passed to it in slots.t
+    WarpGrep: Who calls the Context copy constructor of OAuth2GrantType.Context?
+    WarpGrep: How does Prisma updateMany behave when data is an empty object? Does it update @
+    WarpGrep: How is SpanFlusher.main called and what arguments does it receive? Look at how t
+    WarpGrep: How does Django QuerySet handle negative indexing or negative slicing
+    WarpGrep: How is the bleveBackend cache used concurrently? What reads and writes to b.cach
+    WarpGrep: How does getSlots work with activeOverrides and working hours in packages/lib/sl
+    WarpGrep: How does the Check method in the RBAC service handle permission checking, includ
+    WarpGrep: How does RecoveryAuthnCodesCredentialModel.createFromValues work and what parame
+    WarpGrep: How does the VerifyMessageProperties class resolve the English properties file f
+    WarpGrep: How does fetch_error_details use nodestore.backend.get_multi and zip error_ids w
+    WarpGrep: How is enableSqlExpressions used and what is the expected behavior when the Flag
+    WarpGrep: SelectedCalendarRepository updateManyByCredentialId callers and usage
+    WarpGrep: How does _lookupSubType work in the store to hydrate embedded objects
+    WarpGrep: How is I18n.ensure_loaded! defined and used in the translate_accelerator freedom
+    WarpGrep: dark-light-choose SCSS function definition and how it works
+    WarpGrep: How does self.paginate pass extra keyword arguments to paginator_cls constructor
+    WarpGrep: SpansBuffer constructor and how assigned_shards is determined from partitions
+    WarpGrep: Who calls NewResourceServer and how is the returned server used? Is Init called 
+    WarpGrep: PRCommentWorkflow get_merged_pr_single_issue_template and format_comment_subtitl
+    WarpGrep: How is santizeAnchors called and what does it do with the value replacement
+    WarpGrep: How does user.credentialManager().updateCredential work for federated users and 
+    WarpGrep: How is isAccessTokenId or isUUID used in test assertions for token IDs?
+    WarpGrep: connectedCalendars handler return type and callers that access cacheUpdatedAt
+    WarpGrep: Where is load_locale defined and how does it track @loaded_locales?
+    WarpGrep: Who calls the SQL expression Execute method and how is QueryTypeSQL handled in t
+  WarpGrep connection error, retrying in 3s (attempt 1/3): SSLError
+    WarpGrep: How is checkPermission implemented in the RBAC service? What does it return for 
+    WarpGrep: How does ProcessSpansStrategyFactory create_with_partitions pass parameters to S
+    WarpGrep: How does the paginate method on the endpoint base class instantiate the paginato
+    WarpGrep: WorkflowReminder retryCount field usage and scheduling logic
+    WarpGrep: How does the Visualize class fromJSON method work and who calls it
+    WarpGrep: getFederatedCredentialsStream method definition and what it returns for differen
+    WarpGrep: How does server.Init work with sync.Once pattern for lazy initialization?
+    WarpGrep: What callers exist for newRBACClient and how is it used across the codebase?
+    WarpGrep: RecoveryAuthnCodesFormAuthenticator authenticate method and how it validates rec
+    WarpGrep: How does basePath use type parameter and where does underscore vs hyphen convers
+    WarpGrep: TableWidgetVisualization component usage with columns and tableData props in das
+    WarpGrep: What happens when _hydrateEmbedded processes an array of ids but _lookupSubType 
+    WarpGrep: How does run_with_initialized_sentry work with process args? Does it consume the
+    WarpGrep: Where is checkPermission called in the RBAC service with how many arguments? Wha
+    WarpGrep: RecoveryAuthnCodesCredentialProvider isValid method how it validates a recovery 
+    WarpGrep: BackwardsCompatibilityUserStorage implements CredentialInputUpdater getCredentia
+    WarpGrep: NullPointerException or nil dereference in destroy action when record not found 
+    WarpGrep: nodestore get_multi return type - does it return an ordered dict or regular dict
+    WarpGrep: How are activeOverrides used in getSlots and how are working hours computed with
+    WarpGrep: How does the EmbeddableHost model handle the before_validation stripping of path
+    WarpGrep: dayjs object comparison with === operator, should use isSame instead
+    WarpGrep: How does the CredentialHelper createOTPCredential method work and what does upda
+    WarpGrep: RecoveryAuthnCodesCredentialModel createFromValues hashes codes and what format 
+    WarpGrep: How does the event attachments FlexCenter component work with overflowEllipsis t
+    WarpGrep: How is slotEndTime calculated and used in availability checking in the slots han
+    WarpGrep: SpanFlusher constructor in the diff - how does SpansBuffer constructor handle sh
+    WarpGrep: How does SelectedCalendarsSettingsWebWrapper receive and use connectedCalendar.c
+    WarpGrep: OrganizationAuditPermission class definition and what permissions it requires
+    WarpGrep: FlexCenter overflowEllipsis in eventAttachments component that was replaced by F
+    WarpGrep: searchSupport struct definition and its fields including tracer and log
+    WarpGrep: How does the WhatsApp reminder scheduler handle the deleteMany cleanup of past r
+    WarpGrep: How is the Context.grantType set for grants that call createTokenResponse in OAu
+    WarpGrep: How does the FlexCenter in eventAttachments work with overflowEllipsis - what st
+    WarpGrep: How do email workflow reminders handle retry count increments on scheduling fail
+  WarpGrep connection error, retrying in 3s (attempt 1/3): SSLError
+    WarpGrep: How is ExpressionQueryReader defined and what is the features field type?
+    WarpGrep: analytics record preprod_artifact before feature flag check - should analytics b
+    WarpGrep: Where is ResourceOwnerPasswordCredentialsGrantType.process creating the token re
+    WarpGrep: What is checkReq.UserUID and how is it set during validateCheckRequest? Is it th
+    WarpGrep: What happens when analytics.record is called before the feature flag check - doe
+  Loop done round=9 (tools: codebase_search=1, grep=4, read_file=4, glob=2, bash=6)
+    WarpGrep: How is the checkRequest struct defined and how is UserUID populated from the req
+    WarpGrep: How does the Attributes component filter with HIDDEN_ATTRIBUTES when searchQuery
+    WarpGrep: Where is the Paginator class get_result method that does queryset offset slicing
+    WarpGrep: How does Prisma updateMany handle an empty data object - does it skip @updatedAt
+  Review complete: 1 issues
+  [12/15] discourse-graphite PR#7 1 raw -> 1 kept
+    [12/15] discourse-graphite PR#7 [0.95] incorrect_value: The light/dark mode lightness values are swapped in `.custom-message-length`. The code use
+  Loop done round=9 (tools: codebase_search=5, grep=4, read_file=6, list_directory=1, glob=3)
+    WarpGrep: How does the store _hydrateEmbedded handle the case when _lookupSubType returns 
+    WarpGrep: nodestore get_multi dict ordering - does it preserve order of input id_list
+  Review complete: 2 issues
+  [14/15] cal.com PR#8330 2 raw -> 2 kept
+    [14/15] cal.com PR#8330 [0.97] api_misuse: `===` reference comparison on two dayjs objects always returns `false` because JavaScript 
+    [14/15] cal.com PR#8330 [0.97] incorrect_value: Copy-paste bug: `end` is computed from `slotStartTime` instead of `slotEndTime`, making `s
+    WarpGrep: GoogleCalendarService fetchAvailabilityAndSetCache method - what does setAvailab
+    WarpGrep: Where does the email reminder scheduler increment retryCount on failure?
+    WarpGrep: How does the email workflow reminder scheduler handle failures and update retryC
+    WarpGrep: Where is the translate method in translate_accelerator and how does it handle fa
+    WarpGrep: Where does ClientCredentialsGrantType set the GRANT_TYPE attribute? Does it use 
+    WarpGrep: How does the EmbeddableHost before_validation handle nil host values
+    WarpGrep: scheduleEmailReminder retryCount update on failure in workflow email scheduler
+  Loop done round=9 (tools: codebase_search=3, grep=10, read_file=8, glob=1)
+  Review complete: 1 issues
+  [9/15] grafana PR#94942 1 raw -> 1 kept
+    [9/15] grafana PR#94942 [0.95] logic_error: The `enableSqlExpressions` function always returns `false` due to two compounding errors: 
+    WarpGrep: Where is spans.buffer.flusher.wait_produce metric consumed or queried? Dashboard
+    WarpGrep: scheduleEmailReminders cron handler that processes unscheduled email workflow re
+  Loop done round=10 (tools: codebase_search=5, grep=6, read_file=11)
+  Review complete: 2 issues
+  [2/15] keycloak PR#37634 2 raw -> 2 kept
+    [2/15] keycloak PR#37634 [0.97] null_reference: The second `Objects.requireNonNull` checks `grantType` again instead of `rawTokenId` (copy
+    [2/15] keycloak PR#37634 [0.96] logic_error: Two bugs on this line: (1) Inverted condition — returns false when the grant shortcut matc
+    WarpGrep: RecoveryAuthnCodesUtils generateRawCodes format of generated recovery codes and 
+    WarpGrep: How does the CalendarCacheRepository get instantiated? Is it singleton or uses D
+    WarpGrep: How does the consumer __init__.py click_options get passed to the strategy facto
+    WarpGrep: SetupRecoveryAuthnCodesPage getRecoveryAuthnCodes method retrieves codes from UI
+    WarpGrep: How does the I18n Fallbacks backend module use fallbacks when translating? What 
+    WarpGrep: How does the account-ui or admin-ui process message property placeholders - do t
+    WarpGrep: How are admin-ui message properties with double curly braces processed for the f
+    WarpGrep: How does the BrowserReportSerializer validate_age and validate_timestamp work wi
+    WarpGrep: Store pluralize method implementation in discourse store service
+  Loop done round=13 (tools: read_file=8, codebase_search=8, grep=7)
+    WarpGrep: How does the embedding serializer handle the embeddable_hosts has_many relations
+  Review complete: 2 issues
+  [15/15] cal.com PR#14943 2 raw -> 2 kept
+    [15/15] cal.com PR#14943 [0.92] logic_error: The `deleteMany` query's second OR branch `{ retryCount: { gt: 1 } }` has no `method` filt
+    [15/15] cal.com PR#14943 [0.60] race_condition: The retryCount update uses a non-atomic read-modify-write pattern (`retryCount: reminder.r
+    WarpGrep: How does the Keycloak account-ui React app load and use i18n message properties 
+  Loop done round=13 (tools: codebase_search=7, grep=6, read_file=9, bash=4)
+    WarpGrep: What did set_locale method do in application_controller before the with_resolved
+  Review complete: 3 issues
+  [4/15] sentry PR#93824 3 raw -> 3 kept
+    [4/15] sentry PR#93824 [0.95] type_error: isinstance(process, multiprocessing.Process) is always False for SpawnProcess created via 
+    [4/15] sentry PR#93824 [0.95] type_error: Same isinstance(process, multiprocessing.Process) check in join() is always False for Spaw
+    [4/15] sentry PR#93824 [0.90] incorrect_value: Metric tag key is 'shards' (plural) but the two nearby metrics on lines 309 and 319 use 's
+    WarpGrep: Prisma updateMany with empty data object, does @updatedAt get set
+  Loop done round=18 (tools: codebase_search=10, grep=18, read_file=10, glob=3, bash=1)
+  Review complete: 3 issues
+  [11/15] discourse-graphite PR#10 3 raw -> 3 kept
+    [11/15] discourse-graphite PR#10 [0.95] incorrect_value: The file contents are swapped between category_fabricator.rb and embeddable_host_fabricato
+    [11/15] discourse-graphite PR#10 [0.92] null_reference: When no `embed_category` site setting exists (the common case for instances that never con
+    [11/15] discourse-graphite PR#10 [0.82] security: The host value `h` comes from user-supplied data (the `embeddable_hosts` site setting) and
+    WarpGrep: RecoveryAuthnCodesCredentialProvider createCredential method - does it delete ex
+    WarpGrep: How does setUserProfileServerError format translation parameters when calling t(
+    WarpGrep: cache.Cache interface definition in authlib, what methods does it require?
+  Loop done round=22 (tools: codebase_search=5, grep=16, read_file=18, glob=1, bash=3)
+  Review complete: 2 issues
+  [6/15] sentry-greptile PR#1 2 raw -> 2 kept
+    [6/15] sentry-greptile PR#1 [0.95] type_error: OptimizedCursorPaginator.get_item_key calls math.floor()/math.ceil() on a datetime object,
+    [6/15] sentry-greptile PR#1 [0.95] api_misuse: Django QuerySets do not support negative indexing. When enable_advanced_features=True and 
+  Max tool rounds reached (tools: codebase_search=8, grep=20, read_file=13, glob=3, bash=9)
+    WarpGrep: How does the CredentialHelper createOTPCredential differ from createRecoveryCode
+    WarpGrep: How does the admin-ui load internationalized messages from properties files
+    WarpGrep: How does the admin console serve localized message properties to the frontend as
+    WarpGrep: How does the Flex.Item component work, does it accept grow prop
+  Max tool rounds reached (tools: codebase_search=14, read_file=25, grep=15, glob=1, bash=4)
+  Review complete: 3 issues
+  [5/15] sentry-greptile PR#5 3 raw -> 3 kept
+    [5/15] sentry-greptile PR#5 [0.95] logic_error: Dict ordering from `nodestore.backend.get_multi()` does not preserve the order of input `n
+    [5/15] sentry-greptile PR#5 [0.85] logic_error: Both `validate_timestamp` and `validate_age` use `.get()` truthiness to check for mutual e
+    [5/15] sentry-greptile PR#5 [0.75] incorrect_value: When the `use-table-widget-visualization` feature flag is enabled, `TableWidgetVisualizati
+  Max tool rounds reached (tools: codebase_search=8, grep=33, read_file=10, glob=2, bash=1)
+  Review complete: 0 issues
+  [1/15] keycloak PR#37429 0 raw -> 0 kept
+  Review complete: 0 issues
+  [13/15] cal.com PR#22532 0 raw -> 0 kept
