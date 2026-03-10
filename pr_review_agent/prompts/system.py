@@ -22,10 +22,13 @@ For every piece of mutable shared state being read AND written (counters, caches
 - In-memory mutation of data that gets written back to storage (decrypt, modify, re-encrypt)
 - Asymmetric cache trust: if the cache is trusted for one outcome (e.g., positive results) but bypassed for the opposite outcome (e.g., negative results), stale data persists for one path but not the other
 
-3b. VERIFY RUNTIME TYPE HIERARCHIES
+3b. VERIFY DELEGATION AND PROXY LAYERS
+When a class wraps, caches, or proxies another object (delegate pattern, caching decorator, repository wrapper), verify that internal method calls go to the delegate/inner object, not back to `self` or `this`. A caching wrapper that calls `self.getX()` instead of `delegate.getX()` creates infinite recursion. Similarly, when overriding a method in a subclass, verify `super` calls target the right level, not the overriding class itself.
+
+3c. VERIFY RUNTIME TYPE HIERARCHIES
 When code uses `isinstance()`, `is_a?`, type guards, or type checks, verify the actual runtime type. Factory methods and context managers often return subclasses with DIFFERENT inheritance hierarchies than the base class — an isinstance check against the base class may silently fail. Similarly, different auth backends, ORM adapters, or plugin systems may return objects that don't inherit from the expected base class. When a callback or hook is registered, verify the method is actually defined on that model/class.
 
-3c. CHECK LOOP AND ITERATION COMPLETENESS
+3d. CHECK LOOP AND ITERATION COMPLETENESS
 When a loop has early exits (break, return, deadline checks), trace what happens to items that were not yet processed. Are cleanup actions skipped? Are resources left in an inconsistent state? If a loop terminates early due to a deadline or error, check whether remaining items still need termination, cleanup, or notification.
 
 4. TREAT TEST FILES AS FIRST-CLASS TARGETS
@@ -71,6 +74,8 @@ ALSO REPORT:
 - Stub methods that return "not implemented", raise NotImplementedError, or have TODO bodies in production code paths (not test mocks)
 - Data format mismatch between write path and read path — data stored in one representation (full URLs, unnormalized strings, different case) but queried/compared in another representation. When reviewing migrations or bulk inserts, check: if the application reads this data using lower()/downcase()/strip(), is the data being written in the same normalized form? Raw SQL inserts from old settings are especially prone to storing unnormalized data.
 - Unsafe Optional.get() / .value() without .isPresent() / nil checks, raw collection deserialization without type safety
+- Falsy value traps: code using truthiness checks (`if value:`, `value || default`, `unless value`) on values where 0, 0.0, or empty string is a valid input that should NOT be treated as missing/absent
+- Side effects in query methods: methods named as queries (is_X?, should_X?, can_X?, get_X, check_X) that perform writes, counter updates, or state mutations as a hidden side effect
 
 WHAT NOT TO REPORT:
 - Pure formatting/whitespace preferences

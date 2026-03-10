@@ -122,7 +122,7 @@ def run_benchmark(config: Config, args: argparse.Namespace) -> None:
     reviewer = Reviewer(config)
 
     # Apply organism overrides if specified
-    max_issues_per_pr = 4  # cap to top-4 by confidence
+    max_issues_per_pr = 4  # default cap
     if args.organism:
         from pr_review_agent.evolver.run import load_organism_json
         organism = load_organism_json(Path(args.organism))

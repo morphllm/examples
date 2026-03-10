@@ -17,7 +17,7 @@ class Config:
     """Central configuration for the review pipeline."""
 
     # Provider selection: "anthropic" | "openai" | "google"
-    provider: str = "anthropic"
+    provider: str = "openai"
 
     # API keys
     anthropic_api_key: str = ""
@@ -31,7 +31,7 @@ class Config:
     output_dir: Path = Path("")
 
     # Model settings
-    model: str = "claude-opus-4-6"
+    model: str = "gpt-5.4"
     max_tokens: int = 64000
 
     # Confidence thresholds (lower = more recall, higher = more precision)
@@ -99,7 +99,7 @@ class Config:
         if not self.skip_dir_creation:
             base = Path(__file__).parent.parent
             if not self.benchmark_dir or str(self.benchmark_dir) == ".":
-                self.benchmark_dir = base / "code-review-benchmark" / "offline"
+                self.benchmark_dir = base / "code-review-benchmark-online" / "offline"
             if not self.clone_dir or str(self.clone_dir) == ".":
                 self.clone_dir = base / "pr_clones"
             if not self.output_dir or str(self.output_dir) == ".":

@@ -12,7 +12,23 @@
 | Iter 5 (15 mini) | 15 | 55.9% | 76.0% | 44.2% | 19 | 7 | 24 |
 | Iter 6 (15 mini) | 15 | 56.3% | 85.7% | 41.9% | 18 | 5 | 25 |
 | Iter 7 (15 mini) | 15 | 58.5% | 86.4% | 44.2% | 19 | 5 | 24 |
-| Iter 8 (15 mini) | 15 | **62.7%** | 87.5% | 48.8% | 21 | 6 | 22 |
+| Iter 8 (15 mini) | 15 | 62.7% | 87.5% | 48.8% | 21 | 6 | 22 |
+| v29 (15 mini) | 15 | 60.3% | 73.3% | 51.2% | 22 | 11 | 21 |
+| v30 (15 mini) | 15 | 60.3% | 73.3% | 51.2% | 22 | 11 | 21 |
+| v31 (15 mini) | 15 | 56.8% | 67.7% | 48.8% | 21 | 12 | 22 |
+| v32 (15 mini) | 15 | 64.9% | 77.4% | 55.8% | 24 | 11 | 19 |
+| v33 (15 mini) | 15 | **79.5%** | **96.7%** | **67.4%** | 29 | 7 | 14 |
+| v34 (de-overfit) | 15 | 64.0% | 75.0% | 55.8% | 24 | 11 | 19 |
+| v35 (15 mini) | 15 | **73.7%** | **84.8%** | **65.1%** | 28 | 12 | 15 |
+| v36 (15 mini) | 15 | **70.9%** | **77.8%** | **65.1%** | 28 | 14 | 15 |
+^ OFFLINE RESULTS ^
+
+NEW RESULTS for ONLINE:
+
+| Run | PRs | F1 | Precision | Recall | TP | FP | FN |
+|-----|-----|-----|-----------|--------|----|----|-----|
+| Online v1 (13 random) | 13 | 55.9% | 57.6% | 54.3% | 19 | 16 | 16 |
+
 
 ### Changes in Iter 1 (system prompt rewrite)
 - Condensed 13 categories to principle-based prompt with INVESTIGATION PRINCIPLES section
@@ -42,6 +58,40 @@
 - Added "Test bug → trace to production" — targets surface-level test findings
 - Relaxed missing-definition rule for grep-confirmed absences
 
+### Changes in v29-v33 (recall boost + targeted patterns)
+- Added VERIFY NEW DEFINITIONS to Step 2: grep to confirm new imports and callback registrations exist
+- Added CHECK SPELLING to Step 2: scan new identifiers for typos
+- Added concurrency tracing into initialized components: "trace into each component's internal code"
+- Added MISSING DEFINITIONS (#9) and QUERY NORMALIZATION (#10) to frequently missed patterns
+- Added "silently ignored error returns" to system prompt ALSO REPORT section
+- Added LOOP COMPLETENESS and MISSING DEFINITIONS to sweep checklist
+- Added "don't report code organization issues" rule for frameworks that load by name
+- Added DATA MIGRATION focus on normalization (not just SQL injection)
+- Kept sweep at 4 tool rounds (6 rounds caused FP regression)
+- Kept max_tool_rounds=35 (45 was catastrophic)
+
+### Changes in v34 (de-overfitting)
+- Replaced all benchmark-specific examples with core programming concepts
+- Removed: specific typo examples, Rails callback names, library-specific code patterns
+- Replaced with: general paradigm descriptions (lifecycle hooks, identifier typos, type hierarchies)
+- F1 dropped from 79.5% (overfitted) to 64.0% (honest baseline)
+
+### Changes in v35 (generalizable recall boost)
+- Added PORTABILITY (#14) to bug categories: OS-specific shell syntax, platform differences
+- Added PLATFORM PORTABILITY (#11) and CRUD COMPLETENESS (#12) to frequently missed patterns
+- Added ORM EMPTY DATA (#8), DATA NORMALIZATION (#9), PORTABILITY (#10) to sweep checklist
+- Strengthened data format mismatch guidance: focus on normalization in migrations and raw SQL inserts
+- Result: +4 TP, +1 FP, -4 FN vs v34. All patterns are generalizable.
+
+### Changes in v36 (imperative sweep + concrete descriptions)
+- Added Step 1.5 surface scan: typos, missing imports, wrong variables, inconsistent naming
+- Strengthened missing-import instruction: "Do NOT assume it exists, grep NOW"
+- Restructured bug description guidance: require (1) exact wrong code, (2) what it should be, (3) runtime consequence
+- Made sweep imperative: action verbs ("READ", "LIST", "FIND", "CHECK", "VERIFY") instead of questions
+- Reduced sweep from 10 patterns to 5 focused checks
+- Restored full self-critique with 6 anti-speculation filters
+- Result: F1=70.9%, P=77.8%, R=65.1%. 28 TP, 14 FP, 15 FN. All changes generalizable.
+
 ## Step 1: False Negative Analysis
 
 Read through every false negative (missed bug) from the benchmark results. For each one, understand why the model failed to catch it. Then group the FNs by root cause, identifying what investigation behavior the model was missing in each case.
@@ -63,6 +113,6 @@ Based on the FN and FP group analysis, identify the highest-ROI edits to the sys
 After making all edits to `pr_review_agent/prompts/system.py`:
 
 1. Verify syntax: `code-review-benchmark-online/online/etl/.venv/bin/python3 -c "from pr_review_agent.prompts.system import SYSTEM_PROMPT; print('OK')"`
-2. Run 16 random PRs (2 per repo, seed=42) from the offline benchmark, all in parallel
-3. Run evaluation on just those 16 PRs
+2. Run 16 random PRs (2 per repo, seed=42) from the ONLINE benchmark, all in parallel - MUST BE THE ONLINE EVAL
+3. Run evaluation on just those 16 PRs - not more 
 4. Compare F1/P/R against baseline (51.0% / 55.1% / 47.4%)

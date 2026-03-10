@@ -222,6 +222,12 @@ How to search effectively with WarpGrep — it is a search AGENT, not a grep too
 - BAD: "[functionName] function and its callers in [file]" — use `grep` for exact symbol lookups
 - Search for each major area of the diff separately. If the PR touches 3 subsystems, do at least one search per subsystem.
 
+**Step 1.5: Surface scan.** Before deep investigation, read through EVERY changed line in the diff right now and check for these concrete, verifiable errors. Report any you find immediately with `<issue>` tags:
+- **Typos** in new/changed identifiers: method names, variable names, class names, string keys. Read each identifier character-by-character. Common: transposed letters, missing letters (e.g., "santize" vs "sanitize").
+- **Missing imports/definitions**: If the diff adds a new import, class reference, or callback registration, grep the codebase NOW to verify it exists. Do NOT assume it exists just because the diff references it. Non-existent imports crash at load time — this is often the most critical bug in a PR.
+- **Wrong variable in similar code**: When 3+ similar lines appear together (null checks, filter predicates, metric tags, conditionals), read EACH line independently. Is the variable/key/predicate correct for THAT specific line? Common: a null check tests `if (x == null)` but should test `if (y == null)` — the wrong parameter is checked.
+- **Inconsistent naming**: Related identifiers that should match but differ (e.g., "shard" in one place, "shards" in another; "error_type" vs "error_kind"). These cause silent lookup failures.
+
 **Step 2: Investigate every changed file.** Don't stop after finding one bug. Budget your investigation across ALL changed files. For every non-trivial change:
 - Search for callers. Will they handle the new behavior correctly?
 - If a function signature, interface, or return type changed, grep for ALL callers and implementers. Don't assume they were all updated.
@@ -232,10 +238,12 @@ How to search effectively with WarpGrep — it is a search AGENT, not a grep too
 - If a framework API is used, verify its behavior with the specific arguments used. Edge cases like empty objects, nil values, or platform differences are where bugs hide.
 - If test files are changed, check: are any mocked/patched functions the same ones the test relies on for correctness? A test that patches `time.sleep` then uses `sleep()` for synchronization is broken.
 - If error response format or exception types changed, grep for all callers that parse errors from this function/endpoint. Do their catch blocks match the new format?
+- After checking the happy path, also trace the ERROR/FAILURE path. What happens when the operation fails, returns null, throws, or times out? Does the code still update state unconditionally (e.g., writing to cache before checking if the fetch succeeded)?
 - VERIFY NEW DEFINITIONS: If the diff imports a new class/function or registers a lifecycle callback/hook, grep to confirm the referenced symbol actually exists. Missing imports and undefined callbacks crash immediately.
 - CHECK SPELLING of new identifiers — typos in method names cause NoMethodError.
 
 INVESTIGATION PRIORITY: Spend most of your tool budget on data handling, API/backend logic, migrations, and concurrency code. These are where critical bugs hide. Leave UI/component/styling files for last — they rarely contain logic bugs. If one UI component is swapped for a different one with slightly different default styling, that is a style choice, not a bug.
+LARGE PR RULE: If the PR has >30 changed files or >500 added lines, you MUST investigate backend/API/data files BEFORE frontend/UI files. Report at most 1 issue from frontend visualization or component files. Backend data bugs, API contract violations, and test correctness bugs are far more valuable than UI rendering issues. Do NOT fill your issue budget with frontend findings when backend code remains uninvestigated.
 
 **Step 3: Write your review.** For each confirmed bug, output an `<issue>` XML tag with the details. Every issue must be backed by evidence from your tool calls.
 
@@ -254,17 +262,16 @@ Valid categories: logic_error, incorrect_value, api_misuse, race_condition, null
 Valid severities: critical, high, medium, low
 Confidence: 0.5-1.0 (0.9+ = certain, 0.7-0.89 = very likely, 0.5-0.69 = probable)
 
-WRITING GOOD BUG DESCRIPTIONS: Focus on the RUNTIME CONSEQUENCE, not the security classification. Describe what goes wrong when the code executes:
-- BAD: "SQL injection vulnerability via string interpolation"
-- GOOD: "Host values containing single quotes will break the SQL INSERT, and the unescaped interpolation means corrupted data from the old setting gets inserted verbatim"
-- BAD: "Missing overflow handling"
-- GOOD: "Text content that exceeds the container width will not be truncated, pushing adjacent elements out of view"
+WRITING GOOD BUG DESCRIPTIONS: Each issue comment MUST include these three parts:
+1. **Quote the exact code** that's wrong (the specific expression, variable, or method call from the diff)
+2. **State what it should be** (the correct value, type, or behavior)
+3. **Describe the runtime consequence** (what breaks, crashes, or produces wrong results when executed)
 
 You can output `<issue>` tags at ANY point during your investigation — as soon as you confirm a bug, report it. Don't wait until the end.
 
 Important investigation rules:
 - Don't stop at the first finding. Keep investigating ALL changed files.
-- STRICT: Report each unique root cause ONCE. If the same bug pattern appears in multiple functions or files, write ONE issue and list all affected locations in the comment. Two candidates for the same root cause = wasted budget. Before writing a new issue, check if you already reported the same underlying problem.
+- STRICT: Report each unique root cause ONCE. If the same bug pattern appears in multiple functions or files, write ONE issue and list all affected locations in the comment. Two candidates for the same root cause = wasted budget. Before writing a new issue, check if you already reported the same underlying problem. If you have 3+ findings from one file, critically evaluate whether they are truly independent or different facets of the same concern.
 - Before claiming "X doesn't exist" or "Y is not imported", search the entire repo. Definitions exist outside the diff.
 - Don't over-extrapolate edge cases. Only report bugs you can demonstrate via actual code paths, not theoretical "what if" scenarios.
 - Check for naming bugs: method name typos, property name typos, error messages that contradict the operation.
@@ -287,6 +294,8 @@ FREQUENTLY MISSED PATTERNS — check each one explicitly:
 10. QUERY NORMALIZATION: If code queries data with normalization (lower(), strip(), downcase()), verify the stored data was inserted with the same normalization. Check both direct inserts AND migrations for consistency with how the application reads the data. In migrations that copy data from old settings/tables via raw SQL, the old data is often NOT normalized.
 11. PLATFORM PORTABILITY: If the PR adds or modifies shell commands, scripts, or CLI invocations, check for OS-specific syntax (e.g., sed -i flag differs between macOS and Linux, date format specifiers vary, find flags differ). Scripts that work on one OS may fail silently or crash on another.
 12. CRUD COMPLETENESS: If new controller actions or API endpoints are added, verify all CRUD operations have proper validation and authorization. A new "create" may validate inputs, but does the corresponding "update" also validate? Does "destroy" check authorization?
+13. ASYNC/SYNC CONTRACT: If a previously synchronous function call was changed to asynchronous (or vice versa), check ALL callers. In JS/Ember, a function that now returns a Promise instead of a direct value will break callers that read properties synchronously. In Python, a missing `await` returns a coroutine object instead of the actual value. In Ruby, a method that now uses callbacks/blocks where it used to return directly. Missing async handling = race condition or undefined data.
+14. ERROR PATH HANDLING: After checking the success path, trace the error/failure path. If code updates state (cache, counter, DB record) and THEN performs a fallible operation, what happens on failure? If the fallible operation is performed first and the result is stored unconditionally (even on error), the error gets cached. Look for: unconditional state assignments after try/catch, cache writes that don't check error status, cleanup that runs only on success but should also run on failure.
 
 IMPORTANT: Report every bug you find that you believe is real. It is better to report a borderline bug than to miss a real one. Even if you only have moderate confidence (0.5-0.7), report it — the confidence score communicates your uncertainty. Do NOT hold back findings.
 
@@ -296,14 +305,28 @@ FOLLOW THROUGH ON FINDINGS: If during your investigation you discover something 
 - A loop with early exit that skips cleanup of remaining items → report as logic error
 - A cache that trusts stale data for one outcome but not the other → report as race condition
 
-BEFORE FINISHING: Scan through ALL changed files one more time. For any file you haven't investigated, do a quick check. It's easy to spend all your time on the first few files and miss bugs in the rest."""
+BEFORE FINISHING: Scan through ALL changed files one more time. For any file you haven't investigated, do a quick check. It's easy to spend all your time on the first few files and miss bugs in the rest. Additionally, check these high-value patterns one more time:
+- DELEGATION: If any changed class wraps/proxies/caches another object, verify method calls go to the delegate, not `self`. Self-calls through caching layers = infinite recursion.
+- ERROR PATH: For any code that stores results (cache, DB, state), trace what happens if the operation FAILS. Does it cache errors? Does it update state before knowing the operation succeeded?
+- NULL ACCESS: For any chained property access on data from external sources (API responses, DB queries, configs), verify intermediate keys exist before accessing nested values.
+
+FINAL SELF-CRITIQUE: After completing your review, re-read each <issue> you reported and apply these filters. DROP any finding where:
+- Your evidence is "this COULD fail if..." rather than "this DOES fail because..."
+- You assumed how a framework API behaves (e.g., what happens with empty input, nil, edge cases) WITHOUT verifying via grep/search. If you didn't grep for it, you don't know.
+- The bug requires multiple unlikely conditions to align simultaneously
+- You're reporting behavior gated by a feature flag that looks intentionally minimal or scaffolded (WIP feature)
+- Your finding is about code ORGANIZATION (file naming, module structure) rather than runtime behavior
+- You're speculating about what a framework "might" do internally rather than citing actual code paths
+- You cannot describe a CONCRETE input/scenario that triggers the bug. For every issue, you must be able to say: "When [specific trigger] happens, [specific code] executes and produces [specific wrong result]". If you can only say "this looks wrong" or "this might cause issues", drop it.
+- You're reporting that a feature/parameter was REMOVED or CHANGED when it could be an intentional simplification. Unless the removed feature is still referenced by callers (verify via grep), it's not a bug.
+KEEP findings where you have CONCRETE evidence: wrong variable name, wrong type, wrong string literal, missing null check, wrong operator, verified-missing definition, confirmed wrong behavior via grep."""
 
         if tools:
             messages = [{"role": "user", "content": prompt}]
             try:
                 review_text, trace = self._agentic_loop(
                     messages, tools, repo_path, warpgrep_tool_def,
-                    thinking_budget=10000, max_tool_rounds=35,
+                    thinking_budget=12000, max_tool_rounds=35,
                 )
             except Exception as e:
                 print(f"  Review failed: {e}", file=sys.stderr)
@@ -324,6 +347,55 @@ BEFORE FINISHING: Scan through ALL changed files one more time. For any file you
         print(f"  Review complete: {len(all_issues)} issues", file=sys.stderr)
         self.last_metrics = self._metrics
         return all_issues
+
+    def _surface_scan(
+        self,
+        combined_diff: str,
+        tools: list[dict],
+        repo_path: str | None,
+        warpgrep_tool_def: dict | None,
+    ) -> list[ReviewIssue]:
+        """Short focused pass looking for surface-level bugs the main review may have missed.
+
+        Runs a separate, independent conversation with a concise prompt targeting
+        concrete verifiable errors: typos, wrong variables, missing imports,
+        inconsistent names, copy-paste mistakes.
+        """
+        surface_prompt = f"""Check this PR diff for surface-level errors that are IMMEDIATELY visible in the code text.
+
+## PR Diff
+{combined_diff}
+
+## Rules
+- ONLY report bugs you can verify by reading the diff text or by a single grep.
+- Do NOT report logic analysis, framework behavior, or speculative issues.
+- Do NOT re-report issues you'd expect a thorough code reviewer already found.
+
+## Check these 4 patterns:
+
+1. **TYPOS**: Misspelled identifiers — read each new method/variable/class name letter-by-letter.
+2. **WRONG VARIABLE**: A null check, assertion, or conditional that tests the wrong variable for its context.
+3. **INCONSISTENT NAMES**: String keys, metric tags, or enum values that should match but differ (e.g., "shard" vs "shards").
+4. **MISSING DEFINITIONS**: New imports or callback registrations where the target doesn't exist. Grep to verify.
+
+Report with <issue> tags. Only report if confidence >= 0.92. If nothing found, say "No issues."
+
+Valid categories: logic_error, incorrect_value, type_error, null_reference, localization, test_correctness"""
+
+        messages = [{"role": "user", "content": surface_prompt}]
+        try:
+            scan_text, _ = self._agentic_loop(
+                messages, tools, repo_path, warpgrep_tool_def,
+                thinking_budget=3000, max_tool_rounds=5,
+            )
+        except Exception:
+            return []
+
+        issues = self._parse_xml_issues(scan_text)
+        # Tag as surface scan findings
+        for i in issues:
+            i.source_pass = "surface"
+        return issues
 
     def _extract_issues(self, review_text: str, diff_text: str) -> list[ReviewIssue]:
         """Extract structured issues from freeform review text using structured JSON output."""
@@ -449,6 +521,8 @@ Each issue must have these fields:
         comments share significant keyword overlap (>50% of words).
         Keeps the highest-confidence instance.
         """
+        # Hard confidence floor - drop borderline findings
+        issues = [i for i in issues if i.confidence >= 0.80]
         if len(issues) <= 1:
             return issues
 
@@ -474,6 +548,8 @@ Each issue must have these fields:
                 # standard for same category, higher for cross-category
                 if issue.category == existing.category and issue.file_path == existing.file_path:
                     threshold = 0.25  # Same file + category = very likely same bug
+                elif issue.file_path == existing.file_path:
+                    threshold = 0.30  # Same file, different category = likely related
                 elif issue.category == existing.category:
                     threshold = 0.35
                 else:
@@ -484,7 +560,15 @@ Each issue must have these fields:
             if not is_dup:
                 kept.append(issue)
 
-        return kept
+        # Per-file cap: max 2 issues per file (already sorted by confidence desc)
+        from collections import Counter
+        file_counts: Counter = Counter()
+        capped = []
+        for issue in kept:
+            file_counts[issue.file_path] += 1
+            if file_counts[issue.file_path] <= 2:
+                capped.append(issue)
+        return capped
 
     # ---------- Diff formatting ----------
 
@@ -857,30 +941,21 @@ Each issue must have these fields:
                         "followup_text_length": len(followup_text),
                     })
                 # Targeted follow-up: ask model to check specific high-miss patterns
-                if round_num >= 3 and any(all_text_parts):
+                if round_num >= 2 and any(all_text_parts):
                     messages.append(self.provider.format_assistant_message(response))
                     messages.append({"role": "user", "content": (
-                        "Good investigation. Now do ONE targeted sweep — check these specific patterns "
-                        "that are easy to miss. Use tools if needed to verify, then report any new bugs:\n\n"
-                        "1. NEAR-DUPLICATE LINES: Where similar statements appear together (null checks, filters, "
-                        "string literals, metric tags), read EACH independently. Is the variable, predicate, or string "
-                        "correct for THAT specific line, not just copy-pasted from its neighbor?\n"
-                        "2. CONCURRENCY: If the diff changes lock scope or has shared mutable state, did you find ALL "
-                        "race conditions? Check every piece of shared state independently, not just the first one.\n"
-                        "3. DICT ORDERING: If zip() or positional access is used with dict.values() or get_multi() "
-                        "results, is the ordering guaranteed? Dict values may not match input key order.\n"
-                        "4. ERROR FORMAT: If error response format changed, grep for consumers that parse the old format.\n"
-                        "5. SPELLING: Any new identifier that looks misspelled? Check method names, class names, and variable names for typos.\n"
-                        "6. MISSING DEFINITIONS: Any new import, callback registration, or method call referencing "
-                        "something that doesn't exist? Grep for the class/method definition to verify.\n"
-                        "7. LOOP COMPLETENESS: Any loop with early exit (break, deadline) that skips cleanup/termination "
-                        "of remaining items?\n"
-                        "8. ORM EMPTY DATA: Any ORM update/save called with an empty or minimal data object that might "
-                        "skip auto-managed fields (timestamps, counters)?\n"
-                        "9. DATA NORMALIZATION: Any migration or bulk insert that stores data without the normalization "
-                        "that the application's read queries expect (lower(), strip(), etc.)?\n"
-                        "10. PORTABILITY: Any shell commands with OS-specific syntax (sed, find, date flags)?\n\n"
-                        "Report new bugs with <issue> tags. If you already covered these, say 'No additional issues.'"
+                        "Good investigation. Now do a targeted verification sweep. For each check below, "
+                        "do it RIGHT NOW — don't just acknowledge it, actually perform the check:\n\n"
+                        "1. READ every new method/variable/class name in the diff character-by-character. "
+                        "Report any typo immediately (transposed letters, missing letters, wrong suffix).\n"
+                        "2. LIST every new import, callback, or hook registration in the diff. "
+                        "For each one, grep for its definition. If it doesn't exist, report it.\n"
+                        "3. FIND any groups of similar lines (null checks, filters, conditionals). "
+                        "Read each line independently — is the variable/key correct for THAT line?\n"
+                        "4. CHECK if any migration or bulk insert stores data without normalization "
+                        "that read queries expect (lower(), strip()). Also check shell commands for OS-specific syntax.\n"
+                        "5. VERIFY any loop with early exit — does it clean up remaining items?\n\n"
+                        "Only report bugs you can verify. If you already covered these, say 'No additional issues.'"
                     )})
                     # Allow sweep to run a mini agentic loop (up to 4 tool rounds)
                     for _sweep_round in range(4):
