@@ -229,13 +229,17 @@ class OpenAIProvider:
         model: str | None = None,
     ) -> LLMResponse:
         oai_messages = self._inject_system(messages, system)
+        model_name = model or "gpt-5.4"
         kwargs: dict[str, Any] = dict(
-            model=model or "gpt-5.4",
+            model=model_name,
             max_completion_tokens=max_tokens,
             messages=oai_messages,
         )
+        # we have to do this because v1 chat completions API rejects function tools combined with reasoning_effort for GPT-5 models
         if tools:
             kwargs["tools"] = self.convert_tools(tools)
+        else:
+            kwargs["reasoning_effort"] = "high"
         raw = self._client.chat.completions.create(**kwargs)
         return self._parse(raw)
 
@@ -686,7 +690,7 @@ def create_provider(config) -> LLMProvider:
     Returns:
         An LLMProvider implementation.
     """
-    name = getattr(config, "provider", "anthropic").lower()
+    name = getattr(config, "provider", "openai").lower()
 
     if name == "anthropic":
         if not config.anthropic_api_key:

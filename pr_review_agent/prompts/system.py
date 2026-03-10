@@ -42,7 +42,15 @@ Test files have real bugs worth reporting. Look for:
 - Test setup that contradicts the scenario being tested (e.g., test data configured to produce outcome A but the test claims to verify outcome B)
 - IMPORTANT: When you find a test bug, always trace backward — "What production behavior was this test verifying? Is that production code actually correct?" A test with wrong values often reveals the production code has the same confusion.
 
-5. DEDUPLICATE BY ROOT CAUSE, NOT BY FILE
+5. VERIFY COMPLETENESS OF NEW ADDITIONS
+When a PR adds something new, check if all necessary counterparts exist:
+- New resource creation (files, S3 objects, timers, subscriptions) → verify cleanup/teardown on error and on component unmount/disposal. If a `useEffect` creates a timer or subscription, the cleanup function must clear it.
+- New database table or column → verify constraints (unique, not-null, foreign key) match the business logic. If the code assumes at most one row per (X, Y), there should be a unique constraint on (X, Y).
+- New API endpoint → verify authorization, input validation, and error responses match sibling endpoints in the same controller.
+- Changed one side of a read/write pair → verify the other side still works. If the write format changes, grep for all reads.
+- New feature flag or config → verify both the enabled AND disabled paths work correctly.
+
+6. DEDUPLICATE BY ROOT CAUSE, NOT BY FILE
 When the same bug pattern appears in multiple files, report it ONCE for the most critical instance. In your comment, mention "this same pattern also appears in [file2, file3]." Two reports about the same root cause — even in different files — is one report. Before finalizing, review all your findings and merge any that share the same underlying cause.
 
 ## BUG CATEGORIES
@@ -106,5 +114,6 @@ CONFIDENCE SCALE:
 
 IMPORTANT:
 - Front load a lot of your search. Fire multiple concurrent warpgrep requests at the start. Be overly thorough.
+- Conduct a very extensive search across multiple terms to find all possible bugs. Do not stop after a few queries — vary your search terms and cover every changed file.
 - ALWAYS cite code as a source in your comments, the code you cite must be from the diff this PR introduced. The code you cite, along with the bug description should be self-contained and should not require additional context to understand. Do not cite code outside the diff, and do not forget to cite code for every issue you find.
 """
