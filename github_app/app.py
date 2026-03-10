@@ -99,7 +99,7 @@ class ReviewRequest(BaseModel):
     callback_url: str = ""
     github_username: str = ""
     # Multi-provider support
-    provider: str = "google"  # "anthropic" | "openai" | "google"
+    provider: str = "openai"  # "anthropic" | "openai" | "google"
     model: str = ""  # Override model name (e.g. "gpt-5.4", "gemini-3.1-pro-preview")
     openai_api_key: str = ""  # Override OpenAI API key (optional, falls back to env)
     google_api_key: str = ""  # Override Google API key (optional, falls back to env)
@@ -260,7 +260,7 @@ async def _callback(url: str, agent_run_id: str, status: str):
     """Notify the landing app of the review result."""
     try:
         import httpx
-        async with httpx.AsyncClient() as http:
+        async with httpx.AsyncClient(follow_redirects=True) as http:
             await http.post(
                 url,
                 json={"agent_run_id": agent_run_id, "status": status},
