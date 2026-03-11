@@ -290,11 +290,11 @@ async def load_assembled_prs(db_path: str, reference_bot: str, limit: int) -> li
         return []
     chatbot_id = row["id"]
 
-    # Get assembled PRs (status = 'assembled') that haven't been analyzed yet
+    # Get assembled or analyzed PRs (both have the data we need)
     cur.execute(
         """
         SELECT p.* FROM prs p
-        WHERE p.chatbot_id = ? AND p.status = 'assembled'
+        WHERE p.chatbot_id = ? AND p.status IN ('assembled', 'analyzed')
         ORDER BY p.discovered_at DESC
         LIMIT ?
         """,

@@ -83,3 +83,40 @@ Using 10 workers, gpt-5.4, skip_post=True.
 | Attempt 3 | 0.263 | 0.104 | 0.363 | + config/infra category, + config emphasis |
 
 **Best: Attempt 2.** Key insight: the model performs best when its scope is tightly focused on runtime defects + structural completeness. Any instruction that broadens scope to non-bug categories (code quality, config/infra) dilutes focus and hurts precision without meaningfully improving recall.
+
+---
+
+## New Eval Runs (v7+ prompt with 13 investigation principles)
+
+Using the improved prompt from main branch (13 principles, 14 bug categories, 15 frequently-missed patterns, plan mode, sweep, self-critique). Evaluated on coderabbitai[bot] PRs from the benchmark DB.
+
+### v10 — Full 70-PR eval with v7 prompt (best)
+
+**Prompt state:** system.py with 13 principles + 17 categories, reviewer.py with expectation-driven review, three-question filter, self-critique, surface scan, confidence floor 0.60, per-file cap 3, dedup thresholds 0.25/0.30/0.35/0.50.
+
+| Metric | All PRs (66) | PRs w/ GT (26) |
+|--------|-------------|----------------|
+| Suggestions | 166 | — |
+| Matched suggestions | 18 | 18 |
+| Ground truth | 133 | 133 |
+| Precision | 0.108 | — |
+| Recall | 0.135 | 0.135 |
+| Mean PR F1 | — | 0.406 (13 PRs) |
+
+**GT breakdown:** 80 bugs (21% match rate), 21 style (0%), 13 refactor (0%), 7 docs (0%), 4 improvement (0%), 3 security (0%), 2 performance (50%).
+
+### Failed experiments
+
+| Version | Change from v10 | Result | Why it failed |
+|---------|-----------------|--------|---------------|
+| v8 | Softened CSS suppression, removed frontend cap, per-file cap 3→5 | F1=0.258 (15 PRs) | Model still gravitates to backend bugs regardless of CSS rules |
+| v11 | Confidence floor 0.60→0.50, relaxed dedup thresholds | F1=0.337 (62 PRs) | Fewer high-quality findings, more noise |
+| v6 | Broadened scope to style/docs, softened suppressions | F1=0.444 (13 PRs, 1 match) | Same pattern as Attempt 1 — dilutes bug-finding |
+
+### Key findings from v10 analysis
+
+1. **Bug recall ceiling is ~21%**: Model finds real bugs but different ones than humans fix. On 80 bug GT items, we match 17 (21%). The model averages 2.4 suggestions/PR.
+2. **Style/refactor/docs are unreachable**: 41/133 GT items (31%) are in categories our prompt excludes. Attempting to catch them (v6, v8) hurts bug precision without meaningful style recall.
+3. **Non-determinism dominates small samples**: Same prompt gives different bugs each run. A/B tests on 15 PRs are unreliable — need 50+ PRs for stable signal.
+4. **CHAT-TONER outlier**: One PR has 9 CSS GT items (7% of all GT). Our model correctly finds backend bugs but 0 CSS issues. CSS review requires fundamentally different approach.
+5. **Strong performers exist**: 6 PRs scored F1≥0.50 (highest 0.667). Model excels on PRs where GT is actual bugs rather than style/refactor.

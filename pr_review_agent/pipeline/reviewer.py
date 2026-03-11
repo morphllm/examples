@@ -75,7 +75,7 @@ def _strict_schema(schema: dict) -> dict:
 class ReviewIssueSchema(BaseModel):
     file_path: str = Field(description="Path to the file containing the issue")
     line_number: int = Field(description="Line number where the issue occurs")
-    category: str = Field(description="Bug category: logic_error|incorrect_value|api_misuse|race_condition|null_reference|type_error|security|localization|test_correctness|portability")
+    category: str = Field(description="Category: logic_error|incorrect_value|api_misuse|race_condition|null_reference|type_error|security|localization|test_correctness|portability|style|documentation|missing_validation|refactor")
     severity: str = Field(description="Issue severity: critical|high|medium|low")
     confidence: float = Field(description="Confidence score from 0.0 to 1.0")
     comment: str = Field(description="Description of the bug: what code is wrong, what it should be, and the consequence")
@@ -209,7 +209,9 @@ class Reviewer:
 
 ## How to Review
 
-**Step 1: Plan and investigate.** First, mentally list all changed files from the diff. Classify each as: DATA (models, migrations, DB operations), API (endpoints, handlers, serializers), LOGIC (business logic, algorithms), TEST (test files), or UI (components, templates, styling). Then investigate DATA and API files first — they have the most critical bugs.
+**Step 1: Understand intent, then investigate.** Before looking for bugs, understand what this PR is trying to accomplish. Read the diff holistically and form a one-sentence hypothesis: "This PR does X by changing Y." This is your specification. Bugs are gaps between what the code intends and what it actually does — you can't find gaps without knowing the intent.
+
+Next, identify the CORE of the change — the central logic that everything else supports. Start your investigation there, then trace outward along data flow and call chains. Classify changed files as: DATA (models, migrations, DB operations), API (endpoints, handlers, serializers), LOGIC (business logic, algorithms), TEST (test files), or UI (components, templates, styling). Investigate DATA and API files first.
 
 Use `codebase_search` to understand codebase context. Make at least 8 searches targeting your uncertainties — more if the PR touches multiple subsystems.
 
@@ -225,10 +227,10 @@ How to search effectively with WarpGrep — it is a search AGENT, not a grep too
 **Step 1.5: Surface scan.** Before deep investigation, read through EVERY changed line in the diff right now and check for these concrete, verifiable errors. Report any you find immediately with `<issue>` tags:
 - **Typos** in new/changed identifiers: method names, variable names, class names, string keys. Read each identifier character-by-character. Common: transposed letters, missing letters (e.g., "santize" vs "sanitize").
 - **Missing imports/definitions**: If the diff adds a new import, class reference, or callback registration, grep the codebase NOW to verify it exists. Do NOT assume it exists just because the diff references it. Non-existent imports crash at load time — this is often the most critical bug in a PR.
-- **Wrong variable in similar code**: When 3+ similar lines appear together (null checks, filter predicates, metric tags, conditionals), read EACH line independently. Is the variable/key/predicate correct for THAT specific line? Common: a null check tests `if (x == null)` but should test `if (y == null)` — the wrong parameter is checked.
+- **Wrong variable**: Two failure modes. (1) In similar/repeated code: when 3+ similar lines appear together (null checks, filter predicates, metric tags), read EACH line independently — is the variable correct for THAT line? (2) In transform chains: when a value is computed from an input and stored in a new variable (`normalizedX = normalize(x)`), verify all subsequent code uses the transformed variable, not the original. Code that computes a normalized/validated/converted value then keeps using the raw input is a bug.
 - **Inconsistent naming**: Related identifiers that should match but differ (e.g., "shard" in one place, "shards" in another; "error_type" vs "error_kind"). These cause silent lookup failures.
 
-**Step 2: Investigate every changed file.** Don't stop after finding one bug. Budget your investigation across ALL changed files. For every non-trivial change:
+**Step 2: Investigate every changed file by tracing data flow.** Don't stop after finding one bug. Budget your investigation across ALL changed files. For every non-trivial change, trace the actual data: where does the input come from, how is it transformed, and where does it end up? Bugs live where data crosses boundaries — function calls, type conversions, serialization, storage. Follow the value, not the control flow.
 - Search for callers. Will they handle the new behavior correctly?
 - If a function signature, interface, or return type changed, grep for ALL callers and implementers. Don't assume they were all updated.
 - If a constant or key name changed, find where the old value was referenced. Was everything updated?
@@ -242,8 +244,8 @@ How to search effectively with WarpGrep — it is a search AGENT, not a grep too
 - VERIFY NEW DEFINITIONS: If the diff imports a new class/function or registers a lifecycle callback/hook, grep to confirm the referenced symbol actually exists. Missing imports and undefined callbacks crash immediately.
 - CHECK SPELLING of new identifiers — typos in method names cause NoMethodError.
 
-INVESTIGATION PRIORITY: Spend most of your tool budget on data handling, API/backend logic, migrations, and concurrency code. These are where critical bugs hide. Leave UI/component/styling files for last — they rarely contain logic bugs. If one UI component is swapped for a different one with slightly different default styling, that is a style choice, not a bug.
-LARGE PR RULE: If the PR has >30 changed files or >500 added lines, you MUST investigate backend/API/data files BEFORE frontend/UI files. Report at most 1 issue from frontend visualization or component files. Backend data bugs, API contract violations, and test correctness bugs are far more valuable than UI rendering issues. Do NOT fill your issue budget with frontend findings when backend code remains uninvestigated.
+INVESTIGATION PRIORITY: Spend most of your tool budget on data handling, API/backend logic, migrations, and concurrency code. These are where critical bugs hide. Then check UI/component files for concrete issues (wrong values, broken responsive design, inconsistent idioms). If one UI component is swapped for another with slightly different default styling, that is a style choice, not a bug.
+LARGE PR RULE: If the PR has >30 changed files or >500 added lines, you MUST investigate backend/API/data files BEFORE frontend/UI files. Report at most 2 issues from frontend visualization or component files. Backend data bugs, API contract violations, and test correctness bugs are far more valuable than UI rendering opinions.
 
 **Step 3: Write your review.** For each confirmed bug, output an `<issue>` XML tag with the details. Every issue must be backed by evidence from your tool calls.
 
@@ -258,7 +260,7 @@ Use this EXACT format for each bug you find:
 <comment>Description of the bug: what code is wrong, what it should be, and the runtime consequence. Cite code as evidence.</comment>
 </issue>
 
-Valid categories: logic_error, incorrect_value, api_misuse, race_condition, null_reference, type_error, security, localization, test_correctness, portability
+Valid categories: logic_error, incorrect_value, api_misuse, race_condition, null_reference, type_error, security, localization, test_correctness, portability, style, documentation, missing_validation, refactor
 Valid severities: critical, high, medium, low
 Confidence: 0.5-1.0 (0.9+ = certain, 0.7-0.89 = very likely, 0.5-0.69 = probable)
 
@@ -275,9 +277,8 @@ Important investigation rules:
 - Before claiming "X doesn't exist" or "Y is not imported", search the entire repo. Definitions exist outside the diff.
 - Don't over-extrapolate edge cases. Only report bugs you can demonstrate via actual code paths, not theoretical "what if" scenarios.
 - Check for naming bugs: method name typos, property name typos, error messages that contradict the operation.
-- Do NOT report CSS/styling property differences (padding, margin, align, gap, text-overflow, overflow, color values, height) as bugs when one styled component replaces another. Different default styling is an intentional choice, not a bug. Do NOT report "property X from old component is missing in new component" — the developer chose a different component deliberately. Only report if it causes a runtime crash (e.g., accessing a sub-component or static property that doesn't exist on the replacement).
-- Do NOT report missing sub-components as bugs unless you have verified via grep/search that the sub-component truly does not exist on the replacement AND the code actually tries to use it.
-- Do NOT report code organization issues (wrong file names, wrong file placement, code in unexpected files) when the framework loads by class/function/fabricator name, not by filename. If the code works correctly at runtime despite the file naming, it's not a bug.
+- Do NOT report CSS/styling property differences (padding, margin, align, gap, text-overflow, overflow, color values, height) as bugs when one styled component replaces another. Different default styling is an intentional choice, not a bug. Only report if it causes a runtime crash or if values are clearly broken (e.g., negative dimensions, z-index conflicts that hide content).
+- Do NOT report code organization issues (wrong file names, wrong file placement) when the framework loads by class/function name, not by filename.
 
 BUDGET YOUR INVESTIGATION: You have a limited number of tool rounds. Do NOT spend more than 2-3 searches on the same question. If a symbol, class, or file doesn't appear after 2 searches, it either doesn't exist or isn't relevant — move on. Spread your investigation across ALL areas of the diff rather than deep-diving into one area. A common failure mode is spending 15+ rounds chasing one question while ignoring the rest of the PR.
 
@@ -296,6 +297,7 @@ FREQUENTLY MISSED PATTERNS — check each one explicitly:
 12. CRUD COMPLETENESS: If new controller actions or API endpoints are added, verify all CRUD operations have proper validation and authorization. A new "create" may validate inputs, but does the corresponding "update" also validate? Does "destroy" check authorization?
 13. ASYNC/SYNC CONTRACT: If a previously synchronous function call was changed to asynchronous (or vice versa), check ALL callers. In JS/Ember, a function that now returns a Promise instead of a direct value will break callers that read properties synchronously. In Python, a missing `await` returns a coroutine object instead of the actual value. In Ruby, a method that now uses callbacks/blocks where it used to return directly. Missing async handling = race condition or undefined data.
 14. ERROR PATH HANDLING: After checking the success path, trace the error/failure path. If code updates state (cache, counter, DB record) and THEN performs a fallible operation, what happens on failure? If the fallible operation is performed first and the result is stored unconditionally (even on error), the error gets cached. Look for: unconditional state assignments after try/catch, cache writes that don't check error status, cleanup that runs only on success but should also run on failure.
+15. TEST STATE ISOLATION: When tests use shared mutable state (caches, singletons, registries, class-level variables, module globals), verify each test resets that state. Tests that pass alone but fail together indicate missing cleanup in setUp/beforeEach/afterEach. Shared cache instances, connection pools, or registries that accumulate entries across tests are common sources.
 
 IMPORTANT: Report every bug you find that you believe is real. It is better to report a borderline bug than to miss a real one. Even if you only have moderate confidence (0.5-0.7), report it — the confidence score communicates your uncertainty. Do NOT hold back findings.
 
@@ -319,6 +321,13 @@ FINAL SELF-CRITIQUE: After completing your review, re-read each <issue> you repo
 - You're speculating about what a framework "might" do internally rather than citing actual code paths
 - You cannot describe a CONCRETE input/scenario that triggers the bug. For every issue, you must be able to say: "When [specific trigger] happens, [specific code] executes and produces [specific wrong result]". If you can only say "this looks wrong" or "this might cause issues", drop it.
 - You're reporting that a feature/parameter was REMOVED or CHANGED when it could be an intentional simplification. Unless the removed feature is still referenced by callers (verify via grep), it's not a bug.
+- You're reporting a DESIGN CONCERN rather than a BUG. "This should use a queue" or "This should persist state" or "Consider adding retry logic" are architectural suggestions. Unless the current code produces wrong results on a concrete input, it's not a bug.
+
+THREE-QUESTION FILTER — apply to EVERY finding before keeping it:
+Q1. IS IT A NITPICK? If the fix is "rename this" or "reformat this" and the code works correctly as-is, drop it. But missing validation, wrong variables, and broken rendering are NOT nitpicks.
+Q2. DID I VERIFY OR ASSUME? If your reasoning depends on how a framework/library/API behaves and you didn't grep or search to confirm, you're guessing. Either verify now or drop it.
+Q3. WOULD THE AUTHOR SAY "GOOD CATCH"? The best findings make the developer immediately recognize the problem. If they'd say "that's a fair point but we'll track it separately" rather than "good catch, fixing now", lower confidence to 0.5 or drop it.
+
 KEEP findings where you have CONCRETE evidence: wrong variable name, wrong type, wrong string literal, missing null check, wrong operator, verified-missing definition, confirmed wrong behavior via grep."""
 
         if tools:
@@ -410,7 +419,7 @@ For each bug the reviewer identified, output an issue object. Only extract issue
 Each issue must have these fields:
 - file_path: path to the file (string)
 - line_number: line number where the issue occurs (integer)
-- category: one of logic_error, incorrect_value, api_misuse, race_condition, null_reference, type_error, security, localization, test_correctness, portability
+- category: one of logic_error, incorrect_value, api_misuse, race_condition, null_reference, type_error, security, localization, test_correctness, portability, style, documentation, missing_validation, refactor
 - severity: one of critical, high, medium, low
 - confidence: 0.0-1.0 based on how certain the reviewer was (number)
 - comment: description of the bug — what code is wrong, what it should be, and the runtime consequence (string)"""
@@ -521,8 +530,8 @@ Each issue must have these fields:
         comments share significant keyword overlap (>50% of words).
         Keeps the highest-confidence instance.
         """
-        # Hard confidence floor - drop borderline findings
-        issues = [i for i in issues if i.confidence >= 0.80]
+        # Confidence floor — aligned with category thresholds (0.50-0.70)
+        issues = [i for i in issues if i.confidence >= 0.60]
         if len(issues) <= 1:
             return issues
 
@@ -560,13 +569,13 @@ Each issue must have these fields:
             if not is_dup:
                 kept.append(issue)
 
-        # Per-file cap: max 2 issues per file (already sorted by confidence desc)
+        # Per-file cap: max 3 issues per file (already sorted by confidence desc)
         from collections import Counter
         file_counts: Counter = Counter()
         capped = []
         for issue in kept:
             file_counts[issue.file_path] += 1
-            if file_counts[issue.file_path] <= 2:
+            if file_counts[issue.file_path] <= 3:
                 capped.append(issue)
         return capped
 
