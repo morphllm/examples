@@ -103,13 +103,17 @@ class ReviewRequest(BaseModel):
     model: str = ""  # Override model name (e.g. "gpt-5.4", "gemini-3.1-pro-preview")
     openai_api_key: str = ""  # Override OpenAI API key (optional, falls back to env)
     google_api_key: str = ""  # Override Google API key (optional, falls back to env)
+    skip_post: bool = False  # Run review but don't post to GitHub (for evals)
 
 
 REVIEW_API_SECRET = os.environ.get("REVIEW_API_SECRET", "") or os.environ.get("GHAPP_INTERNAL_SECRET", "")
 
 
-async def _run_review_from_api(req: ReviewRequest):
-    """Run the review pipeline from an API request (not a webhook)."""
+async def _run_review_from_api(req: ReviewRequest) -> list | None:
+    """Run the review pipeline from an API request (not a webhook).
+
+    Returns the list of review comments when skip_post=True, None otherwise.
+    """
     import time
     import uuid
     from github_app.telemetry import make_event_emitter
@@ -187,32 +191,40 @@ async def _run_review_from_api(req: ReviewRequest):
 
         t_post = time.monotonic()
         num_issues = len(comments) if comments else 0
-        summary_line = f"Found {num_issues} issue{'s' if num_issues != 1 else ''}"
-        if req.personality and req.github_username:
-            review_body = (
-                f"@{req.github_username}'s review twin\n\n"
-                f"{summary_line}\n\n---\n"
-                f"*a2a-review based on @{req.github_username}'s coding preferences*"
-            )
-        else:
-            review_body = f"## Morph Code Review\n\n{summary_line}"
 
-        if comments:
-            await client.post_review(
-                req.owner, req.repo, req.pr_number, req.head_sha,
-                comments, diff, review_body,
+        if req.skip_post:
+            logger.info(
+                "skip_post=True, skipping GitHub post for %s PR #%d (%d comments)",
+                full_name, req.pr_number, num_issues,
             )
+            duration_post = 0.0
         else:
-            # Post summary even with 0 issues so callers can detect completion
-            await client.post_issue_comment(
-                req.owner, req.repo, req.pr_number, review_body,
-            )
-        duration_post = round(time.monotonic() - t_post, 1)
-        on_event("review.post", {
-            "comments_posted": len(comments) if comments else 0,
-            "duration_s": duration_post,
-            "success": True,
-        })
+            summary_line = f"Found {num_issues} issue{'s' if num_issues != 1 else ''}"
+            if req.personality and req.github_username:
+                review_body = (
+                    f"@{req.github_username}'s review twin\n\n"
+                    f"{summary_line}\n\n---\n"
+                    f"*a2a-review based on @{req.github_username}'s coding preferences*"
+                )
+            else:
+                review_body = f"## Morph Code Review\n\n{summary_line}"
+
+            if comments:
+                await client.post_review(
+                    req.owner, req.repo, req.pr_number, req.head_sha,
+                    comments, diff, review_body,
+                )
+            else:
+                # Post summary even with 0 issues so callers can detect completion
+                await client.post_issue_comment(
+                    req.owner, req.repo, req.pr_number, review_body,
+                )
+            duration_post = round(time.monotonic() - t_post, 1)
+            on_event("review.post", {
+                "comments_posted": num_issues,
+                "duration_s": duration_post,
+                "success": True,
+            })
 
         logger.info(
             "API review completed for %s PR #%d: %d comments",
@@ -239,6 +251,9 @@ async def _run_review_from_api(req: ReviewRequest):
 
         if req.callback_url:
             await _callback(req.callback_url, agent_run_id, "completed")
+
+        if req.skip_post:
+            return comments or []
 
     except Exception as exc:
         logger.exception("API review failed for %s PR #%d", full_name, req.pr_number)
@@ -277,6 +292,15 @@ async def review_api(req: ReviewRequest, request: Request):
     auth = request.headers.get("Authorization", "")
     if REVIEW_API_SECRET and auth != f"Bearer {REVIEW_API_SECRET}":
         raise HTTPException(status_code=401, detail="Unauthorized")
+
+    if req.skip_post:
+        # Run synchronously and return comments directly (for evals)
+        comments = await _run_review_from_api(req)
+        return {
+            "status": "completed",
+            "agent_run_id": req.agent_run_id or "generated-server-side",
+            "comments": comments or [],
+        }
 
     asyncio.create_task(_run_review_from_api(req))
     return {"status": "accepted", "agent_run_id": req.agent_run_id or "generated-server-side"}

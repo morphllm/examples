@@ -229,13 +229,17 @@ class OpenAIProvider:
         model: str | None = None,
     ) -> LLMResponse:
         oai_messages = self._inject_system(messages, system)
+        model_name = model or "gpt-5.4"
         kwargs: dict[str, Any] = dict(
-            model=model or "gpt-5.4",
+            model=model_name,
             max_completion_tokens=max_tokens,
             messages=oai_messages,
         )
+        # GPT-5 API rejects reasoning_effort combined with function tools
         if tools:
             kwargs["tools"] = self.convert_tools(tools)
+        else:
+            kwargs["reasoning_effort"] = "high"
         raw = self._client.chat.completions.create(**kwargs)
         return self._parse(raw)
 

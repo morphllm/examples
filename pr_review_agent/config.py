@@ -52,15 +52,15 @@ class Config:
         "type_error": 0.60,
         "security": 0.60,
         "null_reference": 0.70,  # FP-prone
-        # Low-value / FP-prone: suppress
-        "missing_validation": 0.99,
-        "resource_leak": 0.99,
-        "resource_leaks": 0.99,
-        "performance": 0.99,
-        "documentation": 0.99,
-        "style": 0.99,
-        "naming": 0.99,
-        "refactor": 0.99,
+        # Low-value / FP-prone: higher bar but not suppressed
+        "missing_validation": 0.70,
+        "resource_leak": 0.70,
+        "resource_leaks": 0.70,
+        "performance": 0.70,
+        "documentation": 0.70,
+        "style": 0.70,
+        "naming": 0.70,
+        "refactor": 0.70,
     })
 
     # WarpGrep settings

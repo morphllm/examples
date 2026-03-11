@@ -3,5 +3,8 @@
 **/.wrangler/
 pr_clones/
 code-review-benchmark/
+pr_review_agent/output/
+online_eval_results*.json
+online_eval.db*
 .env
 plan.md
