@@ -68,6 +68,7 @@ When the backlog is empty or after 3 consecutive DISCARDs:
 | 8 | exp8 | 0.367 | 0.099 | 0.139 | 14 scored/67 | + "follow the surprise" heuristic in reviewer.py | KEEP (noise, small+sound) |
 | 9 | exp9 | 0.303 | — | — | 67 | + pre-mortem hypotheses, + mandatory coverage rule (4-6 findings), + softened nitpick filter | DISCARD (regression) |
 | 10 | exp10 | 0.379 | 0.122 | 0.167 | 15 | + hypothesis-driven search instruction (2 sentences in WarpGrep block) | KEEP (noise, small+sound) |
+| 11 | exp11 | 0.272 | 0.095 | 0.105 | 15 | + explorer subagent tool (Sonnet 4.6 + multi-WarpGrep), + prompt change to use explore | DISCARD (major regression) |
 
 **Current baseline: exp10, F1=0.379 on 15 PRs.** Hypothesis-driven search is a 1-sentence deepening of search strategy. Theoretically sound, within noise band.
 
@@ -123,6 +124,8 @@ Priority order. Pick from top. Agent adds new ideas at bottom, re-ranks periodic
 
 **Broadened to style/docs (v6, F1=0.444 on 13 PRs, 1 match).** Tried capturing style/refactor/docs GT items. *Why it failed:* tiny sample (unreliable), and attempting to catch non-bug GT always dilutes bug precision.
 
+**Explorer subagent as tool (exp11, F1: 0.379→0.272).** Added Sonnet 4.6-orchestrated explorer subagent as a new tool in the reviewer's toolbox. Each explore call runs 3-6 WarpGrep searches autonomously. *Why it failed:* Each explore call takes 30-40s, consuming too much of the model's tool budget. The model likely spent rounds waiting for explorer results instead of doing its own targeted investigation. Adding a slow, heavyweight tool to an already-budgeted loop is structurally similar to broadening — it displaces faster, more targeted investigations.
+
 **Pre-mortem + coverage rule + softened nitpick filter (exp9, F1: 0.367→0.303).** Three changes: (1) "Before searching, list 3-5 hypotheses about what could go wrong" pre-mortem, (2) "You MUST check EVERY changed file, aim for 4-6 total findings" coverage rule, (3) softened nitpick filter to allow naming bugs. Suggestion volume increased 27% (191→243) but precision dropped badly — model generated more findings but wrong ones. *Why it failed:* The coverage rule ("aim for 4-6 findings") is functionally equivalent to "broaden scope" — it encourages the model to find MORE issues rather than BETTER issues. Quantity targets always dilute quality. The pre-mortem alone might work but was confounded by the coverage rule.
 
 ## 6. Dead Ends (anti-thrashing reference)
@@ -132,6 +135,9 @@ Every attempt to make the model look at MORE categories has failed. Code quality
 
 ### Theme: Loosening Filters
 Lowering confidence floor, relaxing dedup, raising per-file caps — all produced noise. The current thresholds (0.60 confidence floor, per-file cap 3, dedup at 0.25/0.30/0.35/0.50) are well-calibrated. **Do not soften filters without strong evidence.**
+
+### Theme: Heavyweight Tools
+Adding an explorer subagent (Sonnet 4.6 + multi-WarpGrep, ~30-40s per call) as a tool in the reviewer loop regressed F1 badly. Heavyweight tools consume the model's finite tool budget without proportional benefit. The reviewer already has fast, targeted tools (grep, read_file, WarpGrep). **Do not add new tools that take >10s per call. The reviewer's effectiveness comes from many fast, targeted searches, not fewer deep ones.**
 
 ### Theme: Quantity Targets
 "Aim for at least 4-6 findings" and "mandatory coverage rule" are just broadening scope in disguise. The model generates more suggestions but they're lower quality. **Do not set numeric targets for findings. The model should report what it finds, not hunt for a quota.**
