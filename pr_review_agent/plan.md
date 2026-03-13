@@ -76,6 +76,7 @@ When the backlog is empty or after 3 consecutive DISCARDs:
 | 16 | exp16 | 0.444 | 0.188 | 0.184 | 19 (25 requested) | + "trace backward from side effects" heuristic, 25-PR eval | KEEP (best since loop start, 10 scored PRs) |
 | 17 | exp17 | 0.338 | 0.080 | 0.093 | 18 (25 requested) | + "second bug in same scope" rule | DISCARD (generated more suggestions but fewer matches — quantity target in disguise) |
 | 18 | exp18 | 0.486 | 0.154 | 0.190 | 22 (25 requested) | + "check invariants" heuristic (verify callers when types/interfaces change) | KEEP (precision improved 27%→31%, eval F1=0.486) |
+| 19 | exp19 | 0.375 | — | — | 18 (25 requested), 8 scored | Strengthened error path tracing (explicit line-by-line failure re-read) | DISCARD (regression from 0.486) |
 
 **Current baseline: exp18, F1=0.486 on 22 PRs (10 scored).** Approaching target (0.55). Key challenge: 60% of scored PRs get zero matches. The model finds plausible bugs but different ones than humans fix. Structural changes (coverage nudge, WarpGrep v2) + 7 prompt heuristics.
 
@@ -87,7 +88,7 @@ Priority order. Pick from top. Agent adds new ideas at bottom, re-ranks periodic
 
 ### Medium Priority
 
-- **Strengthen error path tracing.** The current prompt mentions error paths but the model still under-investigates them. Make it more concrete: "After tracing the success path, explicitly re-read the code assuming every external call FAILS. What state gets corrupted?"
+- **Value verification in surface scan.** Add a "Wrong value" check to Step 1.5: verify regex patterns handle all valid chars, error messages reference the correct field, test expected values match actual behavior. Addresses the core finding that the model skips value-level checks in favor of logic analysis. (5+ missed GT items in exp18 trace analysis.)
 
 ### Low Priority
 
@@ -118,6 +119,8 @@ Priority order. Pick from top. Agent adds new ideas at bottom, re-ranks periodic
 **"Trace backward from side effects" heuristic (exp16, F1=0.444 on 19 PRs, 10 scored).** Added 1 sentence to Step 2: "When the diff writes to a database, updates a cache, sends a notification, or emits an event, trace BACKWARD: what conditions must be true for this write to be correct?" Best result since loop start. Combined with coverage nudge + WarpGrep v2, this is the strongest configuration yet. 9 matches on 33 suggestions across 10 scored PRs.
 
 **"Check invariants" heuristic (exp18, F1=0.486 on 22 PRs, 10 scored).** Added 1 sentence: "When the diff changes a data structure, type definition, or interface, ask what implicit contracts callers relied on, then grep callers and verify they still work." Precision improved from 27% to 31%. Per-match-PR F1 improved but total matching PRs decreased (4 vs 6). Kept because conditional, precision-positive, and theoretically sound.
+
+**Strengthened error path tracing (exp19, F1=0.375 on 18 PRs, 8 scored).** Replaced the 1-sentence error path mention with a detailed 4-sentence instruction: "re-read the code assuming every external call FAILS, walk through error path line by line, check for state corruption before fallible operations, check catch/finally assumptions." Regressed from 0.486→0.375. *Why it failed:* Too verbose (4 sentences = heavy prompt weight), triggered on every PR (not conditional), and the line-by-line instruction likely consumed investigation budget on exhaustive error-path tracing instead of targeted bug-finding. Confirms lesson: deepening works only when CONDITIONAL, not when it's a blanket investigation mandate.
 
 ### Failed (discarded)
 
@@ -151,6 +154,9 @@ Adding an explorer subagent (Sonnet 4.6 + multi-WarpGrep, ~30-40s per call) as a
 
 ### Theme: Second-Bug-In-Scope / Bug Clustering
 "When you find one bug, look for a second in the same scope" increased suggestion volume 50→33 vs exp16 but matches dropped 4→9. Functionally a quantity target — same failure mode as exp9. **Do not instruct the model to look for additional bugs near existing findings.**
+
+### Theme: Verbose Error Path Tracing
+Expanding error path investigation from 1 sentence to 4 sentences regressed F1 (0.486→0.375). Blanket "re-read assuming every call fails" is not conditional — fires on every PR, consuming budget on exhaustive tracing. **Do not make error path tracing more verbose. The existing 1-sentence mention is sufficient.**
 
 ### Theme: Catching Non-Bug GT
 31% of online GT is style/refactor/docs. These are structurally unreachable without diluting bug precision. **Accept the ~21% bug recall ceiling and optimize WITHIN bug-finding rather than trying to expand categories.**
