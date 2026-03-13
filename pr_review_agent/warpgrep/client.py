@@ -1,8 +1,8 @@
 """WarpGrep SDK client — official Python implementation.
 
-Uses the Morph API's morph-warp-grep-v1 model as a code search subagent.
-The model runs in its own context window with up to 4 turns and 8 parallel
-tool calls per turn (grep, read, list_directory, finish).
+Uses the Morph API's morph-warp-grep-v2 model as a code search subagent.
+The model runs in its own context window with up to 6 turns and 8 parallel
+tool calls per turn (ripgrep, read, list_directory, finish).
 
 Can be used:
   1. Directly via search_codebase() for standalone queries
@@ -23,13 +23,13 @@ import requests
 
 # Defaults
 API_URL = "https://api.morphllm.com/v1/chat/completions"
-MODEL = "morph-warp-grep-v1"
-MAX_TURNS = 4
+MODEL = "morph-warp-grep-v2"
+MAX_TURNS = 6
 MAX_GREP_LINES = 500
 MAX_GREP_CHARS = 30_000  # Hard cap on grep output size (chars)
 MAX_LIST_LINES = 500
 MAX_READ_LINES = 2000
-MAX_CONTEXT_CHARS = 400_000  # ~100K tokens, stay under 163K token limit
+MAX_CONTEXT_CHARS = 540_000  # v2 has ~135K token limit
 
 # Retry config for transient API errors (429, SSL, timeouts)
 MAX_RETRIES = 3
@@ -100,26 +100,109 @@ def _call_api_inner(messages: list, api_key: str, api_url: str = API_URL) -> str
     raise RuntimeError("WarpGrep API call failed after all retries")
 
 
-def _parse_xml_elements(content: str) -> dict:
-    """Parse nested XML elements into dictionary."""
-    args = {}
-    for match in re.finditer(r"<(\w+)>(.*?)</\1>", content, re.DOTALL):
-        key, value = match.group(1), match.group(2).strip()
-        if key == "file":
-            args.setdefault("files", []).append(_parse_xml_elements(value))
-        else:
-            args[key] = value
-    return args
-
-
 def _parse_tool_calls(response: str) -> list[ToolCall]:
-    """Parse XML tool calls from model response."""
-    response = re.sub(r"<think>.*?</think>", "", response, flags=re.DOTALL)
-    calls = []
-    for name in ["grep", "read", "list_directory", "finish"]:
-        for match in re.finditer(rf"<{name}>(.*?)</{name}>", response, re.DOTALL):
-            calls.append(ToolCall(name=name, args=_parse_xml_elements(match.group(1))))
+    """Parse Qwen3-format tool calls from WarpGrep v2 model response.
+
+    v2 emits:
+        <tool_call>
+        <function=ripgrep>
+        <parameter=pattern>value</parameter>
+        <parameter=path>.</parameter>
+        </function>
+        </tool_call>
+    """
+    clean = re.sub(r"<think>[\s\S]*?</think>", "", response, flags=re.IGNORECASE)
+    calls: list[ToolCall] = []
+
+    for match in re.finditer(
+        r"<tool_call>\s*<function=([a-z_][a-z0-9_]*)>([\s\S]*?)</function>\s*</tool_call>",
+        clean,
+        re.IGNORECASE,
+    ):
+        name = match.group(1).lower()
+        body = match.group(2)
+
+        # Extract <parameter=key>value</parameter> pairs
+        params: dict[str, str] = {}
+        for pm in re.finditer(
+            r"<parameter=([a-z_][a-z0-9_]*)>([\s\S]*?)</parameter>",
+            body,
+            re.IGNORECASE,
+        ):
+            params[pm.group(1).lower()] = pm.group(2).strip()
+
+        if name == "ripgrep":
+            if not params.get("pattern"):
+                continue
+            calls.append(ToolCall(
+                name="grep",
+                args={
+                    "pattern": params["pattern"],
+                    "sub_dir": params.get("path", "."),
+                    **({"glob": params["glob"]} if "glob" in params else {}),
+                },
+            ))
+        elif name == "list_directory":
+            calls.append(ToolCall(
+                name="list_directory",
+                args={"path": params.get("path", ".")},
+            ))
+        elif name == "read":
+            if not params.get("path"):
+                continue
+            calls.append(ToolCall(
+                name="read",
+                args={
+                    "path": params["path"],
+                    **({"lines": params["lines"]} if "lines" in params else {}),
+                },
+            ))
+        elif name == "finish":
+            # v2 finish: files parameter has "path:lines\npath2:*" format
+            files_raw = params.get("files", "")
+            files = _parse_finish_files(files_raw)
+            calls.append(ToolCall(
+                name="finish",
+                args={"files": files},
+            ))
+
+    # Fallback: also try v1 XML format in case the model mixes formats
+    if not calls:
+        for name in ["grep", "read", "list_directory", "finish"]:
+            for m in re.finditer(rf"<{name}>(.*?)</{name}>", clean, re.DOTALL):
+                args = {}
+                for sub_m in re.finditer(r"<(\w+)>(.*?)</\1>", m.group(1), re.DOTALL):
+                    key, value = sub_m.group(1), sub_m.group(2).strip()
+                    if key == "file":
+                        args.setdefault("files", []).append(
+                            {sm.group(1): sm.group(2).strip()
+                             for sm in re.finditer(r"<(\w+)>(.*?)</\1>", value, re.DOTALL)}
+                        )
+                    else:
+                        args[key] = value
+                calls.append(ToolCall(name=name, args=args))
+
     return calls
+
+
+def _parse_finish_files(files_raw: str) -> list[dict]:
+    """Parse v2 finish files format: 'path:lines\\npath2:*' into list of dicts."""
+    files = []
+    for line in files_raw.split("\n"):
+        line = line.strip()
+        if not line:
+            continue
+        colon_idx = line.find(":")
+        if colon_idx == -1:
+            files.append({"path": line})
+        else:
+            path = line[:colon_idx]
+            lines_spec = line[colon_idx + 1:].strip()
+            if lines_spec == "*" or not lines_spec:
+                files.append({"path": path})
+            else:
+                files.append({"path": path, "lines": lines_spec})
+    return files
 
 
 def _execute_grep(repo: str, pattern: str, sub_dir: str = ".", glob: str | None = None) -> str:
@@ -320,22 +403,25 @@ def search_codebase(
 
     structure = _execute_list_directory(repo_path, ".", None)
 
-    # system prompt is managed server side
+    # v2 format: include context budget and turn info
+    budget_str = f"<context_budget>0% (0K/{MAX_CONTEXT_CHARS // 1000}K chars)</context_budget>"
     messages = [
         {
             "role": "user",
             "content": (
                 f"<repo_structure>\n{structure}\n</repo_structure>\n\n"
-                f"<search_string>\n{query}\n</search_string>"
+                f"<search_string>\n{query}\n</search_string>\n"
+                f"{budget_str}\n"
+                f"Turn 0/{max_turns}"
             ),
         },
     ]
 
-    for turn in range(max_turns):
+    for turn in range(1, max_turns + 1):
         try:
             response = _call_api(messages, key)
         except Exception as e:
-            print(f"  WarpGrep API error (turn {turn + 1}): {e}", file=sys.stderr)
+            print(f"  WarpGrep API error (turn {turn}): {e}", file=sys.stderr)
             break
 
         messages.append({"role": "assistant", "content": response})
@@ -355,9 +441,11 @@ def search_codebase(
                 for f in finish.args.get("files", [])
             ]
 
-        # Execute tool calls and collect results
+        # Execute non-finish tool calls and collect results
         results = []
         for tc in tool_calls:
+            if tc.name == "finish":
+                continue
             if tc.name == "grep":
                 out = _execute_grep(
                     repo_path,
@@ -373,21 +461,33 @@ def search_codebase(
                 )
             else:
                 out = f"Unknown tool: {tc.name}"
-            results.append(_format_result(tc, out))
+            results.append(f"<tool_response>\n{out}\n</tool_response>")
 
-        remaining = max_turns - turn - 1
-        turn_msg = f"\nYou have used {turn + 1} turns and have {remaining} remaining.\n"
-        user_content = "\n\n".join(results) + turn_msg
+        # Build turn/budget info (v2 format)
+        total_chars = sum(len(m.get("content", "")) for m in messages)
+        percent = round((total_chars / MAX_CONTEXT_CHARS) * 100)
+        used_k = total_chars // 1000
+        max_k = MAX_CONTEXT_CHARS // 1000
+        remaining = max_turns - turn
+
+        if remaining <= 1:
+            turn_msg = (
+                f"You have used {turn} turns, you only have 1 turn remaining. "
+                f"You have run out of turns to explore the code base and MUST call the finish tool now"
+            )
+        else:
+            turn_msg = f"You have used {turn} turn{'s' if turn > 1 else ''} and have {remaining} remaining"
+
+        user_content = "\n".join(results) + f"\n{turn_msg}\n<context_budget>{percent}% ({used_k}K/{max_k}K chars)</context_budget>"
 
         # Guard: truncate if total context would exceed model limit
-        total_chars = sum(len(m.get("content", "")) for m in messages) + len(user_content)
-        if total_chars > MAX_CONTEXT_CHARS:
-            # Truncate the tool results to fit
-            budget = MAX_CONTEXT_CHARS - sum(len(m.get("content", "")) for m in messages) - len(turn_msg) - 200
+        new_total = total_chars + len(user_content)
+        if new_total > MAX_CONTEXT_CHARS:
+            budget = MAX_CONTEXT_CHARS - total_chars - len(turn_msg) - 200
             if budget > 0:
-                user_content = user_content[:budget] + f"\n\n... context truncated to fit model limit ({total_chars} -> {MAX_CONTEXT_CHARS} chars). Truncated! In the future, try more specific, targeted queries.\n"
+                user_content = user_content[:budget] + f"\n\n... context truncated to fit model limit ({new_total} -> {MAX_CONTEXT_CHARS} chars). Truncated! In the future, try more specific, targeted queries.\n"
             else:
-                user_content = "Tool results too large, skipped. Truncated! In the future, try more specific, targeted queries." + turn_msg
+                user_content = "Tool results too large, skipped. Truncated! In the future, try more specific, targeted queries.\n" + turn_msg
 
         messages.append({"role": "user", "content": user_content})
 

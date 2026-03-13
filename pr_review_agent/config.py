@@ -64,9 +64,9 @@ class Config:
     })
 
     # WarpGrep settings
-    warpgrep_model: str = "morph-warp-grep-v1"
+    warpgrep_model: str = "morph-warp-grep-v2"
     warpgrep_base_url: str = "https://api.morphllm.com/v1"
-    warpgrep_max_turns: int = 4
+    warpgrep_max_turns: int = 6
     warpgrep_validate_issues: bool = True
     warpgrep_tool_enabled: bool = True  # Enable WarpGrep as a Claude tool during review
 

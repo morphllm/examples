@@ -72,16 +72,15 @@ When the backlog is empty or after 3 consecutive DISCARDs:
 | 12 | exp12 | 0.373 | 0.200 | 0.292 | 15 | + "compare both sides" heuristic (1 sentence in Step 2) | KEEP (noise, small+sound, P+R improved) |
 | 13 | exp13 | 0.341 | 0.140 | 0.240 | 15 | + "trace with edge case inputs" heuristic (2 sentences in Step 2) | KEEP (noise, small+sound) |
 | 14 | exp14 | 0.367 | 0.097 | 0.231 | 12 | + coverage nudge: at round 12, check uninvestigated files and force model to examine them | KEEP (noise, structural+sound) |
+| 15 | exp15 | 0.278 | 0.091 | 0.062 | 11 | WarpGrep v1→v2 upgrade (6 turns, better model, 540K context) | KEEP (noise, technical upgrade) |
 
-**Current baseline: exp14, F1=0.367 on 12 PRs.** Structural change: mid-loop coverage nudge at ~40% budget. Forces model to distribute investigation across all changed files instead of fixating on one area. NOTE: Shifting to structural changes (coverage, search quality). Next: WarpGrep v1→v2 upgrade.
+**Current baseline: exp15.** Two structural changes: coverage nudge + WarpGrep v2. NOTE: 15-PR evals only get 3-5 scored PRs. Need larger eval to get reliable signal. Focusing on structural changes (search quality, coverage) over prompt tweaks.
 
 ## 4. Ideas Backlog
 
 Priority order. Pick from top. Agent adds new ideas at bottom, re-ranks periodically.
 
 ### High Priority
-
-- **WarpGrep v1→v2 upgrade.** Better search model (Qwen3-based), 6 turns vs 4, 540K context budget vs 400K. Directly improves search quality. Requires updating the XML parser in `warpgrep/client.py` to handle v2's `<tool_call>` format (see `warpgrep/python-agent/search.py` for v2 parser). STRUCTURAL change, not prompt change.
 
 - **Trace backward from side effects.** When the diff modifies state (writes to DB, updates cache, emits events, sends notifications), trace BACKWARD: "what conditions must be true for this state change to be correct?" Then verify those conditions are actually checked. Currently the model traces forward (input → transform → output) but misses bugs where preconditions are violated.
 
@@ -116,6 +115,8 @@ Priority order. Pick from top. Agent adds new ideas at bottom, re-ranks periodic
 **"Compare both sides" heuristic (exp12, F1=0.373 on 15 PRs, P=0.200 R=0.292).** Added 1 sentence to Step 2: "When you understand one direction of a data flow, explicitly check the complementary direction." Based on trace analysis showing 5 instances of asymmetric investigation. P and R both improved vs exp10, F1 within noise. Kept because conditional, deepens investigation on data flow bugs.
 
 **Coverage nudge (exp14, F1=0.367 on 12 PRs).** Structural change: at ~40% through the tool budget (round 12), check which changed files haven't been investigated via read_file/grep. If ≥3 files uninvestigated, inject a message telling the model to shift focus. Addresses the observed failure pattern of model fixating on one area (e.g., spending 30 rounds on translation files while ignoring webhook auth code). Kept because structural, non-intrusive (conditionally fired), and directly addresses coverage failure pattern.
+
+**WarpGrep v1→v2 upgrade (exp15, F1=0.278 on 11 PRs).** Upgraded search subagent from morph-warp-grep-v1 (4 turns, 400K context) to morph-warp-grep-v2 (6 turns, 540K context, Qwen3-based model). New Qwen3-format tool call parser with v1 XML fallback. v2 also gets context budget tracking and turn info in messages. Technical improvement — more turns and better model = better search results. Kept despite noisy eval (only 3 scored PRs, one with 24 GT items).
 
 ### Failed (discarded)
 
