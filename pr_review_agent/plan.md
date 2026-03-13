@@ -71,8 +71,9 @@ When the backlog is empty or after 3 consecutive DISCARDs:
 | 11 | exp11 | 0.272 | 0.095 | 0.105 | 15 | + explorer subagent tool (Sonnet 4.6 + multi-WarpGrep), + prompt change to use explore | DISCARD (major regression) |
 | 12 | exp12 | 0.373 | 0.200 | 0.292 | 15 | + "compare both sides" heuristic (1 sentence in Step 2) | KEEP (noise, small+sound, P+R improved) |
 | 13 | exp13 | 0.341 | 0.140 | 0.240 | 15 | + "trace with edge case inputs" heuristic (2 sentences in Step 2) | KEEP (noise, small+sound) |
+| 14 | exp14 | 0.367 | 0.097 | 0.231 | 12 | + coverage nudge: at round 12, check uninvestigated files and force model to examine them | KEEP (noise, structural+sound) |
 
-**Current baseline: exp13, F1=0.341 on 15 PRs.** Three heuristics added: hypothesis-driven search, compare both sides, trace with edge cases. NOTE: F1 hasn't improved in 3 iterations. Prompt-level changes may be plateauing. Consider structural changes next.
+**Current baseline: exp14, F1=0.367 on 12 PRs.** Structural change: mid-loop coverage nudge at ~40% budget. Forces model to distribute investigation across all changed files instead of fixating on one area. NOTE: Shifting to structural changes (coverage, search quality). Next: WarpGrep v1→v2 upgrade.
 
 ## 4. Ideas Backlog
 
@@ -80,7 +81,7 @@ Priority order. Pick from top. Agent adds new ideas at bottom, re-ranks periodic
 
 ### High Priority
 
-- **"Trace with edge case inputs" heuristic.** (4 instances in trace analysis) After reading a function, pick a concrete edge case (nil, empty, count mismatch, deadline expiry) and mentally execute the code path step by step. The model reads code structurally but doesn't simulate execution. Especially for: loops with break conditions, validation callbacks, data migration + later lookup. Add to the investigation rules.
+- **WarpGrep v1→v2 upgrade.** Better search model (Qwen3-based), 6 turns vs 4, 540K context budget vs 400K. Directly improves search quality. Requires updating the XML parser in `warpgrep/client.py` to handle v2's `<tool_call>` format (see `warpgrep/python-agent/search.py` for v2 parser). STRUCTURAL change, not prompt change.
 
 - **Trace backward from side effects.** When the diff modifies state (writes to DB, updates cache, emits events, sends notifications), trace BACKWARD: "what conditions must be true for this state change to be correct?" Then verify those conditions are actually checked. Currently the model traces forward (input → transform → output) but misses bugs where preconditions are violated.
 
@@ -113,6 +114,8 @@ Priority order. Pick from top. Agent adds new ideas at bottom, re-ranks periodic
 **Hypothesis-driven search (exp10, F1=0.379 on 15 PRs).** Added 2 sentences to WarpGrep block: "Before each search, form a specific theory about what could go wrong... Then search to CONFIRM or DENY." Kept as noise/small+sound. Deepens search strategy from exploratory to confirmatory without broadening scope.
 
 **"Compare both sides" heuristic (exp12, F1=0.373 on 15 PRs, P=0.200 R=0.292).** Added 1 sentence to Step 2: "When you understand one direction of a data flow, explicitly check the complementary direction." Based on trace analysis showing 5 instances of asymmetric investigation. P and R both improved vs exp10, F1 within noise. Kept because conditional, deepens investigation on data flow bugs.
+
+**Coverage nudge (exp14, F1=0.367 on 12 PRs).** Structural change: at ~40% through the tool budget (round 12), check which changed files haven't been investigated via read_file/grep. If ≥3 files uninvestigated, inject a message telling the model to shift focus. Addresses the observed failure pattern of model fixating on one area (e.g., spending 30 rounds on translation files while ignoring webhook auth code). Kept because structural, non-intrusive (conditionally fired), and directly addresses coverage failure pattern.
 
 ### Failed (discarded)
 

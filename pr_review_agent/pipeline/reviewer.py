@@ -338,10 +338,12 @@ KEEP findings where you have CONCRETE evidence: wrong variable name, wrong type,
 
         if tools:
             messages = [{"role": "user", "content": prompt}]
+            changed_files = [fd.file_path for fd in file_diffs]
             try:
                 review_text, trace = self._agentic_loop(
                     messages, tools, repo_path, warpgrep_tool_def,
                     thinking_budget=12000, max_tool_rounds=35,
+                    changed_files=changed_files,
                 )
             except Exception as e:
                 print(f"  Review failed: {e}", file=sys.stderr)
@@ -905,6 +907,7 @@ Each issue must have these fields:
         warpgrep_tool_def: dict | None,
         thinking_budget: int,
         max_tool_rounds: int = 50,
+        changed_files: list[str] | None = None,
     ) -> tuple[str, list[dict]]:
         """Run the LLM with tools in an agentic loop.
 
@@ -917,6 +920,7 @@ Each issue must have these fields:
         tool_counts = self._metrics.tool_counts
         trace: list[dict] = []
         all_text_parts: list[str] = []  # Accumulate text across ALL rounds
+        _coverage_nudge_sent = False
 
         for round_num in range(max_tool_rounds):
             self._metrics.tool_rounds += 1
@@ -1061,6 +1065,45 @@ Each issue must have these fields:
 
                 tool_results.append(result)
             messages.append({"role": "user", "content": tool_results})
+
+            # Coverage nudge: at ~40% through budget, check if files are being skipped
+            nudge_round = max(8, int(max_tool_rounds * 0.4))
+            if (
+                not _coverage_nudge_sent
+                and round_num == nudge_round
+                and changed_files
+                and len(changed_files) > 3
+            ):
+                _coverage_nudge_sent = True
+                # Determine which files have been touched by tool calls
+                investigated = set()
+                for entry in trace:
+                    inp = entry.get("input", {})
+                    tool_name = entry.get("tool", "")
+                    if tool_name == "read_file":
+                        investigated.add(inp.get("path", ""))
+                    elif tool_name == "grep":
+                        p = inp.get("path", "")
+                        if p and p != ".":
+                            for cf in changed_files:
+                                if cf.startswith(p.rstrip("/") + "/") or cf == p:
+                                    investigated.add(cf)
+                # Check coverage
+                uninvestigated = [
+                    f for f in changed_files
+                    if f not in investigated
+                    and not any(f.startswith(inv.rstrip("/") + "/") for inv in investigated if "/" in inv)
+                ]
+                if len(uninvestigated) >= 3:
+                    file_list = "\n".join(f"  - {f}" for f in uninvestigated[:15])
+                    nudge = (
+                        f"COVERAGE ALERT: You are {round_num} rounds into your {max_tool_rounds}-round budget. "
+                        f"These {len(uninvestigated)} changed files have NOT been investigated yet:\n{file_list}\n"
+                        f"Shift your remaining budget to these files. Read each one and check for bugs. "
+                        f"Do not revisit files you've already examined."
+                    )
+                    messages.append({"role": "user", "content": nudge})
+                    print(f"  Coverage nudge at round {round_num}: {len(uninvestigated)} uninvestigated files", file=sys.stderr)
 
         # Hit max rounds -- prompt for final review text
         summary = ", ".join(f"{n}={c}" for n, c in tool_counts.items())
