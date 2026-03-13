@@ -74,6 +74,7 @@ When the backlog is empty or after 3 consecutive DISCARDs:
 | 14 | exp14 | 0.367 | 0.097 | 0.231 | 12 | + coverage nudge: at round 12, check uninvestigated files and force model to examine them | KEEP (noise, structural+sound) |
 | 15 | exp15 | 0.278 | 0.091 | 0.062 | 11 | WarpGrep v1→v2 upgrade (6 turns, better model, 540K context) | KEEP (noise, technical upgrade) |
 | 16 | exp16 | 0.444 | 0.188 | 0.184 | 19 (25 requested) | + "trace backward from side effects" heuristic, 25-PR eval | KEEP (best since loop start, 10 scored PRs) |
+| 17 | exp17 | 0.338 | 0.080 | 0.093 | 18 (25 requested) | + "second bug in same scope" rule | DISCARD (generated more suggestions but fewer matches — quantity target in disguise) |
 
 **Current baseline: exp16, F1=0.444 on 19 PRs (10 scored).** Best result since autoresearch loop began. Structural: coverage nudge + WarpGrep v2. Prompt: 5 heuristics (hypothesis-driven, compare both sides, trace edge cases, follow surprise, trace backward from side effects). Running 25-PR evals now for better signal (10 scored vs 3-5).
 
@@ -148,6 +149,9 @@ Adding an explorer subagent (Sonnet 4.6 + multi-WarpGrep, ~30-40s per call) as a
 
 ### Theme: Quantity Targets
 "Aim for at least 4-6 findings" and "mandatory coverage rule" are just broadening scope in disguise. The model generates more suggestions but they're lower quality. **Do not set numeric targets for findings. The model should report what it finds, not hunt for a quota.**
+
+### Theme: Second-Bug-In-Scope / Bug Clustering
+"When you find one bug, look for a second in the same scope" increased suggestion volume 50→33 vs exp16 but matches dropped 4→9. Functionally a quantity target — same failure mode as exp9. **Do not instruct the model to look for additional bugs near existing findings.**
 
 ### Theme: Catching Non-Bug GT
 31% of online GT is style/refactor/docs. These are structurally unreachable without diluting bug precision. **Accept the ~21% bug recall ceiling and optimize WITHIN bug-finding rather than trying to expand categories.**
