@@ -81,6 +81,7 @@ When the backlog is empty or after 3 consecutive DISCARDs:
 | 21 | exp21 | 0.385 | 0.234 | 0.192 | 18 (25 requested), 12 scored | Enable dormant _surface_scan as second pass (5-round separate conversation) | KEEP (+5 matches on shared PRs, 15 total vs 8, surface precision 35% > main 18%) |
 | 22 | exp22 | 0.392 | 0.143 | 0.189 | 25 eval, 12 scored | Improve surface scan: add "no missing functionality" rule + "wrong value" pattern #5 | DISCARD (-5 net on shared PRs) |
 | 23 | exp23 | 0.286 | 0.152 | 0.149 | 20 eval (5 timed out?) | Pass main review findings to surface scan as "Already Found" context | DISCARD (major regression, longer prompt may cause timeouts) |
+| 24 | exp24 | 0.311 | 0.111 | 0.103 | 14 eval (unreliable, infra issues) | Reduce per-file cap 3→2 | DISCARD (tiny sample, regression) |
 
 **Current baseline: exp21, 15 raw matches on 18 PRs (12 scored), Mean PR F1=0.385.** Surface scan second pass nearly doubled raw matches. Mean F1 lower than exp18's 0.486 due to more partially-matching PRs diluting the average. The F1 metric penalizes partial matches — better to track raw match count alongside. Approaching target (0.55). 8 prompt heuristics + coverage nudge + WarpGrep v2 + surface scan second pass.
 
