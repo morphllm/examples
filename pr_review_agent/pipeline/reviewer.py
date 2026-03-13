@@ -400,14 +400,16 @@ KEEP findings where you have CONCRETE evidence: wrong variable name, wrong type,
 ## Rules
 - ONLY report bugs you can verify by reading the diff text or by a single grep.
 - Do NOT report logic analysis, framework behavior, or speculative issues.
+- Do NOT report MISSING FUNCTIONALITY — only report errors in code that EXISTS.
 - Do NOT re-report issues you'd expect a thorough code reviewer already found.
 
-## Check these 4 patterns:
+## Check these 5 patterns:
 
 1. **TYPOS**: Misspelled identifiers — read each new method/variable/class name letter-by-letter.
 2. **WRONG VARIABLE**: A null check, assertion, or conditional that tests the wrong variable for its context.
 3. **INCONSISTENT NAMES**: String keys, metric tags, or enum values that should match but differ (e.g., "shard" vs "shards").
 4. **MISSING DEFINITIONS**: New imports or callback registrations where the target doesn't exist. Grep to verify.
+5. **WRONG VALUE**: Error/validation messages referencing the wrong field. Regex patterns missing valid characters (hyphens, dots, mixed case). Test expected values that don't match actual behavior. Verify by independently computing the correct value.
 
 Report with <issue> tags. Only report if confidence >= 0.80. If nothing found, say "No issues."
 
