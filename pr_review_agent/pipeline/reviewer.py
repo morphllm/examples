@@ -224,6 +224,7 @@ How to search effectively with WarpGrep — it is a search AGENT, not a grep too
 - BAD: "[ClassName] constructor and [field] property" — this is a keyword lookup, use `grep` instead
 - BAD: "[functionName] function and its callers in [file]" — use `grep` for exact symbol lookups
 Search for each major area of the diff separately. If the PR touches 3 subsystems, do at least one search per subsystem.
+Make your searches HYPOTHESIS-DRIVEN, not exploratory. Before each search, form a specific theory about what could go wrong: "If this function's return type changed, callers that destructure the old shape will crash." Then search to CONFIRM or DENY that theory. Exploratory searches ("how does module X work?") give you context; hypothesis-driven searches ("do any callers of X assume it returns a list instead of a generator?") find bugs.
 
 **Step 1.5: Surface scan.** Before deep investigation, read through EVERY changed line in the diff right now and check for these concrete, verifiable errors. Report any you find immediately with `<issue>` tags:
 - **Typos** in new/changed identifiers: method names, variable names, class names, string keys. Read each identifier character-by-character. Common: transposed letters, missing letters (e.g., "santize" vs "sanitize").

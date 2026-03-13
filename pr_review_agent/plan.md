@@ -29,6 +29,7 @@ LOOP FOREVER:
    - Improved (+3 or more matches on shared PRs) → KEEP
    - Noise (-2 to +2 matches) → KEEP if change is small (1-2 sentences) and theoretically sound; DISCARD if verbose
    - Regressed (-3 or more matches) → DISCARD
+   NOTE: Use 15-PR evals for rapid iteration. Full 67-PR evals are NOT needed until F1 is near 0.50+. Until then, iterate fast on the prompt/framework.
 10. If KEEP:
     - git add -A && git commit -m "experiment N: <description> — F1 X.XX → Y.YY"
     - Update Score History (append new row)
@@ -66,8 +67,9 @@ When the backlog is empty or after 3 consecutive DISCARDs:
 
 | 8 | exp8 | 0.367 | 0.099 | 0.139 | 14 scored/67 | + "follow the surprise" heuristic in reviewer.py | KEEP (noise, small+sound) |
 | 9 | exp9 | 0.303 | — | — | 67 | + pre-mortem hypotheses, + mandatory coverage rule (4-6 findings), + softened nitpick filter | DISCARD (regression) |
+| 10 | exp10 | 0.379 | 0.122 | 0.167 | 15 | + hypothesis-driven search instruction (2 sentences in WarpGrep block) | KEEP (noise, small+sound) |
 
-**Current baseline: exp8, F1=0.367 on 67 PRs (14 scored).** Note: different PR set from v10 so not directly comparable. Recall rate similar (13.9% vs 13.5%).
+**Current baseline: exp10, F1=0.379 on 15 PRs.** Hypothesis-driven search is a 1-sentence deepening of search strategy. Theoretically sound, within noise band.
 
 ## 4. Ideas Backlog
 
@@ -75,7 +77,9 @@ Priority order. Pick from top. Agent adds new ideas at bottom, re-ranks periodic
 
 ### High Priority
 
-- **Hypothesis-driven search.** Currently the model searches for symbols from the diff. Instead, it should form hypotheses about what could go wrong ("if this lock scope changed, there might be unprotected readers") and search to CONFIRM or DENY each hypothesis. The investigation should be driven by theories about bugs, not just symbol lookup. Modify the WarpGrep instruction block in reviewer.py.
+- **"Compare both sides" heuristic.** (5 instances in trace analysis) After understanding one direction of a data flow, cache path, or interface, explicitly investigate the complementary direction. "Is the reverse path consistent?" Examples: grant vs denial cache trust, SQL lower() on one side but not the parameter, migration inserts raw data but model normalizes on read. Add 1-2 sentences to Step 2.
+
+- **"Trace with edge case inputs" heuristic.** (4 instances in trace analysis) After reading a function, pick a concrete edge case (nil, empty, count mismatch, deadline expiry) and mentally execute the code path step by step. The model reads code structurally but doesn't simulate execution. Especially for: loops with break conditions, validation callbacks, data migration + later lookup. Add to the investigation rules.
 
 - **Trace backward from side effects.** When the diff modifies state (writes to DB, updates cache, emits events, sends notifications), trace BACKWARD: "what conditions must be true for this state change to be correct?" Then verify those conditions are actually checked. Currently the model traces forward (input → transform → output) but misses bugs where preconditions are violated.
 
@@ -104,6 +108,8 @@ Priority order. Pick from top. Agent adds new ideas at bottom, re-ranks periodic
 **Borderline bug encouragement.** "It is better to report a borderline real bug than to miss one" helps recall without meaningfully hurting precision. The confidence score communicates uncertainty.
 
 **"Follow the surprise" heuristic (exp8, F1: noise on different PR set).** Added 1 sentence to reviewer.py: when the model encounters something unexpected during investigation, STOP and investigate it. Theoretically sound — surprises are bug leads. Kept because small change, theoretically sound, recall rate unchanged (13.9% vs 13.5%).
+
+**Hypothesis-driven search (exp10, F1=0.379 on 15 PRs).** Added 2 sentences to WarpGrep block: "Before each search, form a specific theory about what could go wrong... Then search to CONFIRM or DENY." Kept as noise/small+sound. Deepens search strategy from exploratory to confirmatory without broadening scope.
 
 ### Failed (discarded)
 
