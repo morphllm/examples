@@ -367,6 +367,7 @@ KEEP findings where you have CONCRETE evidence: wrong variable name, wrong type,
             print("  Running surface scan...", file=sys.stderr)
             surface_issues = self._surface_scan(
                 combined_diff, tools, repo_path, warpgrep_tool_def,
+                existing_issues=all_issues,
             )
             if surface_issues:
                 print(f"  Surface scan found {len(surface_issues)} additional issues", file=sys.stderr)
@@ -385,6 +386,7 @@ KEEP findings where you have CONCRETE evidence: wrong variable name, wrong type,
         tools: list[dict],
         repo_path: str | None,
         warpgrep_tool_def: dict | None,
+        existing_issues: list[ReviewIssue] | None = None,
     ) -> list[ReviewIssue]:
         """Short focused pass looking for surface-level bugs the main review may have missed.
 
@@ -392,24 +394,30 @@ KEEP findings where you have CONCRETE evidence: wrong variable name, wrong type,
         concrete verifiable errors: typos, wrong variables, missing imports,
         inconsistent names, copy-paste mistakes.
         """
+        already_found = ""
+        if existing_issues:
+            found_list = "\n".join(
+                f"- [{i.file_path}:{i.line_number}] {i.comment[:120]}"
+                for i in existing_issues[:10]
+            )
+            already_found = f"\n\n## Already Found (do NOT re-report these)\n{found_list}"
+
         surface_prompt = f"""Check this PR diff for surface-level errors that are IMMEDIATELY visible in the code text.
 
 ## PR Diff
-{combined_diff}
+{combined_diff}{already_found}
 
 ## Rules
 - ONLY report bugs you can verify by reading the diff text or by a single grep.
 - Do NOT report logic analysis, framework behavior, or speculative issues.
-- Do NOT report MISSING FUNCTIONALITY — only report errors in code that EXISTS.
-- Do NOT re-report issues you'd expect a thorough code reviewer already found.
+- Do NOT re-report issues listed above or similar issues in the same file/line range.
 
-## Check these 5 patterns:
+## Check these 4 patterns:
 
 1. **TYPOS**: Misspelled identifiers — read each new method/variable/class name letter-by-letter.
 2. **WRONG VARIABLE**: A null check, assertion, or conditional that tests the wrong variable for its context.
 3. **INCONSISTENT NAMES**: String keys, metric tags, or enum values that should match but differ (e.g., "shard" vs "shards").
 4. **MISSING DEFINITIONS**: New imports or callback registrations where the target doesn't exist. Grep to verify.
-5. **WRONG VALUE**: Error/validation messages referencing the wrong field. Regex patterns missing valid characters (hyphens, dots, mixed case). Test expected values that don't match actual behavior. Verify by independently computing the correct value.
 
 Report with <issue> tags. Only report if confidence >= 0.80. If nothing found, say "No issues."
 
