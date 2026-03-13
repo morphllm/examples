@@ -77,8 +77,9 @@ When the backlog is empty or after 3 consecutive DISCARDs:
 | 17 | exp17 | 0.338 | 0.080 | 0.093 | 18 (25 requested) | + "second bug in same scope" rule | DISCARD (generated more suggestions but fewer matches — quantity target in disguise) |
 | 18 | exp18 | 0.486 | 0.154 | 0.190 | 22 (25 requested) | + "check invariants" heuristic (verify callers when types/interfaces change) | KEEP (precision improved 27%→31%, eval F1=0.486) |
 | 19 | exp19 | 0.375 | — | — | 18 (25 requested), 8 scored | Strengthened error path tracing (explicit line-by-line failure re-read) | DISCARD (regression from 0.486) |
+| 20 | exp20 | 0.410 | 0.182 | 0.216 | 18 (25 requested), 8 scored | + "wrong value" check in Step 1.5 (verify regex chars, field bindings, test expected values) | KEEP (noise, gained PR#116 URL match, same raw match count 8) |
 
-**Current baseline: exp18, F1=0.486 on 22 PRs (10 scored).** Approaching target (0.55). Key challenge: 60% of scored PRs get zero matches. The model finds plausible bugs but different ones than humans fix. Structural changes (coverage nudge, WarpGrep v2) + 7 prompt heuristics.
+**Current baseline: exp20, F1=0.410 on 18 PRs (8 scored), 8 raw matches.** Mean PR F1 dropped from 0.486 due to averaging artifact (new partial-match PR dilutes mean). Raw match count unchanged. Approaching target (0.55). 8 prompt heuristics + coverage nudge + WarpGrep v2.
 
 ## 4. Ideas Backlog
 
@@ -87,8 +88,6 @@ Priority order. Pick from top. Agent adds new ideas at bottom, re-ranks periodic
 ### High Priority
 
 ### Medium Priority
-
-- **Value verification in surface scan.** Add a "Wrong value" check to Step 1.5: verify regex patterns handle all valid chars, error messages reference the correct field, test expected values match actual behavior. Addresses the core finding that the model skips value-level checks in favor of logic analysis. (5+ missed GT items in exp18 trace analysis.)
 
 ### Low Priority
 
@@ -119,6 +118,8 @@ Priority order. Pick from top. Agent adds new ideas at bottom, re-ranks periodic
 **"Trace backward from side effects" heuristic (exp16, F1=0.444 on 19 PRs, 10 scored).** Added 1 sentence to Step 2: "When the diff writes to a database, updates a cache, sends a notification, or emits an event, trace BACKWARD: what conditions must be true for this write to be correct?" Best result since loop start. Combined with coverage nudge + WarpGrep v2, this is the strongest configuration yet. 9 matches on 33 suggestions across 10 scored PRs.
 
 **"Check invariants" heuristic (exp18, F1=0.486 on 22 PRs, 10 scored).** Added 1 sentence: "When the diff changes a data structure, type definition, or interface, ask what implicit contracts callers relied on, then grep callers and verify they still work." Precision improved from 27% to 31%. Per-match-PR F1 improved but total matching PRs decreased (4 vs 6). Kept because conditional, precision-positive, and theoretically sound.
+
+**"Wrong value" check in surface scan (exp20, F1=0.410 on 18 PRs, 8 scored, 8 raw matches).** Added 5th item to Step 1.5: "For string literals, regex patterns, and field-name bindings, verify accuracy — regex handles all valid chars, error messages reference correct field, test expected values match actual behavior." Gained 1 match on PR#116 (URL normalization case sensitivity, exactly the target pattern). Lost 1 match on PR#40 (non-determinism). Mean PR F1 dropped from 0.486 but this is an averaging artifact — adding a partially-matching PR (F1=0.25) dilutes the mean. Raw match count identical (8). Kept because small (1 sentence), conditional, and showed targeted improvement.
 
 **Strengthened error path tracing (exp19, F1=0.375 on 18 PRs, 8 scored).** Replaced the 1-sentence error path mention with a detailed 4-sentence instruction: "re-read the code assuming every external call FAILS, walk through error path line by line, check for state corruption before fallible operations, check catch/finally assumptions." Regressed from 0.486→0.375. *Why it failed:* Too verbose (4 sentences = heavy prompt weight), triggered on every PR (not conditional), and the line-by-line instruction likely consumed investigation budget on exhaustive error-path tracing instead of targeted bug-finding. Confirms lesson: deepening works only when CONDITIONAL, not when it's a blanket investigation mandate.
 

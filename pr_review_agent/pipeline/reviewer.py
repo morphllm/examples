@@ -362,6 +362,16 @@ KEEP findings where you have CONCRETE evidence: wrong variable name, wrong type,
         # Parse <issue> XML tags directly from the model's output
         all_issues = self._parse_xml_issues(review_text)
 
+        # Run surface scan as independent second pass for value-level bugs
+        if tools:
+            print("  Running surface scan...", file=sys.stderr)
+            surface_issues = self._surface_scan(
+                combined_diff, tools, repo_path, warpgrep_tool_def,
+            )
+            if surface_issues:
+                print(f"  Surface scan found {len(surface_issues)} additional issues", file=sys.stderr)
+                all_issues.extend(surface_issues)
+
         # Post-processing dedup: merge issues with same category and overlapping descriptions
         all_issues = self._dedup_issues(all_issues)
 
