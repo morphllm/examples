@@ -215,20 +215,23 @@ Next, identify the CORE of the change — the central logic that everything else
 
 Use `codebase_search` to understand codebase context. Make at least 8 searches targeting your uncertainties — more if the PR touches multiple subsystems.
 
-How to search effectively with WarpGrep — it is a search AGENT, not a grep tool. Ask it QUESTIONS about behavior and relationships, not keyword lookups:
-- GOOD: "What concurrency model protects [shared state]? Are there locks or transactions?"
-- GOOD: "Who calls [changed function] and how do callers handle the return value?"
-- GOOD: "How does [framework API] behave when given an empty object or nil argument?"
-- GOOD: "What are all implementations of [interface] and do they all handle [edge case]?"
+How to search effectively with WarpGrep — it is a search AGENT, not a grep tool. Ask it conceptual QUESTIONS about behavior, architecture, and invariants:
+- GOOD: "How does the caching layer invalidate entries when the underlying data changes?"
+- GOOD: "What concurrency model protects [shared state]? Are there locks, channels, or transactions?"
+- GOOD: "What happens to in-flight requests when [changed component] restarts or fails over?"
+- GOOD: "How does the error handling contract work between [service A] and [service B]?"
+- GOOD: "What invariants does [module] maintain, and could this PR break any of them?"
 - BAD: "[ClassName] constructor and [field] property" — this is a keyword lookup, use `grep` instead
 - BAD: "[functionName] function and its callers in [file]" — use `grep` for exact symbol lookups
-- Search for each major area of the diff separately. If the PR touches 3 subsystems, do at least one search per subsystem.
+Search for each major area of the diff separately. If the PR touches 3 subsystems, do at least one search per subsystem.
 
 **Step 1.5: Surface scan.** Before deep investigation, read through EVERY changed line in the diff right now and check for these concrete, verifiable errors. Report any you find immediately with `<issue>` tags:
 - **Typos** in new/changed identifiers: method names, variable names, class names, string keys. Read each identifier character-by-character. Common: transposed letters, missing letters (e.g., "santize" vs "sanitize").
 - **Missing imports/definitions**: If the diff adds a new import, class reference, or callback registration, grep the codebase NOW to verify it exists. Do NOT assume it exists just because the diff references it. Non-existent imports crash at load time — this is often the most critical bug in a PR.
-- **Wrong variable**: Two failure modes. (1) In similar/repeated code: when 3+ similar lines appear together (null checks, filter predicates, metric tags), read EACH line independently — is the variable correct for THAT line? (2) In transform chains: when a value is computed from an input and stored in a new variable (`normalizedX = normalize(x)`), verify all subsequent code uses the transformed variable, not the original. Code that computes a normalized/validated/converted value then keeps using the raw input is a bug.
+- **Wrong variable**: Two failure modes. (1) In similar/repeated code: when 3+ similar lines appear together (null checks, filter predicates, metric tags), read EACH line independently — is the variable correct for THAT line? (2) In transform chains: when a value is computed from an input and stored in a new variable (`normalizedX = normalize(x)`), verify all subsequent code uses the transformed variable, not the original.
 - **Inconsistent naming**: Related identifiers that should match but differ (e.g., "shard" in one place, "shards" in another; "error_type" vs "error_kind"). These cause silent lookup failures.
+
+**API CONTRACT EXCEPTION:** For changes to public interfaces (renamed endpoints, changed parameter types, added nullable fields in response DTOs, changed error codes), you do NOT need in-repo callers to report a bug. The API IS the contract — if the diff renames an endpoint from `/reviews` to `/evaluations`, that's a breaking change for external consumers even if no in-repo code references the old path. Report with confidence 0.6-0.8 based on how likely external callers exist.
 
 **Step 2: Investigate every changed file by tracing data flow.** Don't stop after finding one bug. Budget your investigation across ALL changed files. For every non-trivial change, trace the actual data: where does the input come from, how is it transformed, and where does it end up? Bugs live where data crosses boundaries — function calls, type conversions, serialization, storage. Follow the value, not the control flow.
 - Search for callers. Will they handle the new behavior correctly?
@@ -298,7 +301,6 @@ FREQUENTLY MISSED PATTERNS — check each one explicitly:
 13. ASYNC/SYNC CONTRACT: If a previously synchronous function call was changed to asynchronous (or vice versa), check ALL callers. In JS/Ember, a function that now returns a Promise instead of a direct value will break callers that read properties synchronously. In Python, a missing `await` returns a coroutine object instead of the actual value. In Ruby, a method that now uses callbacks/blocks where it used to return directly. Missing async handling = race condition or undefined data.
 14. ERROR PATH HANDLING: After checking the success path, trace the error/failure path. If code updates state (cache, counter, DB record) and THEN performs a fallible operation, what happens on failure? If the fallible operation is performed first and the result is stored unconditionally (even on error), the error gets cached. Look for: unconditional state assignments after try/catch, cache writes that don't check error status, cleanup that runs only on success but should also run on failure.
 15. TEST STATE ISOLATION: When tests use shared mutable state (caches, singletons, registries, class-level variables, module globals), verify each test resets that state. Tests that pass alone but fail together indicate missing cleanup in setUp/beforeEach/afterEach. Shared cache instances, connection pools, or registries that accumulate entries across tests are common sources.
-
 IMPORTANT: Report every bug you find that you believe is real. It is better to report a borderline bug than to miss a real one. Even if you only have moderate confidence (0.5-0.7), report it — the confidence score communicates your uncertainty. Do NOT hold back findings.
 
 FOLLOW THROUGH ON FINDINGS: If during your investigation you discover something suspicious (a misspelling, an unexpected type, a missing method), you MUST either: (a) report it as a bug with an <issue> tag, or (b) explicitly write "NOT A BUG because [specific reason]". Do NOT silently move on. Common findings you must follow through on:
@@ -344,8 +346,9 @@ KEEP findings where you have CONCRETE evidence: wrong variable name, wrong type,
             review_text = self._call_opus(prompt)
             trace = []
 
-        # Store trace for debugging
+        # Store trace and full review text for debugging
         self._last_trace = trace
+        self._last_review_text = review_text
 
         # Parse <issue> XML tags directly from the model's output
         all_issues = self._parse_xml_issues(review_text)
@@ -387,7 +390,7 @@ KEEP findings where you have CONCRETE evidence: wrong variable name, wrong type,
 3. **INCONSISTENT NAMES**: String keys, metric tags, or enum values that should match but differ (e.g., "shard" vs "shards").
 4. **MISSING DEFINITIONS**: New imports or callback registrations where the target doesn't exist. Grep to verify.
 
-Report with <issue> tags. Only report if confidence >= 0.92. If nothing found, say "No issues."
+Report with <issue> tags. Only report if confidence >= 0.80. If nothing found, say "No issues."
 
 Valid categories: logic_error, incorrect_value, type_error, null_reference, localization, test_correctness"""
 
@@ -950,7 +953,7 @@ Each issue must have these fields:
                         "followup_text_length": len(followup_text),
                     })
                 # Targeted follow-up: ask model to check specific high-miss patterns
-                if round_num >= 2 and any(all_text_parts):
+                if round_num >= 1 and any(all_text_parts):
                     messages.append(self.provider.format_assistant_message(response))
                     messages.append({"role": "user", "content": (
                         "Good investigation. Now do a targeted verification sweep. For each check below, "
@@ -963,7 +966,12 @@ Each issue must have these fields:
                         "Read each line independently — is the variable/key correct for THAT line?\n"
                         "4. CHECK if any migration or bulk insert stores data without normalization "
                         "that read queries expect (lower(), strip()). Also check shell commands for OS-specific syntax.\n"
-                        "5. VERIFY any loop with early exit — does it clean up remaining items?\n\n"
+                        "5. VERIFY any loop with early exit — does it clean up remaining items?\n"
+                        "6. PATTERN REPLICATION: If you found ANY bug above, grep for the same code pattern "
+                        "(function call, variable, string literal) in ALL other changed files. The same mistake "
+                        "is often copy-pasted across sibling files.\n"
+                        "7. COVERAGE: List every changed file from the diff. For any file you haven't deeply "
+                        "investigated yet, do a quick read and check for the same patterns you found elsewhere.\n\n"
                         "Only report bugs you can verify. If you already covered these, say 'No additional issues.'"
                     )})
                     # Allow sweep to run a mini agentic loop (up to 4 tool rounds)
@@ -979,6 +987,15 @@ Each issue must have these fields:
                         for tc in sweep_response.tool_calls:
                             tool_counts[tc.name] = tool_counts.get(tc.name, 0) + 1
                             result = self._execute_tool(tc, repo_path, warpgrep_tool_def)
+                            # Record sweep tool calls in trace
+                            result_text = result.get("content", "") if isinstance(result, dict) else str(result)
+                            trace.append({
+                                "round": f"sweep_{_sweep_round}",
+                                "tool": tc.name,
+                                "input": tc.input,
+                                "output_len": len(result_text) if isinstance(result_text, str) else 0,
+                                "is_error": result.get("is_error", False) if isinstance(result, dict) else False,
+                            })
                             sweep_tool_results.append(result)
                         messages.append({"role": "user", "content": sweep_tool_results})
                 summary = ", ".join(f"{n}={c}" for n, c in tool_counts.items())
