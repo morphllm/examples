@@ -65,6 +65,7 @@ When the backlog is empty or after 3 consecutive DISCARDs:
 | 7 | v6 | 0.444 | — | — | 13 (1 match) | broadened to style/docs | DISCARD (tiny sample, 1 match) |
 
 | 8 | exp8 | 0.367 | 0.099 | 0.139 | 14 scored/67 | + "follow the surprise" heuristic in reviewer.py | KEEP (noise, small+sound) |
+| 9 | exp9 | 0.303 | — | — | 67 | + pre-mortem hypotheses, + mandatory coverage rule (4-6 findings), + softened nitpick filter | DISCARD (regression) |
 
 **Current baseline: exp8, F1=0.367 on 67 PRs (14 scored).** Note: different PR set from v10 so not directly comparable. Recall rate similar (13.9% vs 13.5%).
 
@@ -75,8 +76,6 @@ Priority order. Pick from top. Agent adds new ideas at bottom, re-ranks periodic
 ### High Priority
 
 - **Hypothesis-driven search.** Currently the model searches for symbols from the diff. Instead, it should form hypotheses about what could go wrong ("if this lock scope changed, there might be unprotected readers") and search to CONFIRM or DENY each hypothesis. The investigation should be driven by theories about bugs, not just symbol lookup. Modify the WarpGrep instruction block in reviewer.py.
-
-- **"What would break?" pre-mortem.** Before investigating, the model should spend 30 seconds listing 3-5 ways the PR could introduce a bug (based on the type of change: refactor → missed caller, new feature → missing error path, concurrency change → race condition). Then use searches to CHECK each one. This front-loads bug hypotheses rather than hoping to stumble on them.
 
 - **Trace backward from side effects.** When the diff modifies state (writes to DB, updates cache, emits events, sends notifications), trace BACKWARD: "what conditions must be true for this state change to be correct?" Then verify those conditions are actually checked. Currently the model traces forward (input → transform → output) but misses bugs where preconditions are violated.
 
@@ -118,6 +117,8 @@ Priority order. Pick from top. Agent adds new ideas at bottom, re-ranks periodic
 
 **Broadened to style/docs (v6, F1=0.444 on 13 PRs, 1 match).** Tried capturing style/refactor/docs GT items. *Why it failed:* tiny sample (unreliable), and attempting to catch non-bug GT always dilutes bug precision.
 
+**Pre-mortem + coverage rule + softened nitpick filter (exp9, F1: 0.367→0.303).** Three changes: (1) "Before searching, list 3-5 hypotheses about what could go wrong" pre-mortem, (2) "You MUST check EVERY changed file, aim for 4-6 total findings" coverage rule, (3) softened nitpick filter to allow naming bugs. Suggestion volume increased 27% (191→243) but precision dropped badly — model generated more findings but wrong ones. *Why it failed:* The coverage rule ("aim for 4-6 findings") is functionally equivalent to "broaden scope" — it encourages the model to find MORE issues rather than BETTER issues. Quantity targets always dilute quality. The pre-mortem alone might work but was confounded by the coverage rule.
+
 ## 6. Dead Ends (anti-thrashing reference)
 
 ### Theme: Broadening Scope
@@ -125,6 +126,9 @@ Every attempt to make the model look at MORE categories has failed. Code quality
 
 ### Theme: Loosening Filters
 Lowering confidence floor, relaxing dedup, raising per-file caps — all produced noise. The current thresholds (0.60 confidence floor, per-file cap 3, dedup at 0.25/0.30/0.35/0.50) are well-calibrated. **Do not soften filters without strong evidence.**
+
+### Theme: Quantity Targets
+"Aim for at least 4-6 findings" and "mandatory coverage rule" are just broadening scope in disguise. The model generates more suggestions but they're lower quality. **Do not set numeric targets for findings. The model should report what it finds, not hunt for a quota.**
 
 ### Theme: Catching Non-Bug GT
 31% of online GT is style/refactor/docs. These are structurally unreachable without diluting bug precision. **Accept the ~21% bug recall ceiling and optimize WITHIN bug-finding rather than trying to expand categories.**
