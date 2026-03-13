@@ -417,7 +417,7 @@ Valid categories: logic_error, incorrect_value, type_error, null_reference, loca
         try:
             scan_text, _ = self._agentic_loop(
                 messages, tools, repo_path, warpgrep_tool_def,
-                thinking_budget=3000, max_tool_rounds=5,
+                thinking_budget=3000, max_tool_rounds=10,
             )
         except Exception:
             return []
