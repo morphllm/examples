@@ -70,8 +70,9 @@ When the backlog is empty or after 3 consecutive DISCARDs:
 | 10 | exp10 | 0.379 | 0.122 | 0.167 | 15 | + hypothesis-driven search instruction (2 sentences in WarpGrep block) | KEEP (noise, small+sound) |
 | 11 | exp11 | 0.272 | 0.095 | 0.105 | 15 | + explorer subagent tool (Sonnet 4.6 + multi-WarpGrep), + prompt change to use explore | DISCARD (major regression) |
 | 12 | exp12 | 0.373 | 0.200 | 0.292 | 15 | + "compare both sides" heuristic (1 sentence in Step 2) | KEEP (noise, small+sound, P+R improved) |
+| 13 | exp13 | 0.341 | 0.140 | 0.240 | 15 | + "trace with edge case inputs" heuristic (2 sentences in Step 2) | KEEP (noise, small+sound) |
 
-**Current baseline: exp12, F1=0.373 on 15 PRs.** "Compare both sides" adds one conditional instruction to check complementary data flows. P=0.200 and R=0.292 are both improved vs exp10.
+**Current baseline: exp13, F1=0.341 on 15 PRs.** Three heuristics added: hypothesis-driven search, compare both sides, trace with edge cases. NOTE: F1 hasn't improved in 3 iterations. Prompt-level changes may be plateauing. Consider structural changes next.
 
 ## 4. Ideas Backlog
 
