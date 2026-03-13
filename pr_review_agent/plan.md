@@ -64,15 +64,15 @@ When the backlog is empty or after 3 consecutive DISCARDs:
 | 6 | v11 | 0.337 | — | — | 62 | confidence floor 0.60→0.50, relaxed dedup | DISCARD |
 | 7 | v6 | 0.444 | — | — | 13 (1 match) | broadened to style/docs | DISCARD (tiny sample, 1 match) |
 
-**Current baseline: v10, F1=0.406.** All future experiments compare against this.
+| 8 | exp8 | 0.367 | 0.099 | 0.139 | 14 scored/67 | + "follow the surprise" heuristic in reviewer.py | KEEP (noise, small+sound) |
+
+**Current baseline: exp8, F1=0.367 on 67 PRs (14 scored).** Note: different PR set from v10 so not directly comparable. Recall rate similar (13.9% vs 13.5%).
 
 ## 4. Ideas Backlog
 
 Priority order. Pick from top. Agent adds new ideas at bottom, re-ranks periodically.
 
 ### High Priority
-
-- **"Follow the surprise" investigation heuristic.** When the model encounters something unexpected during investigation (a function that does more than its name suggests, a type that's different than expected, a config value that seems wrong), it should STOP and investigate that surprise rather than noting it and moving on. Missed bugs often correlate with the model noticing something odd but not following up. Add 1-2 sentences to reviewer.py's investigation step.
 
 - **Hypothesis-driven search.** Currently the model searches for symbols from the diff. Instead, it should form hypotheses about what could go wrong ("if this lock scope changed, there might be unprotected readers") and search to CONFIRM or DENY each hypothesis. The investigation should be driven by theories about bugs, not just symbol lookup. Modify the WarpGrep instruction block in reviewer.py.
 
@@ -103,6 +103,8 @@ Priority order. Pick from top. Agent adds new ideas at bottom, re-ranks periodic
 **13 investigation principles + 17 bug categories (v10, F1=0.406 on 66 PRs).** The current prompt architecture. System prompt with specific bug categories and concrete examples is critical for recall. Freeform review + extraction beats report_issue tool. Plan mode with front-loaded WarpGrep searches provides codebase context. max_tool_rounds=25-35 works (50 = model talks itself out of bugs).
 
 **Borderline bug encouragement.** "It is better to report a borderline real bug than to miss one" helps recall without meaningfully hurting precision. The confidence score communicates uncertainty.
+
+**"Follow the surprise" heuristic (exp8, F1: noise on different PR set).** Added 1 sentence to reviewer.py: when the model encounters something unexpected during investigation, STOP and investigate it. Theoretically sound — surprises are bug leads. Kept because small change, theoretically sound, recall rate unchanged (13.9% vs 13.5%).
 
 ### Failed (discarded)
 
