@@ -367,7 +367,6 @@ KEEP findings where you have CONCRETE evidence: wrong variable name, wrong type,
             print("  Running surface scan...", file=sys.stderr)
             surface_issues = self._surface_scan(
                 combined_diff, tools, repo_path, warpgrep_tool_def,
-                existing_issues=all_issues,
             )
             if surface_issues:
                 print(f"  Surface scan found {len(surface_issues)} additional issues", file=sys.stderr)
@@ -386,7 +385,6 @@ KEEP findings where you have CONCRETE evidence: wrong variable name, wrong type,
         tools: list[dict],
         repo_path: str | None,
         warpgrep_tool_def: dict | None,
-        existing_issues: list[ReviewIssue] | None = None,
     ) -> list[ReviewIssue]:
         """Short focused pass looking for surface-level bugs the main review may have missed.
 
@@ -394,23 +392,15 @@ KEEP findings where you have CONCRETE evidence: wrong variable name, wrong type,
         concrete verifiable errors: typos, wrong variables, missing imports,
         inconsistent names, copy-paste mistakes.
         """
-        already_found = ""
-        if existing_issues:
-            found_list = "\n".join(
-                f"- [{i.file_path}:{i.line_number}] {i.comment[:120]}"
-                for i in existing_issues[:10]
-            )
-            already_found = f"\n\n## Already Found (do NOT re-report these)\n{found_list}"
-
         surface_prompt = f"""Check this PR diff for surface-level errors that are IMMEDIATELY visible in the code text.
 
 ## PR Diff
-{combined_diff}{already_found}
+{combined_diff}
 
 ## Rules
 - ONLY report bugs you can verify by reading the diff text or by a single grep.
 - Do NOT report logic analysis, framework behavior, or speculative issues.
-- Do NOT re-report issues listed above or similar issues in the same file/line range.
+- Do NOT re-report issues you'd expect a thorough code reviewer already found.
 
 ## Check these 4 patterns:
 
