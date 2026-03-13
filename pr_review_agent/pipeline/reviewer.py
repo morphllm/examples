@@ -591,13 +591,13 @@ Each issue must have these fields:
             if not is_dup:
                 kept.append(issue)
 
-        # Per-file cap: max 3 issues per file (already sorted by confidence desc)
+        # Per-file cap: max 2 issues per file (already sorted by confidence desc)
         from collections import Counter
         file_counts: Counter = Counter()
         capped = []
         for issue in kept:
             file_counts[issue.file_path] += 1
-            if file_counts[issue.file_path] <= 3:
+            if file_counts[issue.file_path] <= 2:
                 capped.append(issue)
         return capped
 
