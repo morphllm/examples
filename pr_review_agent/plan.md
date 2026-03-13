@@ -69,16 +69,15 @@ When the backlog is empty or after 3 consecutive DISCARDs:
 | 9 | exp9 | 0.303 | — | — | 67 | + pre-mortem hypotheses, + mandatory coverage rule (4-6 findings), + softened nitpick filter | DISCARD (regression) |
 | 10 | exp10 | 0.379 | 0.122 | 0.167 | 15 | + hypothesis-driven search instruction (2 sentences in WarpGrep block) | KEEP (noise, small+sound) |
 | 11 | exp11 | 0.272 | 0.095 | 0.105 | 15 | + explorer subagent tool (Sonnet 4.6 + multi-WarpGrep), + prompt change to use explore | DISCARD (major regression) |
+| 12 | exp12 | 0.373 | 0.200 | 0.292 | 15 | + "compare both sides" heuristic (1 sentence in Step 2) | KEEP (noise, small+sound, P+R improved) |
 
-**Current baseline: exp10, F1=0.379 on 15 PRs.** Hypothesis-driven search is a 1-sentence deepening of search strategy. Theoretically sound, within noise band.
+**Current baseline: exp12, F1=0.373 on 15 PRs.** "Compare both sides" adds one conditional instruction to check complementary data flows. P=0.200 and R=0.292 are both improved vs exp10.
 
 ## 4. Ideas Backlog
 
 Priority order. Pick from top. Agent adds new ideas at bottom, re-ranks periodically.
 
 ### High Priority
-
-- **"Compare both sides" heuristic.** (5 instances in trace analysis) After understanding one direction of a data flow, cache path, or interface, explicitly investigate the complementary direction. "Is the reverse path consistent?" Examples: grant vs denial cache trust, SQL lower() on one side but not the parameter, migration inserts raw data but model normalizes on read. Add 1-2 sentences to Step 2.
 
 - **"Trace with edge case inputs" heuristic.** (4 instances in trace analysis) After reading a function, pick a concrete edge case (nil, empty, count mismatch, deadline expiry) and mentally execute the code path step by step. The model reads code structurally but doesn't simulate execution. Especially for: loops with break conditions, validation callbacks, data migration + later lookup. Add to the investigation rules.
 
@@ -111,6 +110,8 @@ Priority order. Pick from top. Agent adds new ideas at bottom, re-ranks periodic
 **"Follow the surprise" heuristic (exp8, F1: noise on different PR set).** Added 1 sentence to reviewer.py: when the model encounters something unexpected during investigation, STOP and investigate it. Theoretically sound — surprises are bug leads. Kept because small change, theoretically sound, recall rate unchanged (13.9% vs 13.5%).
 
 **Hypothesis-driven search (exp10, F1=0.379 on 15 PRs).** Added 2 sentences to WarpGrep block: "Before each search, form a specific theory about what could go wrong... Then search to CONFIRM or DENY." Kept as noise/small+sound. Deepens search strategy from exploratory to confirmatory without broadening scope.
+
+**"Compare both sides" heuristic (exp12, F1=0.373 on 15 PRs, P=0.200 R=0.292).** Added 1 sentence to Step 2: "When you understand one direction of a data flow, explicitly check the complementary direction." Based on trace analysis showing 5 instances of asymmetric investigation. P and R both improved vs exp10, F1 within noise. Kept because conditional, deepens investigation on data flow bugs.
 
 ### Failed (discarded)
 
