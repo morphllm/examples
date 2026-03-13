@@ -73,16 +73,15 @@ When the backlog is empty or after 3 consecutive DISCARDs:
 | 13 | exp13 | 0.341 | 0.140 | 0.240 | 15 | + "trace with edge case inputs" heuristic (2 sentences in Step 2) | KEEP (noise, small+sound) |
 | 14 | exp14 | 0.367 | 0.097 | 0.231 | 12 | + coverage nudge: at round 12, check uninvestigated files and force model to examine them | KEEP (noise, structural+sound) |
 | 15 | exp15 | 0.278 | 0.091 | 0.062 | 11 | WarpGrep v1→v2 upgrade (6 turns, better model, 540K context) | KEEP (noise, technical upgrade) |
+| 16 | exp16 | 0.444 | 0.188 | 0.184 | 19 (25 requested) | + "trace backward from side effects" heuristic, 25-PR eval | KEEP (best since loop start, 10 scored PRs) |
 
-**Current baseline: exp15.** Two structural changes: coverage nudge + WarpGrep v2. NOTE: 15-PR evals only get 3-5 scored PRs. Need larger eval to get reliable signal. Focusing on structural changes (search quality, coverage) over prompt tweaks.
+**Current baseline: exp16, F1=0.444 on 19 PRs (10 scored).** Best result since autoresearch loop began. Structural: coverage nudge + WarpGrep v2. Prompt: 5 heuristics (hypothesis-driven, compare both sides, trace edge cases, follow surprise, trace backward from side effects). Running 25-PR evals now for better signal (10 scored vs 3-5).
 
 ## 4. Ideas Backlog
 
 Priority order. Pick from top. Agent adds new ideas at bottom, re-ranks periodically.
 
 ### High Priority
-
-- **Trace backward from side effects.** When the diff modifies state (writes to DB, updates cache, emits events, sends notifications), trace BACKWARD: "what conditions must be true for this state change to be correct?" Then verify those conditions are actually checked. Currently the model traces forward (input → transform → output) but misses bugs where preconditions are violated.
 
 ### Medium Priority
 
@@ -117,6 +116,8 @@ Priority order. Pick from top. Agent adds new ideas at bottom, re-ranks periodic
 **Coverage nudge (exp14, F1=0.367 on 12 PRs).** Structural change: at ~40% through the tool budget (round 12), check which changed files haven't been investigated via read_file/grep. If ≥3 files uninvestigated, inject a message telling the model to shift focus. Addresses the observed failure pattern of model fixating on one area (e.g., spending 30 rounds on translation files while ignoring webhook auth code). Kept because structural, non-intrusive (conditionally fired), and directly addresses coverage failure pattern.
 
 **WarpGrep v1→v2 upgrade (exp15, F1=0.278 on 11 PRs).** Upgraded search subagent from morph-warp-grep-v1 (4 turns, 400K context) to morph-warp-grep-v2 (6 turns, 540K context, Qwen3-based model). New Qwen3-format tool call parser with v1 XML fallback. v2 also gets context budget tracking and turn info in messages. Technical improvement — more turns and better model = better search results. Kept despite noisy eval (only 3 scored PRs, one with 24 GT items).
+
+**"Trace backward from side effects" heuristic (exp16, F1=0.444 on 19 PRs, 10 scored).** Added 1 sentence to Step 2: "When the diff writes to a database, updates a cache, sends a notification, or emits an event, trace BACKWARD: what conditions must be true for this write to be correct?" Best result since loop start. Combined with coverage nudge + WarpGrep v2, this is the strongest configuration yet. 9 matches on 33 suggestions across 10 scored PRs.
 
 ### Failed (discarded)
 
