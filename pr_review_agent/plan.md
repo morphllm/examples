@@ -75,8 +75,9 @@ When the backlog is empty or after 3 consecutive DISCARDs:
 | 15 | exp15 | 0.278 | 0.091 | 0.062 | 11 | WarpGrep v1→v2 upgrade (6 turns, better model, 540K context) | KEEP (noise, technical upgrade) |
 | 16 | exp16 | 0.444 | 0.188 | 0.184 | 19 (25 requested) | + "trace backward from side effects" heuristic, 25-PR eval | KEEP (best since loop start, 10 scored PRs) |
 | 17 | exp17 | 0.338 | 0.080 | 0.093 | 18 (25 requested) | + "second bug in same scope" rule | DISCARD (generated more suggestions but fewer matches — quantity target in disguise) |
+| 18 | exp18 | 0.486 | 0.154 | 0.190 | 22 (25 requested) | + "check invariants" heuristic (verify callers when types/interfaces change) | KEEP (precision improved 27%→31%, eval F1=0.486) |
 
-**Current baseline: exp16, F1=0.444 on 19 PRs (10 scored).** Best result since autoresearch loop began. Structural: coverage nudge + WarpGrep v2. Prompt: 5 heuristics (hypothesis-driven, compare both sides, trace edge cases, follow surprise, trace backward from side effects). Running 25-PR evals now for better signal (10 scored vs 3-5).
+**Current baseline: exp18, F1=0.486 on 22 PRs (10 scored).** Approaching target (0.55). Key challenge: 60% of scored PRs get zero matches. The model finds plausible bugs but different ones than humans fix. Structural changes (coverage nudge, WarpGrep v2) + 7 prompt heuristics.
 
 ## 4. Ideas Backlog
 
@@ -85,10 +86,6 @@ Priority order. Pick from top. Agent adds new ideas at bottom, re-ranks periodic
 ### High Priority
 
 ### Medium Priority
-
-- **Cross-file invariant checking.** When a PR changes a data structure or type definition, the model should ask "what invariants did the old code maintain?" and verify the new code still maintains them. This is different from just grepping callers — it's about understanding the implicit contract.
-
-- **"Second bug in same scope" rule.** When the model finds one bug, it should explicitly look for a second bug in the same function/class/file. Bugs cluster. The model currently reports one finding per area and moves on. Add to the "DON'T STOP AT THE FIRST FINDING" section.
 
 - **Strengthen error path tracing.** The current prompt mentions error paths but the model still under-investigates them. Make it more concrete: "After tracing the success path, explicitly re-read the code assuming every external call FAILS. What state gets corrupted?"
 
@@ -119,6 +116,8 @@ Priority order. Pick from top. Agent adds new ideas at bottom, re-ranks periodic
 **WarpGrep v1→v2 upgrade (exp15, F1=0.278 on 11 PRs).** Upgraded search subagent from morph-warp-grep-v1 (4 turns, 400K context) to morph-warp-grep-v2 (6 turns, 540K context, Qwen3-based model). New Qwen3-format tool call parser with v1 XML fallback. v2 also gets context budget tracking and turn info in messages. Technical improvement — more turns and better model = better search results. Kept despite noisy eval (only 3 scored PRs, one with 24 GT items).
 
 **"Trace backward from side effects" heuristic (exp16, F1=0.444 on 19 PRs, 10 scored).** Added 1 sentence to Step 2: "When the diff writes to a database, updates a cache, sends a notification, or emits an event, trace BACKWARD: what conditions must be true for this write to be correct?" Best result since loop start. Combined with coverage nudge + WarpGrep v2, this is the strongest configuration yet. 9 matches on 33 suggestions across 10 scored PRs.
+
+**"Check invariants" heuristic (exp18, F1=0.486 on 22 PRs, 10 scored).** Added 1 sentence: "When the diff changes a data structure, type definition, or interface, ask what implicit contracts callers relied on, then grep callers and verify they still work." Precision improved from 27% to 31%. Per-match-PR F1 improved but total matching PRs decreased (4 vs 6). Kept because conditional, precision-positive, and theoretically sound.
 
 ### Failed (discarded)
 
