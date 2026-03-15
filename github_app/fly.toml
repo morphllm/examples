@@ -2,6 +2,7 @@ app = "morph-ghapp"
 primary_region = "sjc"
 
 [build]
+  dockerfile = "github_app/Dockerfile"
 
 [http_service]
   internal_port = 8080

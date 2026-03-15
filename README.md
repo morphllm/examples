@@ -24,8 +24,8 @@ Use this table to jump to the right place based on what you're building.
 | Search a local repo | [`warpgrep/basic-search`](./warpgrep/basic-search) |
 | Search a GitHub repo (no clone) | [`warpgrep/github-search`](./warpgrep/github-search) |
 | Stream search progress | [`warpgrep/streaming`](./warpgrep/streaming) |
-| Run search in a Vercel Sandbox | [`warpgrep-vercel-sandbox`](./warpgrep-vercel-sandbox) |
-| Run search in a Cloudflare Worker | [`warpgrep-cloudflare-sandbox`](./warpgrep-cloudflare-sandbox) |
+| Run search in a Vercel Sandbox | [`warpgrep/vercel-sandbox`](./warpgrep/vercel-sandbox) |
+| Run search in a Cloudflare Worker | [`warpgrep/cloudflare-sandbox`](./warpgrep/cloudflare-sandbox) |
 | Build a PR review bot | [`github_app`](./github_app) |
 | Benchmark PR review quality | [`pr_review_agent`](./pr_review_agent) |
 
@@ -34,8 +34,8 @@ Use this table to jump to the right place based on what you're building.
 | Platform | Go to |
 |----------|-------|
 | **Local (CLI)** | [`warpgrep/`](./warpgrep) — all local examples |
-| **Vercel Sandbox** | [`warpgrep-vercel-sandbox`](./warpgrep-vercel-sandbox) — isolated VM via `@vercel/sandbox` |
-| **Cloudflare Workers** | [`warpgrep-cloudflare-sandbox`](./warpgrep-cloudflare-sandbox) — Durable Object sandbox via `@cloudflare/sandbox` |
+| **Vercel Sandbox** | [`warpgrep/vercel-sandbox`](./warpgrep/vercel-sandbox) — isolated VM via `@vercel/sandbox` |
+| **Cloudflare Workers** | [`warpgrep/cloudflare-sandbox`](./warpgrep/cloudflare-sandbox) — Durable Object sandbox via `@cloudflare/sandbox` |
 | **GitHub App** | [`github_app`](./github_app) — deploy as a GitHub App |
 
 ## Examples
@@ -61,8 +61,8 @@ All in [`warpgrep/`](./warpgrep):
 
 | Example | Platform | Description |
 |---------|----------|-------------|
-| [warpgrep-vercel-sandbox](./warpgrep-vercel-sandbox) | Vercel | Search code inside an isolated Vercel Sandbox VM |
-| [warpgrep-cloudflare-sandbox](./warpgrep-cloudflare-sandbox) | Cloudflare | Search code inside a Cloudflare Worker with Durable Object sandbox |
+| [vercel-sandbox](./warpgrep/vercel-sandbox) | Vercel | Search code inside an isolated Vercel Sandbox VM |
+| [cloudflare-sandbox](./warpgrep/cloudflare-sandbox) | Cloudflare | Search code inside a Cloudflare Worker with Durable Object sandbox |
 
 ### PR Review
 

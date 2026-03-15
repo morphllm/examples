@@ -54,7 +54,7 @@ logging.basicConfig(
 logger = logging.getLogger("online_eval")
 
 SCRIPT_DIR = Path(__file__).parent
-ETL_DIR = SCRIPT_DIR / "code-review-benchmark" / "online" / "etl"
+ETL_DIR = SCRIPT_DIR.parent / "code-review-benchmark" / "online" / "etl"
 
 
 # ---------------------------------------------------------------------------
