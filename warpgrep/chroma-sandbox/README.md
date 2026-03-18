@@ -1,6 +1,51 @@
 # WarpGrep + Chroma Package Search
 
-A coding agent that uses WarpGrep to search code inside [Chroma](https://www.trychroma.com/package-search)'s Package Search index. No sandbox VM needed — Chroma indexes 3,000+ public packages and exposes grep, file reading, and file listing over its API. WarpGrep routes all tool calls through Chroma via `remoteCommands`.
+Use WarpGrep with any remote backend by implementing three functions: `grep`, `read`, and `listDir`. This example uses [Chroma Package Search](https://www.trychroma.com/package-search) as the backend (no sandbox needed).
+
+## The pattern
+
+```typescript
+import Anthropic from "@anthropic-ai/sdk";
+import { createWarpGrepTool } from "@morphllm/morphsdk/tools/warp-grep/anthropic";
+
+// 1. Create the tool — override grep, read, listDir with your backend
+const searchTool = createWarpGrepTool({
+  repoRoot: "/repo",
+  remoteCommands: {
+    grep: async (pattern, path, glob?) => {
+      // Return ripgrep-formatted output: "path:line:content\n"
+      return myBackend.grep(pattern);
+    },
+    read: async (path, start, end) => {
+      // Return raw file content (newline-separated lines)
+      return myBackend.readFile(path, start, end);
+    },
+    listDir: async (path, maxDepth) => {
+      // Return one file path per line
+      return myBackend.listFiles(path);
+    },
+  },
+});
+
+// 2. Pass the tool to the Anthropic SDK
+const anthropic = new Anthropic();
+const response = await anthropic.messages.create({
+  model: "claude-sonnet-4-5-20250929",
+  tools: [searchTool],  // ← valid Anthropic tool definition
+  messages,
+});
+
+// 3. Execute tool calls and feed results back to Claude
+for (const block of response.content) {
+  if (block.type === "tool_use") {
+    const result = await searchTool.execute(block.input);
+    const formatted = searchTool.formatResult(result);
+    // ... return as tool_result message
+  }
+}
+```
+
+See [`agent.ts`](./agent.ts) for the full working example with Chroma as the backend.
 
 ## Setup
 
@@ -13,32 +58,18 @@ Get a Chroma API key at [trychroma.com/package-search](https://www.trychroma.com
 ## Run
 
 ```bash
-CHROMA_API_KEY=your-key MORPH_API_KEY=your-key ANTHROPIC_API_KEY=your-key npx tsx agent.ts
+CHROMA_API_KEY=… MORPH_API_KEY=… ANTHROPIC_API_KEY=… npx tsx agent.ts
 ```
-
-Ask a specific question:
 
 ```bash
-CHROMA_API_KEY=your-key MORPH_API_KEY=your-key ANTHROPIC_API_KEY=your-key npx tsx agent.ts "How does this package handle request validation?"
+CHROMA_API_KEY=… MORPH_API_KEY=… ANTHROPIC_API_KEY=… npx tsx agent.ts "How does routing work?"
 ```
-
-## How it works
-
-1. Connects to Chroma Package Search and verifies the target package is indexed
-2. Creates a WarpGrep tool with `remoteCommands` that route through Chroma's API:
-   - **grep** → `package_search_grep` (regex search, ripgrep-style output)
-   - **read** → `package_search_read_file` (file content by sha256 lookup)
-   - **listDir** → `package_search_grep` with `files_with_matches` mode
-3. Runs a Claude agent loop — when Claude calls the tool, WarpGrep searches the package via Chroma
-4. No cleanup needed (no sandbox to tear down)
 
 ## Changing the package
 
-Edit the `REGISTRY` and `PACKAGE` constants in `agent.ts`:
+Edit `REGISTRY` and `PACKAGE` in `agent.ts`:
 
 ```typescript
 const REGISTRY = "npm";       // "npm", "crates_io", "golang_proxy", "py_pi"
 const PACKAGE = "zod";        // any package indexed by Chroma
 ```
-
-Chroma indexes packages from npm, PyPI, crates.io, Go proxy, GitHub Releases, RubyGems, and Terraform Registry.
