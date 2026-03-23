@@ -2,134 +2,47 @@
 WarpGrep Python Agent
 
 A complete, self-contained Python implementation of WarpGrep.
-No SDK needed — just requests + ripgrep.
+No SDK needed — just openai + ripgrep.
 
 Usage:
     MORPH_API_KEY=your-key python search.py
     MORPH_API_KEY=your-key python search.py "your query" /path/to/repo
 """
 
+import json
 import os
-import re
 import subprocess
 import sys
-from dataclasses import dataclass, field
 from pathlib import Path
 
-import requests
+from openai import OpenAI
 
 # ── Config ──────────────────────────────────────────────────────────────────
 
 MORPH_API_KEY = os.environ.get("MORPH_API_KEY", "")
-API_URL = "https://api.morphllm.com/v1/chat/completions"
-MODEL = "morph-warp-grep-v2"
+MODEL = "morph-warp-grep-v2.1"
 MAX_TURNS = 6
 MAX_GREP_LINES = 200
 MAX_READ_LINES = 800
 MAX_CONTEXT_CHARS = 540_000
 
-# ── Types ───────────────────────────────────────────────────────────────────
-
-
-@dataclass
-class ToolCall:
-    name: str
-    args: dict = field(default_factory=dict)
-
+client = OpenAI(
+    api_key=MORPH_API_KEY,
+    base_url="https://api.morphllm.com/v1",
+)
 
 # ── API Client ──────────────────────────────────────────────────────────────
 
 
-def call_api(messages: list[dict]) -> str:
-    """Call the WarpGrep model and return the response text."""
-    resp = requests.post(
-        API_URL,
-        headers={
-            "Authorization": f"Bearer {MORPH_API_KEY}",
-            "Content-Type": "application/json",
-        },
-        json={
-            "model": MODEL,
-            "messages": messages,
-            "temperature": 0.0,
-            "max_tokens": 2048,
-        },
-        timeout=30,
+def call_api(messages: list[dict]):
+    """Call the WarpGrep model and return the assistant message."""
+    response = client.chat.completions.create(
+        model=MODEL,
+        messages=messages,
+        temperature=0.0,
+        max_tokens=2048,
     )
-    resp.raise_for_status()
-    return resp.json()["choices"][0]["message"]["content"]
-
-
-# ── Tool Call Parser (Qwen3 format) ─────────────────────────────────────────
-
-
-def parse_tool_calls(response: str) -> list[ToolCall]:
-    """Extract tool calls from the model's Qwen3-format XML response.
-
-    The model emits:
-        <tool_call>
-        <function=ripgrep>
-        <parameter=pattern>value</parameter>
-        <parameter=path>.</parameter>
-        </function>
-        </tool_call>
-    """
-    clean = re.sub(r"<think>[\s\S]*?</think>", "", response, flags=re.IGNORECASE)
-    calls: list[ToolCall] = []
-
-    for match in re.finditer(
-        r"<tool_call>\s*<function=([a-z_][a-z0-9_]*)>([\s\S]*?)</function>\s*</tool_call>",
-        clean,
-        re.IGNORECASE,
-    ):
-        name = match.group(1).lower()
-        body = match.group(2)
-
-        # Extract <parameter=key>value</parameter> pairs
-        params: dict[str, str] = {}
-        for pm in re.finditer(
-            r"<parameter=([a-z_][a-z0-9_]*)>([\s\S]*?)</parameter>",
-            body,
-            re.IGNORECASE,
-        ):
-            params[pm.group(1).lower()] = pm.group(2).strip()
-
-        if name == "ripgrep":
-            if not params.get("pattern"):
-                continue
-            calls.append(ToolCall(
-                name="grep",
-                args={
-                    "pattern": params["pattern"],
-                    "path": params.get("path", "."),
-                    **({"glob": params["glob"]} if "glob" in params else {}),
-                },
-            ))
-        elif name == "list_directory":
-            calls.append(ToolCall(
-                name="list_directory",
-                args={"path": params.get("path", ".")},
-            ))
-        elif name == "read":
-            if not params.get("path"):
-                continue
-            calls.append(ToolCall(
-                name="read",
-                args={
-                    "path": params["path"],
-                    **({"lines": params["lines"]} if "lines" in params else {}),
-                },
-            ))
-        elif name == "finish":
-            calls.append(ToolCall(
-                name="finish",
-                args={
-                    "files_raw": params.get("files", ""),
-                    "result": params.get("result", ""),
-                },
-            ))
-
-    return calls
+    return response.choices[0].message
 
 
 # ── Tool Executors ──────────────────────────────────────────────────────────
@@ -212,6 +125,36 @@ def run_list_dir(root: str, path: str, max_depth: int = 3) -> str:
         return f"Error: {e}"
 
 
+# ── Tool Dispatcher ─────────────────────────────────────────────────────────
+
+
+def dispatch_tool(name: str, args: dict, repo_root: str) -> str:
+    """Execute a tool call and return the output string."""
+    if name == "grep_search":
+        return run_grep(
+            repo_root,
+            args["pattern"],
+            args.get("path", "."),
+            args.get("glob"),
+        )
+    elif name == "read":
+        lines_str = args.get("lines")
+        if lines_str:
+            ranges = _parse_line_ranges(lines_str)
+            if ranges and len(ranges) == 1:
+                return run_read(repo_root, args["path"], ranges[0][0], ranges[0][1])
+            elif ranges:
+                chunks = [run_read(repo_root, args["path"], s, e) for s, e in ranges]
+                return "\n...\n".join(chunks)
+        return run_read(repo_root, args["path"])
+    elif name == "list_directory":
+        return run_list_dir(repo_root, args.get("path", args.get("command", ".")))
+    elif name == "glob":
+        return run_grep(repo_root, "", args.get("path", "."), args["pattern"])
+    else:
+        return f"Unknown tool: {name}"
+
+
 # ── Agent Loop ──────────────────────────────────────────────────────────────
 
 
@@ -221,78 +164,58 @@ def search(query: str, repo_root: str) -> list[dict]:
 
     # Build initial repo structure
     structure = run_list_dir(repo_root, ".")
-    budget_str = f"<context_budget>0% (0K/{MAX_CONTEXT_CHARS // 1000}K chars)</context_budget>"
     initial_msg = (
         f"<repo_structure>\n{structure}\n</repo_structure>\n\n"
-        f"<search_string>\n{query}\n</search_string>\n"
-        f"{budget_str}\n"
-        f"Turn 0/{MAX_TURNS}"
+        f"<search_string>\n{query}\n</search_string>"
     )
 
-    # No system prompt needed: the model uses its native Qwen3 tool format
     messages: list[dict] = [
         {"role": "user", "content": initial_msg},
     ]
 
     for turn in range(1, MAX_TURNS + 1):
-        response = call_api(messages)
-        messages.append({"role": "assistant", "content": response})
+        msg = call_api(messages)
+        messages.append(msg.model_dump())
 
-        calls = parse_tool_calls(response)
-        if not calls:
+        tool_calls = msg.tool_calls or []
+        if not tool_calls:
             print(f"  Turn {turn}: no tool calls, stopping")
             break
 
         # Check for finish
-        finish = next((c for c in calls if c.name == "finish"), None)
+        finish_call = next((tc for tc in tool_calls if tc.function.name == "finish"), None)
+        if finish_call:
+            args = json.loads(finish_call.function.arguments)
+            return _resolve_finish(repo_root, args)
 
-        # Execute non-finish tools
-        results: list[str] = []
-        for tc in calls:
-            if tc.name == "finish":
-                continue
-            if tc.name == "grep":
-                out = run_grep(repo_root, tc.args["pattern"], tc.args.get("path", "."), tc.args.get("glob"))
-            elif tc.name == "read":
-                lines_str = tc.args.get("lines")
-                if lines_str:
-                    ranges = _parse_line_ranges(lines_str)
-                    if ranges and len(ranges) == 1:
-                        out = run_read(repo_root, tc.args["path"], ranges[0][0], ranges[0][1])
-                    elif ranges:
-                        chunks = [run_read(repo_root, tc.args["path"], s, e) for s, e in ranges]
-                        out = "\n...\n".join(chunks)
-                    else:
-                        out = run_read(repo_root, tc.args["path"])
-                else:
-                    out = run_read(repo_root, tc.args["path"])
-            elif tc.name == "list_directory":
-                out = run_list_dir(repo_root, tc.args.get("path", "."))
-            else:
-                out = f"Unknown tool: {tc.name}"
-            results.append(f"<tool_response>\n{out}\n</tool_response>")
+        # Execute all tool calls and send results back
+        for tc in tool_calls:
+            args = json.loads(tc.function.arguments)
+            result = dispatch_tool(tc.function.name, args, repo_root)
+            messages.append({
+                "role": "tool",
+                "tool_call_id": tc.id,
+                "content": result,
+            })
 
-        tool_count = len([c for c in calls if c.name != "finish"])
+        tool_count = len(tool_calls)
         print(f"  Turn {turn}: executed {tool_count} tool calls")
 
-        if finish:
-            return _resolve_finish(repo_root, finish)
-
-        # Send results back with turn/budget info
-        total_chars = sum(len(m["content"]) for m in messages)
-        percent = round((total_chars / MAX_CONTEXT_CHARS) * 100)
-        used_k = total_chars // 1000
-        max_k = MAX_CONTEXT_CHARS // 1000
+        # Add turn counter
         remaining = MAX_TURNS - turn
-
         if remaining <= 1:
             turn_msg = f"You have used {turn} turns, you only have 1 turn remaining. You have run out of turns to explore the code base and MUST call the finish tool now"
         else:
             turn_msg = f"You have used {turn} turn{'s' if turn > 1 else ''} and have {remaining} remaining"
 
+        total_chars = sum(len(m.get("content", "") or "") for m in messages)
+        percent = round((total_chars / MAX_CONTEXT_CHARS) * 100)
+        used_k = total_chars // 1000
+        max_k = MAX_CONTEXT_CHARS // 1000
+
         messages.append({
             "role": "user",
-            "content": "\n".join(results) + f"\n{turn_msg}\n<context_budget>{percent}% ({used_k}K/{max_k}K chars)</context_budget>",
+            "content": f"{turn_msg}\n<context_budget>{percent}% ({used_k}K/{max_k}K chars)</context_budget>",
         })
 
     return []
@@ -321,15 +244,9 @@ def _parse_line_ranges(lines_str: str) -> list[tuple[int, int]]:
     return ranges
 
 
-def _resolve_finish(root: str, finish: ToolCall) -> list[dict]:
+def _resolve_finish(root: str, args: dict) -> list[dict]:
     """Parse finish tool call and read the referenced files."""
-    files_raw = finish.args.get("files_raw", "")
-    text_result = finish.args.get("result", "")
-
-    # If only a text result, no files
-    if text_result and not files_raw:
-        print(f"  Finish (text): {text_result[:200]}")
-        return []
+    files_raw = args.get("files", "")
 
     if not files_raw:
         return []
