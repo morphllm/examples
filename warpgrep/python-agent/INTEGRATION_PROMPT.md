@@ -1,102 +1,195 @@
-# WarpGrep Python Integration Prompt
+# WarpGrep Integration Prompt — Docs Platform Agents
 
-> **What is this?** A universal prompt you can give to any AI coding assistant (Claude, GPT, Cursor, etc.) to integrate WarpGrep into an existing Python agent codebase. Copy everything below the line and paste it into your assistant.
+> **What is this?** A prompt you can give to any AI coding assistant (Claude, GPT, Cursor, etc.) to integrate WarpGrep into a documentation platform that runs an LLM agent in a sandboxed environment (e.g., Mintlify Workflows, GitBook, ReadMe, or similar docs-as-code platforms). Copy everything below the line and paste it into your assistant.
+>
+> **Generic TypeScript agent?** If your agent is a standard Node.js/TypeScript app (not a sandboxed docs platform), use the [SDK Integration Prompt](../SDK_INTEGRATION_PROMPT.md) instead — it covers Anthropic, OpenAI, Gemini, and Vercel AI SDK directly.
+>
 
 ---
 
 ## Prompt
 
-You are integrating WarpGrep — a code search sub-agent — into an existing Python agent codebase. WarpGrep is NOT a regex tool. It is a separate LLM that takes a **natural-language query**, searches a codebase using ripgrep/file-reads internally, and returns relevant code snippets. It runs in its own context window so it doesn't pollute the parent agent's context.
+You are integrating WarpGrep — a code search sub-agent — into a documentation platform's agent system. WarpGrep is NOT a regex tool. It is a separate LLM that takes a **natural-language query**, searches a codebase using ripgrep and file reads internally, and returns relevant code snippets. It runs in its own context window so it doesn't pollute the parent agent's context.
 
-**Important naming convention:** Name the tool `codebase_search`, NOT `warpgrep` or `grep`. Parent models see the word "grep" and assume they need to pass regex patterns. They don't — the input is plain English like "Find the authentication middleware" or "How does the payment flow work?".
+**Target architecture:** The platform pre-bundles the `@morphllm/morphsdk` Node.js package in its agent sandbox, then exposes a `codebase_search` tool that the agent can call. The tool calls the SDK, which handles everything — multi-turn search loop, ripgrep execution, result aggregation.
+
+**Important naming convention:** Name the tool `codebase_search`, NOT `warpgrep` or `grep`. Models see the word "grep" and assume they need to pass regex patterns. They don't — the input is plain English like "Find the authentication middleware" or "How does the payment flow work?".
 
 Follow these steps exactly. Complete each step before moving to the next.
 
 ---
 
-### Step 1: Identify the core agent harness
+### Step 1: Understand the agent's execution environment
 
-Search the codebase for the main agent loop. Look for:
-- A conversation loop that sends messages to an LLM and processes responses
-- Tool/function calling handling (parsing tool calls from model responses, executing them, sending results back)
-- The main entry point file (usually `main.py`, `agent.py`, `app.py`, or similar)
+These platforms typically run their agent in an **isolated sandbox** with some combination of:
+- Node.js / Bun runtime
+- Shell utilities (`grep`, `sed`, `awk`, `curl`)
+- `git` and `gh` CLI
+- A platform-specific CLI (e.g., `mint` for Mintlify)
+- Cloned repositories (specified in workflow config)
 
-Identify: What file contains the agent loop? What LLM provider does it use (OpenAI, Anthropic, Gemini, LangChain, etc.)?
+Search the codebase for how the sandbox is built and configured. Look for:
+- **Sandbox image definition** — Dockerfile, image config, build scripts, dependency manifests
+- **Available runtimes** — What can the agent execute? (Node.js, Bun, Python, shell)
+- **Tool registry** — How are tools registered and dispatched to the agent? Is it function calling via an LLM SDK, a command-line interface, or something custom?
+- **Existing tools** — What tools does the agent already have? Look at their schemas and execution patterns — you'll follow the same pattern.
+- **Environment variable injection** — How does the platform pass secrets/config into the sandbox? (Dashboard settings, secrets manager, .env injection, workflow config)
 
-### Step 2: Find how the agent registers and executes tools
+### Step 2: Verify network connectivity
 
-Search for how tools are defined and added. Look for:
-- Tool definitions / function declarations (JSON schemas, decorator-based tools, etc.)
-- Tool execution handlers (where tool call results are processed and sent back to the model)
-- The pattern used: Is it OpenAI function calling? Anthropic tool_use blocks? LangChain tools? A custom implementation?
+WarpGrep calls `api.morphllm.com` to run searches. The sandbox must be able to reach this endpoint.
 
-### Step 3: Check for existing tools
+Check connectivity from inside the sandbox:
+```bash
+curl -sf https://api.morphllm.com/v1/models && echo "OK" || echo "BLOCKED"
+```
 
-Search the codebase for any tools already registered with the agent. This tells you the exact pattern to follow. Look for:
-- Tool name strings, tool description constants
-- Tool schema definitions (JSON Schema objects, Pydantic models, etc.)
-- Tool execution dispatch (if/elif chains, dictionaries mapping tool names to handlers)
+If blocked:
+- Check if the platform has a network allowlist or egress firewall rules. Add `api.morphllm.com` (port 443).
+- Check if the platform routes traffic through a proxy. If so, the SDK respects `HTTPS_PROXY`.
+- If network access truly cannot be granted, WarpGrep cannot function in this sandbox — escalate to the platform team.
 
-### Step 4: Add the WarpGrep codebase_search module
+### Step 3: Bundle the SDK in the sandbox image
 
-Create a new file (e.g., `codebase_search.py` or `warpgrep_tool.py`) in the appropriate location. This file contains the WarpGrep agent loop — 4 internal functions that WarpGrep uses to search code, plus the main `search()` function that orchestrates them.
+Add `@morphllm/morphsdk` to the sandbox so it's available at runtime without needing `npm install` (most doc platform sandboxes can't install packages at runtime).
 
-The module needs these components. Copy them from the reference implementation at:
-https://github.com/morphllm/examples/tree/main/warpgrep/python-agent
+Add it to whatever dependency manifest the sandbox image uses:
+```
+@morphllm/morphsdk
+```
 
-**Reference: `search.py`** — The complete self-contained implementation (~390 lines). It contains:
+The SDK bundles its own ripgrep binary — no separate ripgrep installation needed.
 
-1. **`call_api(messages)`** — Calls the WarpGrep model (`morph-warp-grep-v2`) at `https://api.morphllm.com/v1/chat/completions`
-2. **`parse_tool_calls(response)`** — Parses XML tool calls from model responses
-3. **Four internal tool executors** (these are WarpGrep's internal tools, not your agent's tools):
-   - `run_grep(root, pattern, path, glob)` — Runs ripgrep locally
-   - `run_read(root, path, start, end)` — Reads file contents with line ranges
-   - `run_list_dir(root, path)` — Lists directory structure
-   - `_resolve_finish(root, finish)` — Resolves the `finish` tool call into final results
-4. **`search(query, repo_root)`** — The main agent loop (max 6 turns). This is what your parent agent calls.
-
-The `search()` function takes a natural-language query and a repo path, returns `list[dict]` where each dict has `{"path": "...", "content": "..."}`.
+Use a caret range (`^1`) so non-breaking updates are picked up when the image rebuilds. The SDK will stay current as the platform rebuilds its sandbox image on its normal release cadence.
 
 **Requirements:**
-- `pip install requests`
-- `ripgrep` must be installed (`brew install ripgrep` / `apt-get install ripgrep`)
+- Node.js 18+ or Bun
 - `MORPH_API_KEY` environment variable (get from https://morphllm.com/dashboard/api-keys)
 
-### Step 5: Register `codebase_search` as a tool in your agent
+### Step 4: Provision the API key
 
-Add the tool to your agent's tool list following the pattern from Step 3. The tool schema is minimal — just one required string parameter:
+Find how the platform injects environment variables into the sandbox and add:
 
-**Tool definition:**
+| Variable | Value | Source |
+|---|---|---|
+| `MORPH_API_KEY` | `sk-morph-...` | https://morphllm.com/dashboard/api-keys |
+
+This is typically configured in the platform's dashboard under integrations, secrets, or environment settings. If the platform supports per-organization keys, provision one per customer workspace.
+
+### Step 5: Create the `codebase_search` tool
+
+Create a tool that wraps the SDK. The tool should:
+1. Accept a natural-language `query` string
+2. Point at the cloned repo directory in the sandbox
+3. Call the SDK
+4. Return formatted results to the agent
+
+**Using the SDK directly (simplest):**
+```typescript
+import { MorphClient } from "@morphllm/morphsdk";
+
+const morph = new MorphClient({ apiKey: process.env.MORPH_API_KEY });
+
+async function codebaseSearch(query: string, repoRoot: string): Promise<string> {
+  const result = await morph.warpGrep.execute({ query, repoRoot });
+
+  if (!result.success || !result.contexts?.length) {
+    return "No relevant code found.";
+  }
+
+  return result.contexts
+    .map((ctx) => `--- ${ctx.file} ---\n${ctx.content}`)
+    .join("\n\n");
+}
+```
+
+**Using a provider adapter (if the agent uses a specific LLM SDK):**
+
+The SDK ships pre-formatted tool objects for each major provider. Use the one that matches the agent's LLM SDK:
+
+| Agent's LLM SDK | Import |
+|---|---|
+| Vercel AI SDK (`ai`) | `@morphllm/morphsdk/tools/warp-grep/vercel` |
+| `@anthropic-ai/sdk` | `@morphllm/morphsdk/tools/warp-grep/anthropic` |
+| `openai` | `@morphllm/morphsdk/tools/warp-grep/openai` |
+| `@google/generative-ai` | `@morphllm/morphsdk/tools/warp-grep/gemini` |
+
+```typescript
+import { createWarpGrepTool } from "@morphllm/morphsdk/tools/warp-grep/vercel";
+// or: /anthropic, /openai, /gemini
+
+const grepTool = createWarpGrepTool({ repoRoot: "/path/to/cloned/repo" });
+// Pass grepTool directly into the agent's tools array
+```
+
+The adapter handles tool schema, execution, and result formatting — you just wire it in.
+
+### Step 6: Handle sandbox execution (if code is in a remote sandbox)
+
+By default, the SDK executes ripgrep, file reads, and directory listings **locally** — on the same filesystem where the Node.js process runs. This works when the SDK and the cloned repos are on the same machine.
+
+If the code lives in a **separate sandbox** (the SDK runs on the platform backend, but the repo is cloned inside an isolated container), the default tools will fail because they can't see the files. You need to override them with `remoteCommands` that route execution into the sandbox.
+
+**Check:** Does the SDK run in the same filesystem as the cloned repos?
+- **Yes** (SDK is bundled inside the sandbox image, repos are cloned there too) → Skip this step. Local execution works.
+- **No** (SDK runs on the platform backend, sandbox is a separate container) → You must provide `remoteCommands`.
+
+`remoteCommands` takes three functions — `grep`, `read`, and `listDir` — that execute shell commands inside the sandbox using whatever execution API the platform provides:
+
+```typescript
+const grepTool = createWarpGrepTool({
+  repoRoot: "/path/to/repo/in/sandbox",
+  remoteCommands: {
+    grep: async (pattern, path, glob) => {
+      const globArg = glob ? ` --glob '${glob}'` : "";
+      const result = await sandbox.commands.run(
+        `rg --no-heading --line-number -C 1 '${pattern}' '${path}'${globArg}`
+      );
+      return result.stdout || "";
+    },
+    read: async (path, start, end) => {
+      const result = await sandbox.commands.run(
+        `sed -n '${start},${end}p' '${path}'`
+      );
+      return result.stdout || "";
+    },
+    listDir: async (path, maxDepth) => {
+      const result = await sandbox.commands.run(
+        `find '${path}' -maxdepth ${maxDepth} -not -path '*/node_modules/*' -not -path '*/.git/*'`
+      );
+      return result.stdout || "";
+    },
+  },
+});
+```
+
+Adapt `sandbox.commands.run(...)` to whatever the platform's sandbox execution API is (e.g., `sandbox.exec()`, `sandbox.process.executeCommand()`, `ssh.execCommand()`, etc.). The three functions just need to return stdout as a string.
+
+**Prerequisite:** `ripgrep` must be installed inside the sandbox. Add `apt-get install -y ripgrep` to the sandbox image build, or download the static binary.
+
+For detailed examples across E2B, Modal, Daytona, Vercel Sandbox, Cloudflare Workers, and Docker/SSH, see:
+https://docs.morphllm.com/sdk/components/warp-grep/sandbox-execution
+
+### Step 7: Register the tool with the agent
+
+Wire `codebase_search` into the agent's tool registry alongside its existing tools. Follow whatever pattern the existing tools use (Step 1 findings).
+
+The tool schema is minimal — one required string parameter:
+
 ```
 name: codebase_search
-description: Search the codebase for relevant code. Takes a natural-language query describing what you're looking for (e.g., "Find the authentication middleware", "How does error handling work in the API layer"). Returns matching file snippets with paths and line numbers. Use this to explore unfamiliar code, find implementations across multiple files, or understand how a feature works. Do NOT pass regex patterns — use plain English.
+description: Search the codebase for relevant code using natural language.
+  Takes a query like "Find the authentication middleware" or
+  "How does error handling work in the API layer".
+  Returns matching code snippets with file paths.
+  Do NOT pass regex — use plain English.
 parameters:
-  query (string, required): Natural-language description of what code to find
+  query (string, required): What code to search for
 ```
 
-**Tool execution handler:**
-When the parent model calls `codebase_search`, execute it like this:
-```python
-from codebase_search import search  # adjust import
+### Step 8: Add system prompt guidance
 
-def handle_codebase_search(query: str, repo_root: str = ".") -> str:
-    results = search(query, repo_root)
-    if not results:
-        return "No relevant code found."
-    parts = []
-    for r in results:
-        parts.append(f"--- {r['path']} ---\n{r['content']}")
-    return "\n\n".join(parts)
-```
-
-Wire this into your agent's tool dispatch alongside any existing tools.
-
-**Provider-specific examples:** See `search_tool.py` in the same repo for complete working examples for OpenAI, Anthropic, and Gemini:
-https://github.com/morphllm/examples/blob/main/warpgrep/python-agent/search_tool.py
-
-### Step 6: Add system prompt guidance
-
-Append the following to the agent's system prompt (or tool description) so the parent model knows when to use the tool:
+Append the following to the agent's system prompt so it knows when and how to use the tool:
 
 ```
 ## codebase_search — when to use
@@ -116,116 +209,47 @@ DO NOT use codebase_search when:
 Best practice: Use codebase_search at the START of a task to orient yourself, then use direct file reads/grep for targeted follow-ups.
 ```
 
-### Step 7: Test the integration
+### Step 9: Test the integration
 
-Run these tests in order. Each one verifies a different layer.
+Run these in order inside the sandbox. Each verifies a different layer.
 
-**Test A — API key validation:**
-```python
-import os, requests
-resp = requests.post(
-    "https://api.morphllm.com/v1/chat/completions",
-    headers={"Authorization": f"Bearer {os.environ['MORPH_API_KEY']}", "Content-Type": "application/json"},
-    json={"model": "morph-warp-grep-v2", "messages": [{"role": "user", "content": "<repo_structure>\ntest/\n</repo_structure>\n\n<search_string>\ntest\n</search_string>"}], "temperature": 0.0, "max_tokens": 256},
-    timeout=15,
-)
-print(f"Status: {resp.status_code}")
-print(f"Response: {resp.json()['choices'][0]['message']['content'][:200]}")
-# Expected: 200 status, response with <tool_call> XML
+**Test A — SDK is loadable (no API key needed):**
+```bash
+node -e "
+  const { MorphClient } = require('@morphllm/morphsdk');
+  console.log('SDK:', typeof MorphClient === 'function' ? 'OK' : 'FAIL');
+"
 ```
 
-**Test B — XML parser:**
-```python
-# Adjust the import to match whatever you named the file in Step 4
-from codebase_search import parse_tool_calls
-test_xml = """<tool_call>
-<function=ripgrep>
-<parameter=pattern>def main</parameter>
-<parameter=path>src/</parameter>
-</function>
-</tool_call>
-
-<tool_call>
-<function=read>
-<parameter=path>README.md</parameter>
-</function>
-</tool_call>
-
-<tool_call>
-<function=list_directory>
-<parameter=path>.</parameter>
-</function>
-</tool_call>
-
-<tool_call>
-<function=finish>
-<parameter=files>src/main.py:1-50</parameter>
-</function>
-</tool_call>"""
-
-calls = parse_tool_calls(test_xml)
-assert len(calls) == 4, f"Expected 4 tool calls, got {len(calls)}"
-assert calls[0].name == "grep" and calls[0].args["pattern"] == "def main"
-assert calls[1].name == "read" and calls[1].args["path"] == "README.md"
-assert calls[2].name == "list_directory" and calls[2].args["path"] == "."
-assert calls[3].name == "finish" and "files_raw" in calls[3].args
-print("Parser: all 4 tool types parsed correctly")
+**Test B — Network + API key:**
+```bash
+node -e "
+  const { MorphClient } = require('@morphllm/morphsdk');
+  const m = new MorphClient({ apiKey: process.env.MORPH_API_KEY });
+  m.warpGrep.execute({ query: 'Find the main entry point', repoRoot: '.' })
+    .then(r => console.log('Search:', r.success ? 'OK' : 'FAIL', '— files:', r.contexts?.length ?? 0))
+    .catch(e => console.error('FAIL:', e.message));
+"
 ```
+If this fails with a network error, revisit Step 2. If 401, revisit Step 4.
 
-**Test C — Internal tool executors:**
-```python
-from codebase_search import run_grep, run_read, run_list_dir  # adjust import
+**Test C — Full agent integration:**
 
-# Test each of the 4 internal tools against the current repo
-repo = "."
-
-# 1. grep
-grep_result = run_grep(repo, "import", ".", "*.py")
-assert "import" in grep_result or grep_result == "no matches", f"grep failed: {grep_result[:100]}"
-print(f"grep: OK ({len(grep_result)} chars)")
-
-# 2. read
-read_result = run_read(repo, "codebase_search.py", 1, 10)  # use any .py file in your repo
-assert "|" in read_result, f"read failed: {read_result[:100]}"
-print(f"read: OK ({len(read_result)} chars)")
-
-# 3. list_directory
-list_result = run_list_dir(repo, ".")
-assert len(list_result) > 0, f"list_dir failed: {list_result[:100]}"
-print(f"list_dir: OK ({len(list_result)} chars)")
-
-# 4. finish (tested implicitly via search — just verify the function exists)
-from codebase_search import _resolve_finish  # adjust import
-print("finish resolver: OK (importable)")
-
-print("\nAll 4 internal tools working.")
-```
-
-**Test D — Full end-to-end search:**
-```python
-from codebase_search import search  # adjust import
-results = search("Find the main entry point of this project", ".")
-assert len(results) > 0, "Search returned no results"
-for r in results:
-    print(f"  Found: {r['path']} ({len(r['content'])} chars)")
-print(f"\nEnd-to-end: OK — found {len(results)} files")
-```
-
-**Test E — Full agent integration:**
-Send a message to your agent that requires using the tool, e.g.:
+Trigger the agent with a prompt that requires code search:
 > "Use codebase_search to find how errors are handled in this project, then summarize what you found."
 
-Verify the agent:
-1. Calls the `codebase_search` tool (not grep or file read)
-2. Passes a natural-language query (not a regex)
-3. Receives results and summarizes them in its response
+Verify:
+1. The agent calls `codebase_search` (not grep or cat)
+2. It passes a natural-language query (not a regex pattern)
+3. It receives code snippets and uses them in its response
 
 ---
 
-### Reference Documentation
+### Reference
 
-- **Direct API Protocol:** https://docs.morphllm.com/sdk/components/warp-grep/direct
-- **Python Guide:** https://docs.morphllm.com/guides/warp-grep-python
-- **Examples (Python + multi-provider):** https://github.com/morphllm/examples/tree/main/warpgrep/python-agent
-- **Pricing:** $0.80 / 1M tokens input, $0.80 / 1M tokens output
+- **SDK Package:** `@morphllm/morphsdk` ([npm](https://www.npmjs.com/package/@morphllm/morphsdk))
+- **SDK Docs:** https://docs.morphllm.com/sdk/components/warp-grep/index
+- **Raw HTTP Protocol (Python / any language):** https://docs.morphllm.com/sdk/components/warp-grep/direct
+- **Examples (all providers + sandboxes):** https://github.com/morphllm/examples/tree/main/warpgrep
 - **API Keys:** https://morphllm.com/dashboard/api-keys
+- **Pricing:** $0.80 / 1M tokens input, $0.80 / 1M tokens output

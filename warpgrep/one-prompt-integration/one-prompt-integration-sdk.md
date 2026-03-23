@@ -10,7 +10,7 @@
 
 You are integrating `codebase_search` — a code search tool — into an existing TypeScript/Node.js agent codebase.
 
-**What `codebase_search` is:** A separate LLM sub-agent (powered by the `@morphllm/morphsdk` package) that takes a **natural-language query**, searches a codebase using ripgrep and file reads internally, and returns relevant code snippets. It runs in its own context window so it doesn't pollute the parent agent's context. Under the hood, the SDK calls the `morph-warp-grep-v2` model and executes ripgrep/file-read/directory-list operations in a multi-turn loop (typically 2–4 turns, under 6 seconds) before returning aggregated results.
+**What `codebase_search` is:** A separate LLM sub-agent (powered by the `@morphllm/morphsdk` package) that takes a **natural-language search string**, searches a codebase using ripgrep, read, ls, find, glob tools internally, and returns relevant code snippets. It runs in its own context window so it doesn't pollute the parent agent's context. Under the hood, the SDK calls the `morph-warp-grep-v2-1` model and executes ripgrep/file-read/directory-list operations in a multi-turn loop (typically 2-6 turns, under 6 seconds) before returning aggregated results. This is an agentic search tool. Not semantic search, not keyworkd search, not regex search. This tool is intelligent and is capable of reasoning.
 
 **What `codebase_search` is NOT:**
 - It is **not** regex search. Do not pass grep patterns to it.
@@ -84,7 +84,7 @@ If this fails, check that the install succeeded and your bundler supports Node.j
 
 ### Step 3: Verify that local commands work
 
-Before wiring anything into the agent, verify that the SDK's underlying commands — `grep`, `read`, and `listDir` — work on your filesystem. These are what `codebase_search` uses internally to search the codebase.
+Before wiring anything into the agent, verify that the SDK's underlying commands — `grep_search`, `read`, `glob`, and `list_directory` — work on your filesystem. These are what `codebase_search` uses internally to search the codebase.
 
 **How providers work:** By default, the SDK executes these commands **locally** — it shells out to ripgrep, reads files with `fs`, and lists directories with `find`. This works when the SDK and the cloned repo are on the same machine. If the code lives in a **remote sandbox** (e.g., E2B, Modal, Vercel Sandbox, Docker), you override these with `remoteCommands` — see Step 7.
 
