@@ -1,6 +1,6 @@
 # WarpGrep: Python Agent
 
-A complete WarpGrep implementation in Python. No SDK needed — just `requests` and `ripgrep`.
+A complete WarpGrep implementation in Python. No SDK needed — just `openai` and `ripgrep`.
 
 This is the same protocol that the TypeScript SDK uses under the hood. Use this as a reference for building WarpGrep integrations in any language.
 
@@ -29,12 +29,12 @@ MORPH_API_KEY=your-key python search.py "Find auth middleware" /path/to/repo
 
 ## How it works
 
-The agent runs a multi-turn conversation with the `morph-warp-grep-v1` model:
+The agent runs a multi-turn conversation with the `morph-warp-grep-v2.1` model using OpenAI-compatible tool calling:
 
-1. **Send** the repo structure + search query to the API
-2. **Parse** XML tool calls (`<grep>`, `<read>`, `<list_directory>`, `<finish>`) from the response
+1. **Send** the repo structure + search query to the API (tools are built in — no `tools` parameter needed)
+2. **Receive** structured `tool_calls` from the JSON response
 3. **Execute** tools locally using ripgrep and file reads
-4. **Format** results as XML and send them back
-5. **Repeat** until the model calls `<finish>` (max 4 turns)
+4. **Send** results back as `tool` messages with `tool_call_id`
+5. **Repeat** until the model calls `finish` (max 6 turns)
 
-Each component (API client, XML parser, tool executors, result formatter, agent loop) is clearly separated in the code.
+Each component (API client, tool executors, dispatcher, agent loop) is clearly separated in the code.
