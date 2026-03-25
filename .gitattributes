@@ -1,0 +1,6 @@
+eval_traces/warpgrep/swe-atlas/**/*.traj filter=lfs diff=lfs merge=lfs -text
+eval_traces/warpgrep/swe-atlas/**/*.trace.log filter=lfs diff=lfs merge=lfs -text
+eval_traces/warpgrep/swe-atlas/**/*.debug.log filter=lfs diff=lfs merge=lfs -text
+eval_traces/warpgrep/swe-atlas/**/*.info.log filter=lfs diff=lfs merge=lfs -text
+eval_traces/warpgrep/swe-atlas/**/*.pred filter=lfs diff=lfs merge=lfs -text
+eval_traces/warpgrep/swe-atlas/**/*.config.yaml filter=lfs diff=lfs merge=lfs -text
