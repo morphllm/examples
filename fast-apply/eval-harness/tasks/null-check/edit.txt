@@ -1,0 +1,13 @@
+I am adding a null check after findUserByEmail so login throws Invalid credentials when no user is found.
+
+---CODE_EDIT---
+// ... existing code ...
+export async function login(email: string, password: string): Promise<User> {
+  const user = await findUserByEmail(email);
+
+  if (!user) {
+    throw new Error("Invalid credentials");
+  }
+
+  const passwordMatches = await verifyPassword(password, user.passwordHash);
+// ... existing code ...

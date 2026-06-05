@@ -1,0 +1,13 @@
+I am validating that the parsed port is an integer between 1 and 65535 before returning it.
+
+---CODE_EDIT---
+// ... existing code ...
+export function parsePort(value: string): number {
+  const port = Number(value);
+
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error("Invalid port");
+  }
+
+  return port;
+}

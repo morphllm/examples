@@ -1,0 +1,11 @@
+I am renaming the Profile field displayName to fullName and updating formatProfile to use the new field.
+
+---CODE_EDIT---
+interface Profile {
+  id: string;
+  fullName: string;
+}
+
+export function formatProfile(profile: Profile): string {
+  return `${profile.fullName} (${profile.id})`;
+}

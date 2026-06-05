@@ -15,6 +15,7 @@ Use this table to jump to the right place based on what you're building.
 | **TypeScript + Fast Apply** | [`fast-apply/basic-edit`](./fast-apply/basic-edit) — apply a targeted code edit |
 | **TypeScript + Direct API** | [`fast-apply/direct-api`](./fast-apply/direct-api) — call Fast Apply over HTTP |
 | **TypeScript + Sandbox** | [`fast-apply/code-in-code-out`](./fast-apply/code-in-code-out) — manage file I/O yourself |
+| **TypeScript + Eval Harness** | [`fast-apply/eval-harness`](./fast-apply/eval-harness) — evaluate Fast Apply edits |
 | **TypeScript + Anthropic SDK** | [`warpgrep/anthropic-agent`](./warpgrep/anthropic-agent) — Claude in an agent loop |
 | **TypeScript + OpenAI SDK** | [`warpgrep/openai-agent`](./warpgrep/openai-agent) — GPT-4o in an agent loop |
 | **TypeScript + Vercel AI SDK** | [`warpgrep/vercel-agent`](./warpgrep/vercel-agent) — automatic tool loop |
@@ -28,6 +29,7 @@ Use this table to jump to the right place based on what you're building.
 | Apply a targeted code edit | [`fast-apply/basic-edit`](./fast-apply/basic-edit) |
 | Call Fast Apply directly over HTTP | [`fast-apply/direct-api`](./fast-apply/direct-api) |
 | Use Fast Apply in a sandbox or harness | [`fast-apply/code-in-code-out`](./fast-apply/code-in-code-out) |
+| Evaluate Fast Apply outputs | [`fast-apply/eval-harness`](./fast-apply/eval-harness) |
 | Search a GitHub repo (no clone) | [`warpgrep/github-search`](./warpgrep/github-search) |
 | Stream search progress | [`warpgrep/streaming`](./warpgrep/streaming) |
 | Run search in a Vercel Sandbox | [`warpgrep/vercel-sandbox`](./warpgrep/vercel-sandbox) |
@@ -55,6 +57,7 @@ All in [`fast-apply/`](./fast-apply):
 | [basic-edit](./fast-apply/basic-edit) | TypeScript | Apply a targeted partial edit to a TypeScript file |
 | [direct-api](./fast-apply/direct-api) | TypeScript | Call Fast Apply directly through the OpenAI-compatible API |
 | [code-in-code-out](./fast-apply/code-in-code-out) | TypeScript | Return merged code while managing file I/O yourself |
+| [eval-harness](./fast-apply/eval-harness) | TypeScript | Run an exact-match harness over multiple Fast Apply tasks |
 
 ### WarpGrep — Code Search Subagent
 
