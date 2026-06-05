@@ -1,0 +1,14 @@
+{
+  "name": "fast-apply-basic-edit",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "npx tsx edit.ts"
+  },
+  "dependencies": {
+    "@morphllm/morphsdk": "latest"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0"
+  }
+}

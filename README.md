@@ -12,6 +12,7 @@ Use this table to jump to the right place based on what you're building.
 |----------------|-------|
 | **Python** | [`warpgrep/python-agent`](./warpgrep/python-agent) — full protocol reference, no SDK |
 | **TypeScript** | [`warpgrep/basic-search`](./warpgrep/basic-search) — simplest starting point |
+| **TypeScript + Fast Apply** | [`fast-apply/basic-edit`](./fast-apply/basic-edit) — apply a targeted code edit |
 | **TypeScript + Anthropic SDK** | [`warpgrep/anthropic-agent`](./warpgrep/anthropic-agent) — Claude in an agent loop |
 | **TypeScript + OpenAI SDK** | [`warpgrep/openai-agent`](./warpgrep/openai-agent) — GPT-4o in an agent loop |
 | **TypeScript + Vercel AI SDK** | [`warpgrep/vercel-agent`](./warpgrep/vercel-agent) — automatic tool loop |
@@ -22,6 +23,7 @@ Use this table to jump to the right place based on what you're building.
 | I want to... | Go to |
 |--------------|-------|
 | Search a local repo | [`warpgrep/basic-search`](./warpgrep/basic-search) |
+| Apply a targeted code edit | [`fast-apply/basic-edit`](./fast-apply/basic-edit) |
 | Search a GitHub repo (no clone) | [`warpgrep/github-search`](./warpgrep/github-search) |
 | Stream search progress | [`warpgrep/streaming`](./warpgrep/streaming) |
 | Run search in a Vercel Sandbox | [`warpgrep/vercel-sandbox`](./warpgrep/vercel-sandbox) |
@@ -39,6 +41,14 @@ Use this table to jump to the right place based on what you're building.
 | **GitHub App** | [`github_app`](./github_app) — deploy as a GitHub App |
 
 ## Examples
+
+### Fast Apply — Code Editing
+
+All in [`fast-apply/`](./fast-apply):
+
+| Example | Language | Description |
+|---------|----------|-------------|
+| [basic-edit](./fast-apply/basic-edit) | TypeScript | Apply a targeted partial edit to a TypeScript file |
 
 ### WarpGrep — Code Search Subagent
 
@@ -90,6 +100,7 @@ MORPH_API_KEY=your-key npx tsx search.ts "Find the main entry point" /path/to/re
 
 ## Docs
 
+- [Fast Apply reference](https://docs.morphllm.com/sdk/components/fast-apply)
 - [WarpGrep overview](https://docs.morphllm.com/sdk/components/warp-grep)
 - [WarpGrep tool reference](https://docs.morphllm.com/sdk/components/warp-grep/tool)
 - [WarpGrep direct API](https://docs.morphllm.com/sdk/components/warp-grep/direct)
