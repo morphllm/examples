@@ -1,0 +1,14 @@
+{
+  "name": "fast-apply-code-in-code-out",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "npx tsx apply.ts"
+  },
+  "dependencies": {
+    "@morphllm/morphsdk": "latest"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0"
+  }
+}
