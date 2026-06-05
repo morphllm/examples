@@ -1,0 +1,14 @@
+{
+  "name": "fast-apply-direct-api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "npx tsx apply.ts"
+  },
+  "dependencies": {
+    "diff": "^7.0.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0"
+  }
+}
