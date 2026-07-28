@@ -10,7 +10,7 @@
 
 You are integrating `codebase_search` — a code search tool — into an existing TypeScript/Node.js agent codebase.
 
-**What `codebase_search` is:** A separate LLM sub-agent (powered by the `@morphllm/morphsdk` package) that takes a **natural-language search string**, searches a codebase using ripgrep, read, ls, find, glob tools internally, and returns relevant code snippets. It runs in its own context window so it doesn't pollute the parent agent's context. Under the hood, the SDK calls the `morph-warp-grep-v2-1` model and executes ripgrep/file-read/directory-list operations in a multi-turn loop (typically 2-6 turns, under 6 seconds) before returning aggregated results. This is an agentic search tool. Not semantic search, not keyworkd search, not regex search. This tool is intelligent and is capable of reasoning.
+**What `codebase_search` is:** A separate LLM sub-agent (powered by the `@morphllm/morphsdk` package) that takes a **natural-language search string**, searches a codebase using ripgrep, read, ls, find, glob tools internally, and returns relevant code snippets. It runs in its own context window so it doesn't pollute the parent agent's context. Under the hood, the SDK calls the `morph-warp-grep-v2.1` model and executes ripgrep/file-read/directory-list operations in a multi-turn loop (typically 2-6 turns, under 6 seconds) before returning aggregated results. This is an agentic search tool. Not semantic search, not keyworkd search, not regex search. This tool is intelligent and is capable of reasoning.
 
 **What `codebase_search` is NOT:**
 - It is **not** regex search. Do not pass grep patterns to it.
@@ -21,7 +21,7 @@ You are integrating `codebase_search` — a code search tool — into an existin
 ```
 Parent agent receives user question
   → Parent calls codebase_search("How does auth work?")
-    → SDK spins up a sub-agent (morph-warp-grep-v2)
+    → SDK spins up a sub-agent (morph-warp-grep-v2.1)
     → Sub-agent internally runs grep/read/listDir commands (2-4 turns)
     → Sub-agent returns aggregated code snippets
   → Parent receives { file: "src/auth.ts", content: "..." }

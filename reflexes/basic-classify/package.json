@@ -1,0 +1,12 @@
+{
+  "name": "reflex-basic-classify",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "npx tsx classify.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.0.0"
+  }
+}

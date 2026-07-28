@@ -14,10 +14,11 @@ npm install
 MORPH_API_KEY=your-key npx tsx search.ts
 ```
 
-Pass a custom query:
+Pass a custom query, and optionally the repo to search (defaults to the current directory):
 
 ```bash
 MORPH_API_KEY=your-key npx tsx search.ts "Find where errors are handled"
+MORPH_API_KEY=your-key npx tsx search.ts "Find where errors are handled" /path/to/repo
 ```
 
 ## What it does

@@ -1,0 +1,11 @@
+{
+  "name": "reflex-streaming-webhook",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bun run webhook.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.1.0"
+  }
+}

@@ -6,18 +6,20 @@
 // Usage:
 //   MORPH_API_KEY=your-key npx tsx search.ts
 //   MORPH_API_KEY=your-key npx tsx search.ts "your custom query"
+//   MORPH_API_KEY=your-key npx tsx search.ts "your custom query" /path/to/repo
 
 import { MorphClient } from "@morphllm/morphsdk";
 
 const morph = new MorphClient({ apiKey: process.env.MORPH_API_KEY });
 
 const query = process.argv[2] || "Find the main entry point of this project";
+const repoRoot = process.argv[3] || ".";
 
-console.log(`Searching for: "${query}"\n`);
+console.log(`Searching ${repoRoot} for: "${query}"\n`);
 
 const result = await morph.warpGrep.execute({
   query,
-  repoRoot: ".",
+  repoRoot,
 });
 
 if (!result.success) {

@@ -9,17 +9,19 @@ Code search subagent examples. Each example is self-contained — pick the one t
 | [search-node-modules](./search-node-modules) | TypeScript | Search inside dependencies |
 | [github-search](./github-search) | TypeScript | Search a public GitHub repo without cloning |
 | [github-streaming](./github-streaming) | TypeScript | Stream GitHub search progress in real-time |
-| [anthropic-agent](./anthropic-agent) | TypeScript | Claude + WarpGrep in an agent loop |
-| [openai-agent](./openai-agent) | TypeScript | GPT-4o + WarpGrep in an agent loop |
-| [vercel-agent](./vercel-agent) | TypeScript | Vercel AI SDK — automatic tool loop |
-| [gemini-agent](./gemini-agent) | TypeScript | Gemini + WarpGrep in an agent loop |
-| [python-agent](./python-agent) | Python | Full protocol reference implementation (no SDK) |
-| [e2b-sandbox](./e2b-sandbox) | TypeScript | WarpGrep in an E2B cloud sandbox |
-| [modal-sandbox](./modal-sandbox) | TypeScript | WarpGrep in a Modal cloud sandbox |
-| [daytona-sandbox](./daytona-sandbox) | TypeScript | WarpGrep in a Daytona sandbox |
-| [vercel-sandbox](./vercel-sandbox) | TypeScript | WarpGrep in a Vercel Sandbox |
-| [cloudflare-sandbox](./cloudflare-sandbox) | TypeScript | WarpGrep in a Cloudflare Worker sandbox |
-| [docker-ssh](./docker-ssh) | TypeScript | WarpGrep over SSH to a Docker container |
+| [agents/anthropic](./agents/anthropic) | TypeScript | Claude + WarpGrep in an agent loop |
+| [agents/openai](./agents/openai) | TypeScript | GPT-4o + WarpGrep in an agent loop |
+| [agents/vercel](./agents/vercel) | TypeScript | Vercel AI SDK — automatic tool loop |
+| [agents/gemini](./agents/gemini) | TypeScript | Gemini + WarpGrep in an agent loop |
+| [agents/python](./agents/python) | Python | Full protocol reference implementation (no SDK) |
+| [sandboxes/e2b](./sandboxes/e2b) | TypeScript | WarpGrep in an E2B cloud sandbox |
+| [sandboxes/modal](./sandboxes/modal) | TypeScript | WarpGrep in a Modal cloud sandbox |
+| [sandboxes/daytona](./sandboxes/daytona) | TypeScript | WarpGrep in a Daytona sandbox |
+| [sandboxes/vercel](./sandboxes/vercel) | TypeScript | WarpGrep in a Vercel Sandbox |
+| [sandboxes/cloudflare](./sandboxes/cloudflare) | TypeScript | WarpGrep in a Cloudflare Worker sandbox |
+| [sandboxes/chroma](./sandboxes/chroma) | TypeScript | Custom backend — WarpGrep over Chroma Package Search |
+| [sandboxes/docker-ssh](./sandboxes/docker-ssh) | TypeScript | WarpGrep over SSH to a Docker container |
+| [integration-prompt](./integration-prompt) | — | Copy-paste prompts to add WarpGrep to an existing agent |
 
 ## Prerequisites
 
