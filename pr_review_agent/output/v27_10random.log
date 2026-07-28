@@ -1,4 +1,0 @@
-  File "<string>", line 111
-    bdata[pr_url]['reviews'] = [r for r in bdata[pr_url].get('reviews', []) if r['tool'] \!= TOOL_NAME]
-                                                                                          ^
-SyntaxError: unexpected character after line continuation character
