@@ -1,0 +1,14 @@
+{
+  "name": "open-source-models-basic-chat",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "npx tsx chat.ts"
+  },
+  "dependencies": {
+    "openai": "latest"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0"
+  }
+}

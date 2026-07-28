@@ -1,0 +1,14 @@
+{
+  "name": "open-source-models-tools-and-json",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "npx tsx tools.ts"
+  },
+  "dependencies": {
+    "openai": "latest"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0"
+  }
+}

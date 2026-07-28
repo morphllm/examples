@@ -1,0 +1,15 @@
+{
+  "name": "fast-apply-agent-loop",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "npx tsx agent.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.70.0",
+    "openai": "^4.0.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0"
+  }
+}

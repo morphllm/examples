@@ -1,0 +1,11 @@
+{
+  "name": "model-router-multimodel",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "npx tsx route.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0"
+  }
+}

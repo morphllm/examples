@@ -1,0 +1,14 @@
+{
+  "name": "fast-apply-streaming",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "npx tsx apply.ts"
+  },
+  "dependencies": {
+    "openai": "^4.0.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0"
+  }
+}
