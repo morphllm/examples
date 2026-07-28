@@ -97,7 +97,11 @@ Restrict the candidate set with `allowed_models`, `allowed_providers`, or both �
 
 ## Latency and cost
 
-~180ms average per routing decision, one call. $0.005 per request. Max input 65,536 tokens; larger returns `413`.
+One call per routing decision, $0.005 per request. Max input 65,536 tokens; larger returns `413`.
+
+Measured 210–460ms round trip from a laptop over the public internet, across ~40 calls. Server-side
+classification is the small part of that; most of it is network. Expect lower from a datacenter,
+and budget for it either way — the router is a hop in front of your real model call, not free.
 
 ## Prerequisites
 

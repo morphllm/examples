@@ -12,12 +12,11 @@ Prices are USD per million tokens, pulled from [`/api/models/json`](https://www.
 | Kimi K3 Fast | `morph-kimik3-fast` | 1M | $4.50 | $22.50 | $0.45 | tools, json_mode, structured_outputs, logprobs, reasoning |
 | GLM-5.2 (744B) | `morph-glm52-744b` | 1M | $1.10 | $4.10 | $0.22 | tools, json_mode, structured_outputs, reasoning |
 | DeepSeek V4 Flash | `morph-dsv4flash` | 1M | $0.139 | $0.278 | — | tools, json_mode, structured_outputs, reasoning |
-| Qwen 3.5 397B | `morph-qwen35-397b` | 262k | $0.50 | $3.50 | $0.30 | tools, json_mode, structured_outputs, logprobs, reasoning |
 | MiniMax M3 (428B) | `morph-minimax3-428b` | 256k | $0.30 | $1.20 | — | tools, json_mode, structured_outputs, logprobs, reasoning |
 | Gemma 4 31B | `morph-gemma4-31b` | 175k | $0.14 | $0.40 | $0.08 | tools, json_mode, structured_outputs, logprobs, reasoning |
 | Qwen 3.6 27B | `morph-qwen36-27b` | 131k | $0.289 | $2.40 | — | tools, json_mode, structured_outputs, logprobs, reasoning |
 
-Kimi K3, Qwen 3.5 397B, MiniMax M3, and Gemma 4 31B accept image input as well as text.
+Kimi K3, MiniMax M3, and Gemma 4 31B accept image input as well as text.
 
 ## Examples
 

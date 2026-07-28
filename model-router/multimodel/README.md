@@ -15,7 +15,10 @@ MORPH_API_KEY=your-key npx tsx route.ts
 MORPH_API_KEY=your-key npx tsx route.ts "Rename the variable foo to bar in utils.py"
 ```
 
-The second hop needs the chosen provider's own key. Set whichever you have:
+The second hop needs the chosen provider's own key. Morph does not proxy these — `glm-5.2`,
+`claude-opus-4-8`, and the rest of the router's catalog are not served by `api.morphllm.com`, so
+you call each provider directly. The env var names below are this example's own convention; nothing
+in the Morph API reads them. Set whichever you have:
 
 | Provider | Env var | API |
 |---|---|---|
